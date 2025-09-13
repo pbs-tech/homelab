@@ -1,0 +1,12 @@
+---
+# Common setup handlers
+
+- name: restart ssh
+  service:
+    name: ssh
+    state: restarted
+
+- name: restart rsyslog
+  service:
+    name: rsyslog
+    state: restarted

@@ -1,0 +1,139 @@
+---
+all:
+  children:
+    proxmox_hosts:
+      hosts:
+        pve-mac:
+          ansible_host: 192.168.0.56
+          ansible_user: root
+          proxmox_host: 192.168.0.56
+          proxmox_user: root@pam
+        pve-nas:
+          ansible_host: 192.168.0.57
+          ansible_user: root
+          proxmox_host: 192.168.0.57
+          proxmox_user: root@pam
+    
+    bastion_host:
+      hosts:
+        k3s-bastion:
+          ansible_host: 192.168.0.110
+          ansible_user: pbs
+          container_id: 110
+        nas-bastion:
+          ansible_host: 192.168.0.109
+          ansible_user: pbs
+          container_id: 109
+    k3s_cluster:
+      hosts:
+        k3s-1:
+          ansible_host: 192.168.0.111
+          ansible_user: pbs
+        k3s-2:
+          ansible_host: 192.168.0.112
+          ansible_user: pbs
+        k3s-3:
+          ansible_host: 192.168.0.113
+          ansible_user: pbs
+        k3s-4:
+          ansible_host: 192.168.0.114
+          ansible_user: pbs
+    
+    
+    lxc_containers:
+      children:
+        monitoring:
+          hosts:
+            prometheus-lxc:
+              ansible_host: 192.168.0.200
+              container_id: 200
+              service_port: 9090
+            grafana-lxc:
+              ansible_host: 192.168.0.201
+              container_id: 201
+              service_port: 3000
+            alertmanager-lxc:
+              ansible_host: 192.168.0.206
+              container_id: 206
+              service_port: 9093
+            pve-exporter-lxc:
+              ansible_host: 192.168.0.207
+              container_id: 207
+              service_port: 9221
+        
+        networking:
+          hosts:
+            unbound-lxc:
+              ansible_host: 192.168.0.202
+              container_id: 202
+              service_port: 53
+            wireguard-lxc:
+              ansible_host: 192.168.0.203
+              container_id: 203
+              service_port: 51820
+            adguard-lxc:
+              ansible_host: 192.168.0.204
+              container_id: 204
+              service_port: 80
+            traefik-lxc:
+              ansible_host: 192.168.0.205
+              container_id: 205
+              service_port: 80
+            openwrt-lxc:
+              ansible_host: 192.168.0.209
+              container_id: 209
+              service_port: 80
+        
+        automation:
+          hosts:
+            homeassistant-lxc:
+              ansible_host: 192.168.0.208
+              container_id: 208
+              service_port: 8123
+        
+        logging:
+          hosts:
+            loki-lxc:
+              ansible_host: 192.168.0.210
+              container_id: 210
+              service_port: 3100
+        
+        nas_services:
+          hosts:
+            sonarr-lxc:
+              ansible_host: 192.168.0.230
+              container_id: 230
+              service_port: 8989
+            radarr-lxc:
+              ansible_host: 192.168.0.231
+              container_id: 231
+              service_port: 7878
+            bazarr-lxc:
+              ansible_host: 192.168.0.232
+              container_id: 232
+              service_port: 6767
+            prowlarr-lxc:
+              ansible_host: 192.168.0.233
+              container_id: 233
+              service_port: 9696
+            qbittorrent-lxc:
+              ansible_host: 192.168.0.234
+              container_id: 234
+              service_port: 8080
+            jellyfin-lxc:
+              ansible_host: 192.168.0.235
+              container_id: 235
+              service_port: 8096
+        
+        nas_monitoring:
+          hosts:
+            pve-exporter-nas-lxc:
+              ansible_host: 192.168.0.240
+              container_id: 240
+              service_port: 9221
+        
+        nas_storage:
+          hosts:
+            truenas-vm:
+              ansible_host: 192.168.0.220
+              vm_id: 220

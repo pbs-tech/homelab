@@ -1,0 +1,18 @@
+---
+# Default container settings
+container_disk_size: "8"
+container_cores: 1
+container_memory: 512
+container_swap: 0
+container_onboot: true
+container_unprivileged: true
+container_template: "local:vztmpl/{{ container_template_name | default('ubuntu-22.04-standard_22.04-1_amd64.tar.zst') }}"
+container_template_name: "ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
+
+# Default network configuration (bridge with DHCP)
+container_network_config:
+  net0: "name=eth0,bridge=vmbr0,ip=dhcp"
+
+# Default groups
+container_groups:
+  - lxc_containers

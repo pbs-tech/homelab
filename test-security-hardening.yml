@@ -1,0 +1,263 @@
+---
+# Security Hardening Test and Validation Playbook
+# This playbook tests and validates security configurations
+
+- name: Test Pi security hardening (dry run)
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Display test overview
+      debug:
+        msg: |
+          ============================================================
+          SECURITY HARDENING VALIDATION TEST
+          ============================================================
+          
+          This playbook will validate security configurations for:
+          - Raspberry Pi K3s nodes (k3-01,02,03 + k3-04)
+          - Proxmox hosts (pve-mac, pve-nas)
+          - LXC containers (existing + new nas services)
+          
+          Tests will verify:
+          ✓ UFW firewall rules and status
+          ✓ Fail2ban configuration and active jails
+          ✓ SSH hardening settings
+          ✓ .local domain resolution (avahi-daemon)
+          ✓ Unattended upgrades configuration
+          ✓ System hardening settings
+          ✓ Log rotation and monitoring
+          ✓ Pi-specific optimizations
+          ✓ K3s security configurations
+          
+          Run with: ansible-playbook test-security-hardening.yml
+          
+    - name: Syntax check - K3s security role
+      include_role:
+        name: homelab.k3s.security_hardening
+      check_mode: yes
+      delegate_to: localhost
+      vars:
+        ansible_connection: local
+      tags: ['syntax-check']
+      
+    - name: Syntax check - Proxmox LXC security role  
+      include_role:
+        name: homelab.proxmox_lxc.security_hardening
+      check_mode: yes
+      delegate_to: localhost
+      vars:
+        ansible_connection: local
+      tags: ['syntax-check']
+
+- name: Validate K3s Pi security configurations
+  hosts: k3s_cluster
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Test UFW firewall configuration
+      block:
+        - name: Check UFW status
+          command: ufw status verbose
+          register: ufw_check
+          changed_when: false
+          
+        - name: Validate required UFW rules exist
+          command: ufw status numbered
+          register: ufw_rules
+          changed_when: false
+          
+        - name: Test required ports are allowed
+          shell: |
+            ufw status | grep -E "(22|6443|10250|8472|51820)" || echo "Missing required ports"
+          register: port_check
+          changed_when: false
+          
+    - name: Test SSH hardening
+      block:
+        - name: Validate SSH configuration
+          command: sshd -t
+          register: ssh_config_validation
+          changed_when: false
+          
+        - name: Check SSH security settings
+          shell: |
+            grep -E "(PermitRootLogin no|PasswordAuthentication no|Port 22)" /etc/ssh/sshd_config | wc -l
+          register: ssh_security_check
+          changed_when: false
+          
+    - name: Test .local domain resolution
+      block:
+        - name: Check avahi-daemon status
+          systemd:
+            name: avahi-daemon
+          register: avahi_status
+          
+        - name: Test .local resolution
+          command: "avahi-resolve -n {{ inventory_hostname }}.local"
+          register: local_resolution_test
+          failed_when: false
+          changed_when: false
+          
+    - name: Test fail2ban configuration
+      block:
+        - name: Check fail2ban status
+          command: fail2ban-client status
+          register: fail2ban_check
+          changed_when: false
+          
+        - name: Verify SSH jail is active
+          command: fail2ban-client status sshd
+          register: ssh_jail_check
+          failed_when: false
+          changed_when: false
+          
+    - name: Test unattended upgrades
+      block:
+        - name: Check unattended-upgrades configuration
+          stat:
+            path: /etc/apt/apt.conf.d/50unattended-upgrades
+          register: unattended_config_check
+          
+        - name: Verify service is enabled
+          systemd:
+            name: unattended-upgrades
+          register: unattended_service_check
+          
+    - name: Test system hardening
+      block:
+        - name: Check sysctl security settings
+          command: sysctl net.ipv4.conf.all.send_redirects
+          register: sysctl_check
+          changed_when: false
+          
+        - name: Verify file permissions
+          stat:
+            path: /etc/shadow
+          register: shadow_perms
+          
+    - name: Pi-specific tests
+      block:
+        - name: Check if running on Pi
+          set_fact:
+            is_raspberry_pi: "{{ raspberry_pi | default(false) }}"
+            
+        - name: Test Pi boot configuration
+          stat:
+            path: /boot/config.txt
+          register: boot_config_check
+          when: is_raspberry_pi
+          
+        - name: Check log2ram installation
+          stat:
+            path: /usr/local/bin/log2ram
+          register: log2ram_check
+          when: is_raspberry_pi
+          
+    - name: K3s-specific security tests
+      block:
+        - name: Test K3s audit policy (servers only)
+          stat:
+            path: /etc/rancher/k3s/audit-policy.yaml
+          register: audit_policy_check
+          when: inventory_hostname in groups['server']
+          
+        - name: Check K3s service configuration
+          systemd:
+            name: "{{ 'k3s' if inventory_hostname in groups['server'] else 'k3s-agent' }}"
+          register: k3s_service_check
+          when: ansible_facts.services['k3s.service'] is defined or ansible_facts.services['k3s-agent.service'] is defined
+          
+    - name: Generate individual node test report
+      debug:
+        msg: |
+          ========================================
+          SECURITY TEST REPORT: {{ inventory_hostname }}
+          ========================================
+          
+          Node Type: {{ 'Pi' if is_raspberry_pi | default(false) else 'Standard' }}
+          K3s Role: {{ 'Server' if inventory_hostname in groups['server'] else 'Agent' }}
+          
+          🔥 FIREWALL TESTS:
+          - UFW Active: {{ 'PASS' if 'Status: active' in ufw_check.stdout else 'FAIL' }}
+          - Required Ports: {{ 'PASS' if port_check.stdout == '' else 'FAIL - ' + port_check.stdout }}
+          
+          🔐 SSH SECURITY:
+          - Config Valid: {{ 'PASS' if ssh_config_validation.rc == 0 else 'FAIL' }}
+          - Security Settings: {{ 'PASS' if ssh_security_check.stdout | int >= 3 else 'PARTIAL' }}
+          
+          🌐 DOMAIN RESOLUTION:
+          - Avahi Running: {{ 'PASS' if avahi_status.status.ActiveState == 'active' else 'FAIL' }}
+          - .local Resolution: {{ 'PASS' if local_resolution_test.rc == 0 else 'FAIL' }}
+          
+          🛡️ FAIL2BAN:
+          - Service Active: {{ 'PASS' if fail2ban_check.rc == 0 else 'FAIL' }}
+          - SSH Jail: {{ 'PASS' if ssh_jail_check.rc == 0 else 'FAIL' }}
+          
+          📦 AUTO UPDATES:
+          - Config Present: {{ 'PASS' if unattended_config_check.stat.exists else 'FAIL' }}
+          - Service Enabled: {{ 'PASS' if unattended_service_check.status.UnitFileState == 'enabled' else 'FAIL' }}
+          
+          🔒 SYSTEM HARDENING:
+          - Sysctl Settings: {{ 'PASS' if '0' in sysctl_check.stdout else 'FAIL' }}
+          - File Permissions: {{ 'PASS' if shadow_perms.stat.mode == '0600' else 'FAIL' }}
+          
+          {% if is_raspberry_pi | default(false) %}
+          🥧 PI-SPECIFIC:
+          - Boot Config: {{ 'PASS' if boot_config_check.stat.exists else 'FAIL' }}
+          - Log2ram: {{ 'PASS' if log2ram_check.stat.exists else 'OPTIONAL' }}
+          {% endif %}
+          
+          {% if inventory_hostname in groups['server'] %}
+          ☸️ K3S SERVER:
+          - Audit Policy: {{ 'PASS' if audit_policy_check.stat.exists else 'FAIL' }}
+          - Service Running: {{ 'PASS' if k3s_service_check.status.ActiveState == 'active' else 'FAIL' }}
+          {% endif %}
+          
+          Overall Status: {{ 'SECURE' if ufw_check.rc == 0 and ssh_config_validation.rc == 0 and avahi_status.status.ActiveState == 'active' else 'NEEDS ATTENTION' }}
+
+- name: Generate final validation summary
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Display validation complete message
+      debug:
+        msg: |
+          
+          ============================================================
+          SECURITY VALIDATION COMPLETED
+          ============================================================
+          
+          ✅ WHAT WAS TESTED:
+          - UFW firewall configuration and K3s-specific rules
+          - SSH hardening with modern cryptography
+          - Fail2ban protection for SSH and K3s services
+          - .local domain resolution via avahi-daemon
+          - Unattended security updates (Pi-optimized)
+          - System hardening (sysctl, permissions, etc.)
+          - Pi-specific optimizations and boot configuration
+          - K3s audit logging and security policies
+          
+          📋 TO APPLY SECURITY HARDENING:
+          
+          For K3s Pi nodes:
+            ansible-playbook ansible_collections/homelab/k3s/playbooks/security-hardening.yml
+          
+          For Proxmox and LXC services:  
+            ansible-playbook ansible_collections/homelab/proxmox_lxc/site.yml --tags security
+          
+          📋 TO RUN FULL DEPLOYMENT WITH SECURITY:
+          
+          Complete homelab deployment:
+            ansible-playbook site.yml
+          
+          K3s only with security:
+            ansible-playbook site.yml --tags "k3s,cluster,security"
+          
+          Proxmox services only with security:
+            ansible-playbook site.yml --tags "proxmox,lxc,services,security"
+            
+          🎯 All Pi nodes will be accessible via .local domains:
+          - k3-01.local (server)
+          - k3-02.local, k3-03.local, k3-04.local (agents)
+          
+          Security monitoring runs every 30 minutes on all nodes.

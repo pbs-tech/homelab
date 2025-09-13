@@ -1,0 +1,4 @@
+---
+- name: update template cache
+  shell: pveam update
+  listen: "refresh template cache"

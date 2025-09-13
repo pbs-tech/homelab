@@ -1,0 +1,67 @@
+// Pi-specific unattended upgrades configuration
+// More conservative approach for K3s cluster nodes
+
+// Automatically upgrade packages from these repositories
+Unattended-Upgrade::Allowed-Origins {
+        "${distro_id}:${distro_codename}";
+        "${distro_id}:${distro_codename}-security";
+        "${distro_id}ESMApps:${distro_codename}-apps-security";
+        "${distro_id}ESM:${distro_codename}-infra-security";
+        // Only security updates for cluster stability
+        // "${distro_id}:${distro_codename}-updates";
+};
+
+// Pi and K3s specific packages to avoid updating automatically
+Unattended-Upgrade::Package-Blacklist {
+{% for package in pi_security_hardening.unattended_upgrades.package_blacklist %}
+        "{{ package }}";
+{% endfor %}
+        // K3s related packages - manage manually
+        "k3s";
+        "kubectl";
+        "docker*";
+        "containerd*";
+        // Pi firmware - manage manually to avoid boot issues
+        "raspberrypi-bootloader*";
+        "raspberrypi-kernel*";
+        "firmware-*";
+};
+
+// Handle interrupted dpkg
+Unattended-Upgrade::AutoFixInterruptedDpkg "true";
+
+// Minimal steps for Pi stability
+Unattended-Upgrade::MinimalSteps "true";
+
+// Only security upgrades for cluster nodes
+Unattended-Upgrade::DevRelease "false";
+
+// Email notifications disabled for Pi nodes
+//Unattended-Upgrade::Mail "";
+//Unattended-Upgrade::MailOnlyOnError "false";
+
+// Conservative kernel package management
+Unattended-Upgrade::Remove-Unused-Kernel-Packages "false";
+
+// Clean up dependencies
+Unattended-Upgrade::Remove-New-Unused-Dependencies "true";
+Unattended-Upgrade::Remove-Unused-Dependencies "false";
+
+// Never auto-reboot cluster nodes
+Unattended-Upgrade::Automatic-Reboot "false";
+
+// Use bandwidth limit for Pi network
+Unattended-Upgrade::Acquire::http::Dl-Limit "70";
+
+// Enable logging
+Unattended-Upgrade::SyslogEnable "true";
+Unattended-Upgrade::SyslogFacility "daemon";
+
+// Skip updates on metered connections
+Unattended-Upgrade::Skip-Updates-On-Metered-Connections "true";
+
+// Verbose logging for troubleshooting
+Unattended-Upgrade::Verbose "true";
+
+// Pi-specific: Update only during low-usage hours
+Unattended-Upgrade::Update-Days {"Mon";"Tue";"Wed";"Thu";"Fri";};

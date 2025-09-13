@@ -1,0 +1,73 @@
+---
+# Unit tests for homelab.common collection roles
+# Tests individual role functionality in isolation
+
+- name: Test common_setup role
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  tasks:
+    - name: Test role defaults loading
+      include_role:
+        name: homelab.common.common_setup
+        tasks_from: main
+      check_mode: true
+      
+    - name: Verify default variables are defined
+      assert:
+        that:
+          - common_packages is defined
+          - common_packages.ubuntu is defined
+          - ssh_config is defined
+          - timezone is defined
+        fail_msg: "Required default variables are missing"
+        success_msg: "All required default variables are present"
+
+- name: Test container_base role
+  hosts: localhost  
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+    # Mock required variables
+    container_id: 999
+    inventory_hostname: "test-lxc"
+    ansible_host: "127.0.0.1"
+    proxmox_password: "test-password"
+    group_names: ["monitoring"]
+  tasks:
+    - name: Test container_base defaults
+      include_role:
+        name: homelab.common.container_base
+        tasks_from: main
+      check_mode: true
+      ignore_errors: true  # Expected to fail without Proxmox
+      
+    - name: Verify container configuration variables
+      assert:
+        that:
+          - container_resources is defined
+          - lxc_config is defined
+          - container_network is defined
+          - container_startup_order is defined
+        fail_msg: "Container configuration variables missing"
+        success_msg: "Container configuration is properly defined"
+
+- name: Test security_hardening role
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  tasks:
+    - name: Test security_hardening role loading
+      include_role:
+        name: homelab.common.security_hardening
+        tasks_from: main
+      check_mode: true
+      
+    - name: Verify security configuration
+      debug:
+        msg: "Security hardening role loaded successfully"

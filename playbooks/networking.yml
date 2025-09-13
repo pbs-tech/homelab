@@ -1,0 +1,55 @@
+---
+# Networking services deployment
+# DNS, VPN, reverse proxy, and network management
+
+- name: Deploy DNS infrastructure
+  hosts: networking
+  serial: 1  # Deploy DNS services one at a time to avoid conflicts
+  become: true
+  gather_facts: true
+  pre_tasks:
+    - name: Ensure networking containers exist
+      include_role:
+        name: homelab.common.container_base
+      when: 
+        - inventory_hostname.endswith('-lxc')
+        - container_id is defined
+
+  roles:
+    - role: homelab.common.common_setup
+      tags: [common_setup]
+    
+    - role: homelab.proxmox_lxc.unbound
+      when: inventory_hostname.startswith('unbound')
+      tags: [dns, unbound]
+    
+    - role: homelab.proxmox_lxc.adguard  
+      when: inventory_hostname.startswith('adguard')
+      tags: [dns, adguard]
+    
+    - role: homelab.proxmox_lxc.wireguard
+      when: inventory_hostname.startswith('wireguard')
+      tags: [vpn, wireguard]
+    
+    - role: homelab.proxmox_lxc.openwrt
+      when: inventory_hostname.startswith('openwrt')
+      tags: [network, openwrt]
+
+- name: Deploy reverse proxy infrastructure
+  hosts: networking
+  become: true
+  gather_facts: true
+  roles:
+    - role: homelab.proxmox_lxc.traefik
+      when: inventory_hostname.startswith('traefik')
+      tags: [proxy, traefik]
+
+  post_tasks:
+    - name: Verify networking services
+      uri:
+        url: "http://{{ ansible_host }}:{{ service_port | default(80) }}"
+        method: GET
+        timeout: 30
+        status_code: [200, 301, 302, 404]
+      delegate_to: localhost
+      when: inventory_hostname.startswith('traefik')

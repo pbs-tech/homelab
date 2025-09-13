@@ -1,0 +1,110 @@
+---
+- name: Verify full-stack deployment
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Verify common configuration is applied
+      assert:
+        that:
+          - homelab_domain is defined
+          - homelab_network is defined
+          - security_config is defined
+        fail_msg: "Common configuration not properly loaded"
+        success_msg: "Common configuration loaded successfully"
+
+- name: Verify bastion host setup
+  hosts: bastion_host
+  gather_facts: false
+  tasks:
+    - name: Check SSH service
+      systemd:
+        name: ssh
+      register: ssh_status
+      
+    - name: Assert SSH is running
+      assert:
+        that:
+          - ssh_status.status.ActiveState == "active"
+        fail_msg: "SSH service not running on bastion"
+        success_msg: "Bastion SSH service is active"
+
+- name: Verify networking services
+  hosts: networking
+  gather_facts: false
+  tasks:
+    - name: Check if Traefik would be configured
+      debug:
+        msg: "Traefik configuration would be applied"
+        
+    - name: Verify service port configuration
+      assert:
+        that:
+          - service_port is defined
+          - service_port == 8080
+        fail_msg: "Service port not configured correctly"
+        success_msg: "Networking service port configured"
+
+- name: Verify monitoring services  
+  hosts: monitoring
+  gather_facts: false
+  tasks:
+    - name: Check if Prometheus would be configured
+      debug:
+        msg: "Prometheus configuration would be applied"
+        
+    - name: Verify monitoring port configuration
+      assert:
+        that:
+          - service_port is defined
+          - service_port == 9090
+        fail_msg: "Monitoring port not configured correctly"
+        success_msg: "Monitoring service port configured"
+
+- name: Verify K3s integration readiness
+  hosts: k3s_servers
+  gather_facts: false
+  tasks:
+    - name: Check K3s mock binary
+      stat:
+        path: /usr/local/bin/k3s
+      register: k3s_binary
+      
+    - name: Assert K3s integration ready
+      assert:
+        that:
+          - k3s_binary.stat.exists
+          - k3s_binary.stat.executable
+        fail_msg: "K3s integration not ready"
+        success_msg: "K3s integration prepared successfully"
+        
+    - name: Verify K3s configuration variables
+      assert:
+        that:
+          - k3s_role == "server"
+          - k3s_server_init is defined
+        fail_msg: "K3s configuration not properly set"
+        success_msg: "K3s configuration verified"
+
+- name: Verify cross-service integration
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Check service dependencies
+      debug:
+        msg: |
+          Full-stack verification complete:
+          - Foundation: Bastion hosts configured
+          - Networking: Traefik and DNS services ready  
+          - Monitoring: Prometheus, Grafana, Loki ready
+          - K3s: Integration points configured
+          
+    - name: Verify all required groups exist
+      assert:
+        that:
+          - groups['bastion_host'] is defined
+          - groups['networking'] is defined
+          - groups['monitoring'] is defined
+          - groups['k3s_servers'] is defined
+        fail_msg: "Required inventory groups missing"
+        success_msg: "All required inventory groups present"

@@ -1,0 +1,106 @@
+plugin: community.proxmox.proxmox
+url: https://192.168.0.56:8006
+username: root@pam
+password: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          # Replace this with your actual encrypted Proxmox password
+          # Use: ansible-vault encrypt_string 'your_proxmox_password' --name 'password'
+
+# Verify SSL certificates - set to false if using self-signed certs
+validate_certs: false
+
+# Compose inventory groups based on Proxmox attributes
+compose:
+  # Set ansible_host to the first IP address found
+  ansible_host: ansible_host | default(proxmox_ipconfig0_ip0.split('/')[0]) if proxmox_ipconfig0_ip0 else proxmox_net0_ip
+  # Set container_id from Proxmox VMID
+  container_id: proxmox_vmid
+  # Set service_port based on known services (can be overridden in host_vars)
+  service_port: >-
+    9090 if inventory_hostname.startswith('prometheus') else
+    3000 if inventory_hostname.startswith('grafana') else
+    9093 if inventory_hostname.startswith('alertmanager') else
+    9221 if inventory_hostname.startswith('pve-exporter') else
+    53 if inventory_hostname.startswith('unbound') else
+    51820 if inventory_hostname.startswith('wireguard') else
+    80 if inventory_hostname.startswith('adguard') or inventory_hostname.startswith('traefik') or inventory_hostname.startswith('openwrt') else
+    8123 if inventory_hostname.startswith('homeassistant') else
+    3100 if inventory_hostname.startswith('loki') else
+    8989 if inventory_hostname.startswith('sonarr') else
+    7878 if inventory_hostname.startswith('radarr') else
+    6767 if inventory_hostname.startswith('bazarr') else
+    9696 if inventory_hostname.startswith('prowlarr') else
+    8080 if inventory_hostname.startswith('qbittorrent') else
+    8096 if inventory_hostname.startswith('jellyfin') else
+    22
+
+# Create groups based on VM/container names and status
+groups:
+  # Group by container type
+  lxc_containers: "'lxc' in proxmox_type"
+  vms: "'qemu' in proxmox_type"
+  
+  # Group by service categories based on naming patterns
+  monitoring: >-
+    inventory_hostname.startswith('prometheus') or
+    inventory_hostname.startswith('grafana') or
+    inventory_hostname.startswith('alertmanager') or
+    inventory_hostname.startswith('pve-exporter')
+  
+  networking: >-
+    inventory_hostname.startswith('unbound') or
+    inventory_hostname.startswith('wireguard') or
+    inventory_hostname.startswith('adguard') or
+    inventory_hostname.startswith('traefik') or
+    inventory_hostname.startswith('openwrt')
+  
+  automation: >-
+    inventory_hostname.startswith('homeassistant')
+  
+  logging: >-
+    inventory_hostname.startswith('loki')
+  
+  nas_services: >-
+    inventory_hostname.startswith('sonarr') or
+    inventory_hostname.startswith('radarr') or
+    inventory_hostname.startswith('bazarr') or
+    inventory_hostname.startswith('prowlarr') or
+    inventory_hostname.startswith('qbittorrent') or
+    inventory_hostname.startswith('jellyfin')
+  
+  nas_monitoring: >-
+    inventory_hostname.startswith('pve-exporter-nas')
+  
+  nas_storage: >-
+    inventory_hostname.startswith('truenas')
+  
+  bastion_host: >-
+    inventory_hostname.startswith('k3s-bastion') or
+    inventory_hostname.startswith('nas-bastion')
+
+  # Group by Proxmox node
+  pve_mac: "'pve-mac' in proxmox_node"
+  pve_nas: "'pve-nas' in proxmox_node"
+  
+  # Group by status
+  running: "'running' in proxmox_status"
+  stopped: "'stopped' in proxmox_status"
+
+# Set variables based on container characteristics
+keyed_groups:
+  - key: proxmox_node
+    prefix: node
+  - key: proxmox_type
+    prefix: type
+  - key: proxmox_status
+    prefix: status
+
+# Only include running containers/VMs by default
+filters:
+  - proxmox_status == "running"
+  
+# Cache settings for performance
+cache: true
+cache_plugin: memory
+cache_timeout: 300
+cache_connection: proxmox_inventory

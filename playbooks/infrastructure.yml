@@ -1,0 +1,57 @@
+---
+# Infrastructure deployment playbook with improved orchestration
+# This playbook provides fine-grained control over deployment phases
+
+- name: Validate infrastructure prerequisites
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Verify Ansible version
+      assert:
+        that:
+          - ansible_version.full is version('2.15.0', '>=')
+        fail_msg: "Ansible 2.15.0 or higher is required"
+        success_msg: "Ansible version check passed"
+
+    - name: Verify collections are available
+      assert:
+        that:
+          - lookup('ansible.builtin.env', 'ANSIBLE_COLLECTIONS_PATH') is defined or 
+            lookup('file', '../ansible_collections/homelab/common/galaxy.yml', errors='ignore') != ""
+        fail_msg: "homelab.common collection not found"
+        success_msg: "Collections check passed"
+
+- name: Deploy infrastructure foundation
+  import_playbook: foundation.yml
+  tags: 
+    - foundation
+    - phase1
+
+- name: Deploy networking services  
+  import_playbook: networking.yml
+  tags:
+    - networking
+    - phase2
+  when: not skip_networking | default(false)
+
+- name: Deploy monitoring infrastructure
+  import_playbook: monitoring.yml
+  tags:
+    - monitoring
+    - phase3
+  when: not skip_monitoring | default(false)
+
+- name: Deploy application services
+  import_playbook: applications.yml
+  tags:
+    - applications
+    - phase4
+  when: not skip_applications | default(false)
+
+- name: Deploy K3s cluster
+  import_playbook: ../ansible_collections/homelab/k3s/playbooks/site.yml
+  tags:
+    - k3s
+    - cluster
+    - phase5
+  when: not skip_k3s | default(false)

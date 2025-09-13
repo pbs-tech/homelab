@@ -1,0 +1,64 @@
+---
+- name: Configure Fail2ban for K3s nodes
+  template:
+    src: jail.local.k3s.j2
+    dest: /etc/fail2ban/jail.local
+    mode: '0644'
+    owner: root
+    group: root
+  notify: restart fail2ban
+
+- name: Create Fail2ban filter for K3s API server
+  template:
+    src: k3s-api.conf.j2
+    dest: /etc/fail2ban/filter.d/k3s-api.conf
+    mode: '0644'
+    owner: root
+    group: root
+  when: inventory_hostname in groups['server']
+  notify: restart fail2ban
+
+- name: Configure K3s-specific jails
+  blockinfile:
+    path: /etc/fail2ban/jail.local
+    marker: "# {mark} ANSIBLE MANAGED K3S JAILS"
+    block: |
+      [k3s-api]
+      enabled = {{ 'true' if inventory_hostname in groups['server'] else 'false' }}
+      port = 6443
+      filter = k3s-api
+      logpath = /var/lib/rancher/k3s/server/logs/audit.log
+      maxretry = {{ pi_security_hardening.fail2ban.maxretry }}
+      bantime = {{ pi_security_hardening.fail2ban.bantime }}
+      findtime = {{ pi_security_hardening.fail2ban.findtime }}
+      
+      [kubelet]
+      enabled = true
+      port = 10250
+      filter = kubelet
+      logpath = /var/log/syslog
+      maxretry = {{ pi_security_hardening.fail2ban.maxretry }}
+      bantime = {{ pi_security_hardening.fail2ban.bantime }}
+      findtime = {{ pi_security_hardening.fail2ban.findtime }}
+    insertafter: EOF
+  notify: restart fail2ban
+
+- name: Create Fail2ban filter for kubelet
+  copy:
+    content: |
+      # Fail2ban filter for Kubernetes kubelet
+      [Definition]
+      failregex = ^.*kubelet.*Unauthorized.*<HOST>.*$
+                  ^.*kubelet.*authentication.*failed.*<HOST>.*$
+      ignoreregex = ^.*kubelet.*authentication.*successful.*$
+    dest: /etc/fail2ban/filter.d/kubelet.conf
+    mode: '0644'
+    owner: root
+    group: root
+  notify: restart fail2ban
+
+- name: Start and enable Fail2ban
+  systemd:
+    name: fail2ban
+    state: started
+    enabled: yes

@@ -1,0 +1,44 @@
+---
+- name: Create LXC container in Proxmox
+  community.general.proxmox:
+    vmid: "{{ container_id }}"
+    node: "{{ proxmox_node }}"
+    hostname: "{{ container_hostname }}"
+    ostemplate: "{{ container_template }}"
+    pubkey: "{{ container_ssh_key | default(omit) }}"
+    disk: "{{ container_disk_size | default('8') }}"
+    cores: "{{ container_cores | default(1) }}"
+    memory: "{{ container_memory | default(512) }}"
+    swap: "{{ container_swap | default(0) }}"
+    netif: "{{ container_network_config }}"
+    onboot: "{{ container_onboot | default(true) }}"
+    unprivileged: "{{ container_unprivileged | default(true) }}"
+    state: present
+    timeout: 300
+  register: container_result
+  delegate_to: "{{ groups['proxmox'][0] }}"
+
+- name: Start LXC container
+  community.general.proxmox:
+    vmid: "{{ container_id }}"
+    node: "{{ proxmox_node }}"
+    state: started
+    timeout: 60
+  when: container_result is changed
+  delegate_to: "{{ groups['proxmox'][0] }}"
+
+- name: Wait for container to be reachable
+  wait_for:
+    host: "{{ container_ip }}"
+    port: 22
+    delay: 10
+    timeout: 120
+  when: container_result is changed
+
+- name: Add container to inventory
+  add_host:
+    name: "{{ container_hostname }}"
+    ansible_host: "{{ container_ip }}"
+    ansible_user: root
+    ansible_ssh_private_key_file: "{{ container_ssh_private_key | default(omit) }}"
+    groups: "{{ container_groups | default(['lxc_containers']) }}"

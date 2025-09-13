@@ -1,0 +1,53 @@
+---
+- name: Update package cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install security packages
+  apt:
+    name:
+      - ufw
+      - fail2ban
+      - unattended-upgrades
+      - apt-listchanges
+      - logrotate
+      - rsyslog
+    state: present
+
+- name: Configure UFW firewall
+  include_tasks: configure_ufw.yml
+  when: security_hardening.ufw_enabled
+
+- name: Configure SSH hardening
+  include_tasks: configure_ssh.yml
+
+- name: Configure Fail2ban
+  include_tasks: configure_fail2ban.yml
+  when: security_hardening.fail2ban.enabled
+
+- name: Configure automatic updates
+  include_tasks: configure_unattended_upgrades.yml
+  when: security_hardening.unattended_upgrades.enabled
+
+- name: Apply system hardening
+  include_tasks: system_hardening.yml
+
+- name: Configure logging
+  include_tasks: configure_logging.yml
+  when: security_hardening.logging.rsyslog_enabled
+
+- name: Create security monitoring script
+  template:
+    src: security_monitor.sh.j2
+    dest: /usr/local/bin/security_monitor.sh
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Setup security monitoring cron job
+  cron:
+    name: "Security monitoring"
+    minute: "*/15"
+    job: "/usr/local/bin/security_monitor.sh"
+    user: root

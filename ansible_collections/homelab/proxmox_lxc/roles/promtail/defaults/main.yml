@@ -1,0 +1,66 @@
+---
+promtail_version: "2.9.2"
+promtail_user: "promtail"
+promtail_group: "promtail"
+
+# Installation paths
+promtail_bin_dir: "/usr/local/bin"
+promtail_config_dir: "/etc/promtail"
+promtail_data_dir: "/var/lib/promtail"
+promtail_log_dir: "/var/log/promtail"
+
+# Loki endpoint
+loki_endpoint: "http://192.168.0.210:3100"
+
+# Server configuration
+promtail_listen_address: "0.0.0.0"
+promtail_listen_port: 9080
+promtail_grpc_listen_port: 9081
+
+# Position file for tracking log positions
+promtail_positions_file: "{{ promtail_data_dir }}/positions.yaml"
+
+# Service identification labels
+promtail_service_name: "{{ inventory_hostname }}"
+promtail_environment: "homelab"
+promtail_instance: "{{ ansible_default_ipv4.address }}"
+
+# Log scraping configuration
+promtail_scrape_configs:
+  - job_name: syslog
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: syslog
+          service: "{{ promtail_service_name }}"
+          environment: "{{ promtail_environment }}"
+          __path__: /var/log/syslog
+
+  - job_name: auth
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: auth
+          service: "{{ promtail_service_name }}"
+          environment: "{{ promtail_environment }}"
+          __path__: /var/log/auth.log
+
+  - job_name: daemon
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: daemon
+          service: "{{ promtail_service_name }}"
+          environment: "{{ promtail_environment }}"
+          __path__: /var/log/daemon.log
+
+  - job_name: journal
+    journal:
+      max_age: 12h
+      labels:
+        job: systemd-journal
+        service: "{{ promtail_service_name }}"
+        environment: "{{ promtail_environment }}"

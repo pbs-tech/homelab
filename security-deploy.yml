@@ -1,0 +1,40 @@
+---
+# Security-focused deployment orchestration
+# This playbook coordinates deployment phases for maximum security
+
+- name: Phase 1 - Create secured bastion host
+  hosts: proxmox_hosts
+  gather_facts: yes
+  become: yes
+  roles:
+    - homelab.proxmox_lxc.bastion
+  tags: ['phase1', 'bastion']
+
+# From this point, all subsequent operations should be run FROM the bastion host
+# Connect to bastion: ssh pbs@192.168.0.110
+# Then run: ansible-playbook -i inventory/ phase2-security.yml
+
+- name: Phase 2 - Deploy DNS security infrastructure
+  hosts: lxc_containers
+  gather_facts: yes
+  become: yes
+  serial: 1  # Deploy one at a time for stability
+  roles:
+    - role: homelab.proxmox_lxc.lxc_container
+      when: inventory_hostname in groups['networking']
+    - role: homelab.proxmox_lxc.unbound
+      when: inventory_hostname == 'unbound-lxc'
+    - role: homelab.proxmox_lxc.adguard
+      when: inventory_hostname == 'adguard-lxc'
+  tags: ['phase2', 'dns', 'security']
+
+- name: Phase 3 - Deploy VPN and reverse proxy
+  hosts: lxc_containers
+  gather_facts: yes
+  become: yes
+  roles:
+    - role: homelab.proxmox_lxc.wireguard
+      when: inventory_hostname == 'wireguard-lxc'
+    - role: homelab.proxmox_lxc.traefik
+      when: inventory_hostname == 'traefik-lxc'
+  tags: ['phase3', 'vpn', 'proxy']

@@ -1,0 +1,30 @@
+---
+- name: restart ssh
+  systemd:
+    name: ssh
+    state: restarted
+
+- name: restart fail2ban
+  systemd:
+    name: fail2ban
+    state: restarted
+
+- name: reload ufw
+  ufw:
+    state: reloaded
+
+- name: restart rsyslog
+  systemd:
+    name: rsyslog
+    state: restarted
+
+- name: restart avahi-daemon
+  systemd:
+    name: avahi-daemon
+    state: restarted
+
+- name: reboot pi
+  reboot:
+    reboot_timeout: 300
+    test_command: uptime
+  when: ansible_reboot_required | default(false)

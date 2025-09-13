@@ -1,0 +1,53 @@
+---
+- name: Reset UFW to defaults
+  ufw:
+    state: reset
+
+- name: Set UFW default policies
+  ufw:
+    direction: "{{ item.direction }}"
+    policy: "{{ item.policy }}"
+  loop:
+    - { direction: 'incoming', policy: "{{ security_hardening.ufw_default_policy.incoming }}" }
+    - { direction: 'outgoing', policy: "{{ security_hardening.ufw_default_policy.outgoing }}" }
+    - { direction: 'routed', policy: "{{ security_hardening.ufw_default_policy.routed }}" }
+
+- name: Allow SSH from management network
+  ufw:
+    rule: allow
+    port: "{{ security_hardening.ssh_hardening.port }}"
+    src: "192.168.0.0/24"
+    comment: "SSH from management network"
+
+- name: Allow service port
+  ufw:
+    rule: allow
+    port: "{{ service_port }}"
+    comment: "Service port for {{ inventory_hostname }}"
+  when: service_port is defined
+
+- name: Allow NFS traffic (internal only)
+  ufw:
+    rule: allow
+    port: "2049"
+    src: "{{ item }}"
+    comment: "NFS access"
+  loop: "{{ service_security.nfs_security.allowed_networks }}"
+  when: 
+    - inventory_hostname in groups['nas_storage']
+    - service_security.nfs_security.restrict_subnets
+
+- name: Deny direct internet access for download clients
+  ufw:
+    rule: deny
+    direction: out
+    to_ip: "0.0.0.0/0"
+    comment: "Block direct internet for download client"
+  when: 
+    - inventory_hostname == 'qbittorrent-lxc'
+    - service_security.arr_stack.vpn_required
+
+- name: Enable UFW
+  ufw:
+    state: enabled
+    logging: "on"

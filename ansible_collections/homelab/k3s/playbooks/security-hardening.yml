@@ -1,0 +1,209 @@
+---
+# K3s Pi Security Hardening Playbook
+# Run this to apply or update security configurations on K3s Pi nodes
+
+- name: Pre-hardening system check
+  hosts: k3s_cluster
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Display node information
+      debug:
+        msg: |
+          Applying security hardening to: {{ inventory_hostname }}
+          IP Address: {{ ansible_default_ipv4.address }}
+          Distribution: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          Architecture: {{ ansible_architecture }}
+          Raspberry Pi: {{ raspberry_pi | default('Unknown') }}
+
+    - name: Check current security services status
+      systemd:
+        name: "{{ item }}"
+      register: current_security_status
+      failed_when: false
+      loop:
+        - ufw
+        - fail2ban
+        - avahi-daemon
+
+    - name: Display current security status
+      debug:
+        msg: |
+          Current Security Status:
+          - UFW: {{ 'Active' if current_security_status.results[0].status is defined and current_security_status.results[0].status.ActiveState == 'active' else 'Inactive' }}
+          - Fail2ban: {{ 'Active' if current_security_status.results[1].status is defined and current_security_status.results[1].status.ActiveState == 'active' else 'Inactive' }}
+          - Avahi: {{ 'Active' if current_security_status.results[2].status is defined and current_security_status.results[2].status.ActiveState == 'active' else 'Inactive' }}
+
+- name: Apply comprehensive security hardening
+  hosts: k3s_cluster
+  gather_facts: true
+  become: true
+  roles:
+    - role: security_hardening
+  tags: ['hardening']
+
+- name: Configure K3s-specific security settings
+  hosts: server
+  become: true
+  tasks:
+    - name: Ensure audit policy exists
+      stat:
+        path: /etc/rancher/k3s/audit-policy.yaml
+      register: audit_policy_check
+      
+    - name: Create basic audit policy if missing
+      copy:
+        content: |
+          apiVersion: audit.k8s.io/v1
+          kind: Policy
+          rules:
+          - level: RequestResponse
+            resources:
+            - group: ""
+              resources: ["secrets", "configmaps"]
+          - level: Request
+            resources:
+            - group: ""
+              resources: ["*"]
+          - level: Metadata
+            resources:
+            - group: "apps"
+              resources: ["*"]
+        dest: /etc/rancher/k3s/audit-policy.yaml
+        mode: '0600'
+        owner: root
+        group: root
+      when: not audit_policy_check.stat.exists
+      
+    - name: Configure K3s server systemd security
+      lineinfile:
+        path: /etc/systemd/system/k3s.service
+        regexp: '^ExecStart='
+        line: 'ExecStart=/usr/local/bin/k3s server --audit-log-path=/var/lib/rancher/k3s/server/logs/audit.log --audit-policy-file=/etc/rancher/k3s/audit-policy.yaml'
+        backup: yes
+      notify: restart k3s
+      when: ansible_facts.services['k3s.service'] is defined
+  
+  handlers:
+    - name: restart k3s
+      systemd:
+        name: k3s
+        state: restarted
+        daemon_reload: yes
+
+- name: Post-hardening verification and testing
+  hosts: k3s_cluster
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Wait for services to stabilize
+      pause:
+        seconds: 30
+        
+    - name: Verify all security services are running
+      systemd:
+        name: "{{ item }}"
+      register: security_verification
+      loop:
+        - ufw
+        - fail2ban  
+        - avahi-daemon
+        - rsyslog
+        - unattended-upgrades
+        
+    - name: Test UFW firewall rules
+      command: ufw status numbered
+      register: ufw_rules
+      changed_when: false
+      
+    - name: Test .local domain resolution
+      command: "avahi-resolve -n {{ inventory_hostname }}.local"
+      register: local_domain_test
+      failed_when: false
+      changed_when: false
+      
+    - name: Test SSH configuration
+      command: sshd -t
+      register: ssh_config_test
+      failed_when: ssh_config_test.rc != 0
+      changed_when: false
+      
+    - name: Check fail2ban jails
+      command: fail2ban-client status
+      register: fail2ban_status
+      changed_when: false
+      
+    - name: Generate security hardening report
+      debug:
+        msg: |
+          ============================================================
+          SECURITY HARDENING REPORT: {{ inventory_hostname }}
+          ============================================================
+          
+          Pi Detection: {{ raspberry_pi | default('Unknown') }}
+          
+          Service Status:
+          {% for result in security_verification.results %}
+          - {{ result.item }}: {{ 'RUNNING' if result.status.ActiveState == 'active' else 'FAILED' }}
+          {% endfor %}
+          
+          Firewall Status:
+          {{ ufw_rules.stdout if ufw_rules.rc == 0 else 'UFW Error' }}
+          
+          .local Domain Resolution: {{ 'WORKING' if local_domain_test.rc == 0 else 'FAILED' }}
+          
+          SSH Configuration: {{ 'VALID' if ssh_config_test.rc == 0 else 'INVALID' }}
+          
+          Fail2ban Jails:
+          {{ fail2ban_status.stdout if fail2ban_status.rc == 0 else 'Fail2ban Error' }}
+          
+          ============================================================
+          
+    - name: Save hardening completion timestamp
+      copy:
+        content: |
+          Security hardening completed: {{ ansible_date_time.iso8601 }}
+          Applied to: {{ inventory_hostname }}
+          By: {{ ansible_user }}
+          Pi detected: {{ raspberry_pi | default(false) }}
+        dest: /var/log/security-hardening-completed
+        mode: '0644'
+        owner: root
+        group: root
+
+- name: Update main playbook integration
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Display next steps
+      debug:
+        msg: |
+          
+          ========================================
+          SECURITY HARDENING COMPLETED
+          ========================================
+          
+          Next steps:
+          1. Run main K3s deployment: 
+             ansible-playbook ansible_collections/homelab/k3s/playbooks/site.yml
+             
+          2. Or apply only security changes to existing cluster:
+             ansible-playbook ansible_collections/homelab/k3s/playbooks/site.yml --tags security
+             
+          3. Verify deployment:
+             ansible-playbook ansible_collections/homelab/k3s/playbooks/site.yml --tags verify
+             
+          Security features enabled:
+          - UFW firewall with K3s-specific rules
+          - Fail2ban protection for SSH and K3s services  
+          - .local domain resolution via avahi-daemon
+          - SSH hardening with modern crypto
+          - Automatic security updates (Pi-optimized)
+          - Comprehensive logging and monitoring
+          - Pi-specific optimizations (if applicable)
+          
+          All Pi nodes now accessible via:
+          - k3-01.local (server)
+          - k3-02.local (agent)
+          - k3-03.local (agent)
+          - k3-04.local (agent)

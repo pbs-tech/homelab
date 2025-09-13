@@ -1,0 +1,26 @@
+---
+namespace: homelab
+name: k3s
+version: 1.0.0
+readme: README.md
+authors:
+  - "Homelab Administrator"
+  - "K3s Ansible Community"
+description: Ansible collection for deploying K3s Kubernetes cluster on Raspberry Pi nodes
+license:
+  - Apache-2.0
+tags:
+  - k3s
+  - kubernetes
+  - raspberry-pi
+  - homelab
+  - cluster
+dependencies:
+  homelab.common: "*"
+  community.general: ">=7.0.0"
+  ansible.posix: ">=1.5.0"
+repository: ""
+documentation: ""
+homepage: ""
+issues: ""
+build_ignore: []

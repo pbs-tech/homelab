@@ -1,0 +1,101 @@
+---
+# Full-stack convergence test using the new phased deployment approach
+# This tests the complete infrastructure orchestration
+
+- name: Test Phase 1 - Foundation (Bastion)
+  import_playbook: ../../playbooks/foundation.yml
+  vars:
+    # Override for molecule testing
+    skip_proxmox_api_calls: true
+
+- name: Test Phase 2 - Networking Services
+  import_playbook: ../../playbooks/networking.yml
+  vars:
+    skip_proxmox_api_calls: true
+
+- name: Test Phase 3 - Monitoring Services  
+  import_playbook: ../../playbooks/monitoring.yml
+  vars:
+    skip_proxmox_api_calls: true
+
+# Mock K3s deployment for integration testing
+- name: Test Phase 5 - Mock K3s Integration
+  hosts: k3s_servers
+  become: true
+  gather_facts: true
+  vars:
+    # Mock K3s configuration for testing
+    k3s_version: "v1.30.2+k3s1"
+    k3s_token: "molecule-test-token"
+    k3s_cluster_name: "molecule-cluster"
+    test_ssh_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC... molecule-test-key"
+    
+  pre_tasks:
+    - name: Create SSH key directory
+      file:
+        path: /tmp
+        state: directory
+        mode: '0755'
+        
+    - name: Create mock SSH private key
+      copy:
+        content: |
+          -----BEGIN OPENSSH PRIVATE KEY-----
+          # Mock key for molecule testing
+          -----END OPENSSH PRIVATE KEY-----
+        dest: "{{ security_config.ssh_key_path }}"
+        mode: '0600'
+        
+    - name: Create mock SSH public key
+      copy:
+        content: "{{ test_ssh_key }}"
+        dest: "{{ security_config.ssh_key_path }}.pub"
+        mode: '0644'
+        
+    # Mock K3s binary for testing
+    - name: Create mock K3s binary
+      copy:
+        content: |
+          #!/bin/bash
+          # Mock K3s binary for molecule testing
+          echo "k3s version {{ k3s_version }}"
+          case "$1" in
+            "server")
+              echo "Starting K3s server (mock)"
+              # Create mock kubeconfig
+              mkdir -p /etc/rancher/k3s
+              echo "apiVersion: v1" > /etc/rancher/k3s/k3s.yaml
+              ;;
+            "kubectl")
+              echo "kubectl mock command"
+              ;;
+            *)
+              echo "K3s mock: $@"
+              ;;
+          esac
+        dest: /usr/local/bin/k3s
+        mode: '0755'
+        
+  tasks:
+    - name: Test common setup
+      include_role:
+        name: homelab.common.common_setup
+      tags: [common_setup]
+        
+    - name: Mock K3s server setup
+      systemd:
+        name: k3s-mock
+        enabled: true
+        daemon_reload: true
+        state: started
+      ignore_errors: true  # Service won't actually exist
+      
+    - name: Test security hardening
+      include_role:
+        name: homelab.common.security_hardening
+      tags: [security_hardening]
+
+  post_tasks:
+    - name: Verify K3s integration setup
+      debug:
+        msg: "K3s integration setup completed (mock)"

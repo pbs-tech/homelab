@@ -1,0 +1,22 @@
+---
+- name: Configure unattended-upgrades for Pi
+  template:
+    src: 50unattended-upgrades-pi.j2
+    dest: /etc/apt/apt.conf.d/50unattended-upgrades
+    mode: '0644'
+    owner: root
+    group: root
+
+- name: Configure automatic updates for Pi
+  template:
+    src: 20auto-upgrades-pi.j2  
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    mode: '0644'
+    owner: root
+    group: root
+
+- name: Enable unattended-upgrades service
+  systemd:
+    name: unattended-upgrades
+    enabled: yes
+    state: started

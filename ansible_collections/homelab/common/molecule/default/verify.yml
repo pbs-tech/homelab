@@ -1,0 +1,65 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Verify SSH service is running
+      systemd:
+        name: ssh
+      register: ssh_status
+      
+    - name: Assert SSH service is active
+      assert:
+        that:
+          - ssh_status.status.ActiveState == "active"
+        fail_msg: "SSH service is not running"
+        success_msg: "SSH service is running properly"
+        
+    - name: Verify rsyslog service is running
+      systemd:
+        name: rsyslog
+      register: rsyslog_status
+      
+    - name: Assert rsyslog service is active
+      assert:
+        that:
+          - rsyslog_status.status.ActiveState == "active"
+        fail_msg: "Rsyslog service is not running"
+        success_msg: "Rsyslog service is running properly"
+
+    - name: Check if test user home directory exists
+      stat:
+        path: /home/testuser
+      register: user_home
+      
+    - name: Assert user home directory was created
+      assert:
+        that:
+          - user_home.stat.exists
+          - user_home.stat.isdir
+        fail_msg: "Test user home directory does not exist"
+        success_msg: "Test user home directory exists"
+        
+    - name: Verify SSH authorized_keys file exists
+      stat:
+        path: /home/testuser/.ssh/authorized_keys
+      register: auth_keys
+      
+    - name: Assert SSH key was added
+      assert:
+        that:
+          - auth_keys.stat.exists
+        fail_msg: "SSH authorized_keys file not found"
+        success_msg: "SSH authorized_keys file exists"
+        
+    - name: Check timezone configuration
+      command: timedatectl show --property=Timezone --value
+      register: timezone_check
+      changed_when: false
+      
+    - name: Assert timezone is set
+      assert:
+        that:
+          - timezone_check.stdout | length > 0
+        fail_msg: "Timezone not properly configured"
+        success_msg: "Timezone is configured: {{ timezone_check.stdout }}"

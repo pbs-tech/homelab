@@ -1,0 +1,41 @@
+---
+# Monitoring infrastructure deployment
+# Prometheus, Grafana, Loki, and related services
+
+- name: Deploy monitoring infrastructure
+  hosts: monitoring
+  become: true
+  gather_facts: true
+  pre_tasks:
+    - name: Ensure monitoring containers exist
+      include_role:
+        name: homelab.common.container_base
+      when: 
+        - inventory_hostname.endswith('-lxc')
+        - container_id is defined
+
+  roles:
+    - role: homelab.common.common_setup
+      tags: [common_setup]
+
+    - role: homelab.proxmox_lxc.prometheus
+      when: inventory_hostname.startswith('prometheus')
+      tags: [prometheus, metrics]
+
+    - role: homelab.proxmox_lxc.grafana
+      when: inventory_hostname.startswith('grafana')
+      tags: [grafana, visualization]
+
+    - role: homelab.proxmox_lxc.loki
+      when: inventory_hostname.startswith('loki')
+      tags: [loki, logging]
+
+  post_tasks:
+    - name: Verify monitoring services
+      uri:
+        url: "http://{{ ansible_host }}:{{ service_port }}"
+        method: GET
+        timeout: 30
+        status_code: [200, 302]
+      delegate_to: localhost
+      when: service_port is defined

@@ -1,0 +1,57 @@
+---
+# Application services deployment
+# Home automation, media services, and other applications
+
+- name: Deploy automation services
+  hosts: automation
+  become: true
+  gather_facts: true
+  pre_tasks:
+    - name: Ensure automation containers exist
+      include_role:
+        name: homelab.common.container_base
+      when: 
+        - inventory_hostname.endswith('-lxc')
+        - container_id is defined
+
+  roles:
+    - role: homelab.common.common_setup
+      tags: [common_setup]
+
+    # Add automation service roles as they are developed
+    # - role: homelab.proxmox_lxc.homeassistant
+    #   when: inventory_hostname.startswith('homeassistant')
+    #   tags: [homeassistant, automation]
+
+- name: Deploy NAS services
+  hosts: nas_services
+  become: true
+  gather_facts: true
+  serial: 2  # Deploy NAS services in batches to avoid resource contention
+  pre_tasks:
+    - name: Ensure NAS containers exist
+      include_role:
+        name: homelab.common.container_base
+      when: 
+        - inventory_hostname.endswith('-lxc')
+        - container_id is defined
+
+  roles:
+    - role: homelab.common.common_setup
+      tags: [common_setup]
+
+    # Add NAS service roles as they are developed
+    # - role: homelab.proxmox_lxc.sonarr
+    #   when: inventory_hostname.startswith('sonarr')
+    #   tags: [sonarr, media]
+
+  post_tasks:
+    - name: Verify application services
+      uri:
+        url: "http://{{ ansible_host }}:{{ service_port }}"
+        method: GET
+        timeout: 30
+        status_code: [200, 302, 404]
+      delegate_to: localhost
+      when: service_port is defined
+      ignore_errors: true

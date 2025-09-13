@@ -1,0 +1,47 @@
+---
+# Foundation infrastructure deployment
+# Deploys bastion hosts and core security infrastructure
+
+- name: Deploy bastion hosts
+  hosts: bastion_host
+  become: true
+  gather_facts: true
+  pre_tasks:
+    - name: Ensure bastion host containers exist
+      include_role:
+        name: homelab.common.container_base
+      tags: [container_creation]
+
+  roles:
+    - role: homelab.common.common_setup
+      tags: [common_setup]
+    - role: homelab.proxmox_lxc.bastion
+      tags: [bastion_config]
+    - role: homelab.common.security_hardening
+      tags: [security_hardening]
+
+  post_tasks:
+    - name: Verify bastion accessibility
+      wait_for:
+        host: "{{ ansible_host }}"
+        port: 22
+        timeout: 30
+      delegate_to: localhost
+
+- name: Configure Proxmox hosts
+  hosts: proxmox_hosts
+  gather_facts: true
+  roles:
+    - role: homelab.common.common_setup
+      tags: [common_setup]
+    - role: homelab.common.security_hardening
+      tags: [security_hardening]
+
+  post_tasks:
+    - name: Verify Proxmox API accessibility
+      uri:
+        url: "https://{{ ansible_host }}:8006/api2/json/version"
+        method: GET
+        validate_certs: false
+        timeout: 30
+      delegate_to: localhost

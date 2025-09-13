@@ -1,0 +1,35 @@
+---
+# Phase 2: Run FROM bastion host - Deploy security services
+# Usage: ssh pbs@192.168.0.110
+#        cd /home/pbs && ansible-playbook phase2-security.yml
+
+- name: Deploy DNS Security Stack (Unbound + AdGuard)
+  hosts: networking
+  gather_facts: yes
+  become: yes
+  serial: 1
+  roles:
+    - role: homelab.proxmox_lxc.lxc_container
+    - role: homelab.proxmox_lxc.unbound
+      when: inventory_hostname == 'unbound-lxc'
+    - role: homelab.proxmox_lxc.adguard  
+      when: inventory_hostname == 'adguard-lxc'
+  tags: ['dns', 'security']
+
+- name: Deploy VPN Access
+  hosts: wireguard-lxc
+  gather_facts: yes
+  become: yes
+  roles:
+    - homelab.proxmox_lxc.lxc_container
+    - homelab.proxmox_lxc.wireguard
+  tags: ['vpn', 'security']
+
+- name: Deploy Reverse Proxy with Security Headers
+  hosts: traefik-lxc
+  gather_facts: yes
+  become: yes
+  roles:
+    - homelab.proxmox_lxc.lxc_container
+    - homelab.proxmox_lxc.traefik
+  tags: ['proxy', 'security']

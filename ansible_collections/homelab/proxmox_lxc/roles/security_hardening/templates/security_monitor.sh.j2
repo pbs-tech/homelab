@@ -1,0 +1,69 @@
+#!/bin/bash
+# Security monitoring script for {{ inventory_hostname }}
+
+LOG_FILE="/var/log/security-monitor.log"
+TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+
+# Function to log messages
+log_message() {
+    echo "[$TIMESTAMP] $1" >> $LOG_FILE
+}
+
+# Check for suspicious login attempts
+check_logins() {
+    FAILED_LOGINS=$(grep "Failed password" /var/log/auth.log | grep "$(date '+%b %d')" | wc -l)
+    if [ $FAILED_LOGINS -gt 10 ]; then
+        log_message "WARNING: $FAILED_LOGINS failed login attempts today"
+    fi
+}
+
+# Check disk space
+check_disk_space() {
+    DISK_USAGE=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
+    if [ $DISK_USAGE -gt 85 ]; then
+        log_message "WARNING: Disk usage is ${DISK_USAGE}%"
+    fi
+}
+
+# Check for running services
+check_services() {
+    {% if inventory_hostname in groups['nas_services'] %}
+    SERVICE_NAME="{{ inventory_hostname | regex_replace('-lxc$', '') }}"
+    if ! systemctl is-active --quiet $SERVICE_NAME; then
+        log_message "ERROR: $SERVICE_NAME service is not running"
+    fi
+    {% endif %}
+    
+    # Check UFW status
+    if ! ufw status | grep -q "Status: active"; then
+        log_message "ERROR: UFW firewall is not active"
+    fi
+    
+    # Check Fail2ban status
+    if ! systemctl is-active --quiet fail2ban; then
+        log_message "ERROR: Fail2ban is not running"
+    fi
+}
+
+# Check for suspicious processes
+check_processes() {
+    # Check for high CPU usage processes
+    HIGH_CPU=$(ps aux --sort=-%cpu | awk 'NR<=6 && $3>80.0 {print $11}' | grep -v "COMMAND")
+    if [ ! -z "$HIGH_CPU" ]; then
+        log_message "INFO: High CPU usage detected: $HIGH_CPU"
+    fi
+}
+
+# Main execution
+log_message "Starting security monitoring check"
+check_logins
+check_disk_space  
+check_services
+check_processes
+log_message "Security monitoring check completed"
+
+# Rotate log file if it gets too large
+if [ -f "$LOG_FILE" ] && [ $(stat -f%z "$LOG_FILE" 2>/dev/null || stat -c%s "$LOG_FILE") -gt 1048576 ]; then
+    mv "$LOG_FILE" "${LOG_FILE}.old"
+    touch "$LOG_FILE"
+fi

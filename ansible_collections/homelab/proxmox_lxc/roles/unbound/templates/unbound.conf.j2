@@ -1,0 +1,54 @@
+server:
+    # Network interface and port configuration
+    interface: 0.0.0.0
+    port: 53
+    do-ip4: yes
+    do-ip6: no
+    do-udp: yes
+    do-tcp: yes
+
+    # Security and privacy settings
+    hide-identity: yes
+    hide-version: yes
+    harden-glue: yes
+    harden-dnssec-stripped: yes
+    use-caps-for-id: yes
+    
+    # Performance settings
+    cache-min-ttl: 3600
+    cache-max-ttl: 86400
+    prefetch: yes
+    prefetch-key: yes
+    
+    # Access control - only allow homelab network
+    access-control: 192.168.0.0/24 allow
+    access-control: 127.0.0.0/8 allow
+    access-control: 0.0.0.0/0 refuse
+
+    # Local zone configuration
+    private-address: 192.168.0.0/24
+    private-address: 10.0.0.0/8
+    private-address: 172.16.0.0/12
+    private-domain: "homelab.local"
+    
+    # Local DNS records
+    local-zone: "homelab.local" static
+    {% for host, details in hostvars.items() %}
+    {% if 'ansible_host' in details %}
+    local-data: "{{ host }}.homelab.local. IN A {{ details.ansible_host }}"
+    {% endif %}
+    {% endfor %}
+    
+    # Security: Block known malicious domains
+    include: /etc/unbound/unbound.conf.d/security-blocklist.conf
+
+# DNS over HTTPS/TLS upstream resolvers
+forward-zone:
+    name: "."
+    # Cloudflare DNS over TLS
+    forward-tls-upstream: yes
+    forward-addr: 1.1.1.1@853#cloudflare-dns.com
+    forward-addr: 1.0.0.1@853#cloudflare-dns.com
+    # Quad9 DNS over TLS  
+    forward-addr: 9.9.9.9@853#dns.quad9.net
+    forward-addr: 149.112.112.112@853#dns.quad9.net

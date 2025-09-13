@@ -1,0 +1,11 @@
+/var/log/{{ inventory_hostname | regex_replace('-lxc$', '') }}/*.log {
+    daily
+    rotate 30
+    compress
+    delaycompress
+    missingok
+    create 0644 syslog adm
+    postrotate
+        systemctl reload rsyslog > /dev/null 2>&1 || true
+    endscript
+}

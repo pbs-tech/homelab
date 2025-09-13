@@ -1,0 +1,83 @@
+---
+- name: Prepare Raspberry Pi nodes for K3s testing
+  hosts: raspberry_pi_test
+  become: true
+  gather_facts: true
+  
+  tasks:
+    - name: Create test namespace marker
+      set_fact:
+        molecule_test_id: "{{ ansible_date_time.epoch }}"
+
+    - name: Stop existing K3s services (if any)
+      systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: false
+      loop:
+        - k3s
+        - k3s-agent
+        - k3s-server
+      ignore_errors: true
+
+    - name: Clean up existing K3s installation
+      block:
+        - name: Remove K3s binary
+          file:
+            path: /usr/local/bin/k3s
+            state: absent
+
+        - name: Clean K3s data directories  
+          file:
+            path: "{{ item }}"
+            state: absent
+          loop:
+            - /var/lib/rancher/k3s
+            - /etc/rancher/k3s
+            - /run/k3s
+          
+        - name: Remove K3s systemd services
+          file:
+            path: "{{ item }}"
+            state: absent
+          loop:
+            - /etc/systemd/system/k3s.service
+            - /etc/systemd/system/k3s-agent.service
+            - /etc/systemd/system/k3s-server.service
+
+        - name: Reload systemd after cleanup
+          systemd:
+            daemon_reload: true
+
+    - name: Ensure test prerequisites
+      block:
+        - name: Update package cache
+          apt:
+            update_cache: true
+            cache_valid_time: 3600
+
+        - name: Install testing utilities
+          apt:
+            name:
+              - curl
+              - wget
+              - jq
+            state: present
+
+        - name: Check available memory
+          shell: free -m | awk '/^Mem:/{print $2}'
+          register: available_memory
+
+        - name: Verify minimum memory (1GB)
+          assert:
+            that:
+              - available_memory.stdout | int >= 1000
+            fail_msg: "Insufficient memory for K3s testing: {{ available_memory.stdout }}MB"
+
+    - name: Create test marker file
+      copy:
+        content: |
+          Molecule K3s test started: {{ ansible_date_time.iso8601 }}
+          Test ID: {{ molecule_test_id }}
+        dest: /tmp/molecule-k3s-test
+        mode: '0644'

@@ -1,0 +1,25 @@
+<?xml version="1.0" standalone='no'?><!--*-nxml-*-->
+<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
+<service-group>
+  <name replace-wildcards="yes">%h</name>
+  <service>
+    <type>_ssh._tcp</type>
+    <port>{{ pi_security_hardening.ssh_hardening.port }}</port>
+  </service>
+  {% if inventory_hostname in groups['server'] %}
+  <service>
+    <type>_k3s-api._tcp</type>
+    <port>6443</port>
+    <txt-record>role=server</txt-record>
+    <txt-record>cluster={{ k3s_cluster_name | default('homelab') }}</txt-record>
+  </service>
+  {% endif %}
+  {% if inventory_hostname in groups['agent'] %}
+  <service>
+    <type>_k3s-node._tcp</type>
+    <port>10250</port>
+    <txt-record>role=agent</txt-record>
+    <txt-record>cluster={{ k3s_cluster_name | default('homelab') }}</txt-record>
+  </service>
+  {% endif %}
+</service-group>

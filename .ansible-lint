@@ -1,0 +1,23 @@
+---
+profile: production
+
+exclude_paths:
+  - .cache/
+  - .github/
+  - molecule/
+  - .molecule/
+
+skip_list:
+  - yaml[line-length]  # Handled by yamllint
+  - role-name[path]    # Allow collection-style role names
+
+warn_list:
+  - experimental  # Allow experimental rules as warnings
+
+use_default_rules: true
+
+enable_list:
+  - no-log-password
+  - no-same-owner
+  - name[template]
+  - risky-shell-pipe

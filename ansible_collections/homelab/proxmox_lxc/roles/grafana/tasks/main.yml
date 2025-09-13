@@ -1,0 +1,108 @@
+---
+- name: Update system packages
+  apt:
+    update_cache: yes
+    upgrade: yes
+
+- name: Install required packages
+  apt:
+    name:
+      - curl
+      - gnupg
+      - apt-transport-https
+      - software-properties-common
+    state: present
+
+- name: Add Grafana GPG key
+  apt_key:
+    url: https://apt.grafana.com/gpg.key
+    state: present
+
+- name: Add Grafana repository
+  apt_repository:
+    repo: "deb https://apt.grafana.com stable main"
+    state: present
+
+- name: Install Grafana
+  apt:
+    name: grafana
+    state: present
+    update_cache: yes
+
+- name: Create grafana directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ grafana_user }}"
+    group: "{{ grafana_group }}"
+    mode: '0755'
+  loop:
+    - "{{ grafana_data_dir }}"
+    - "{{ grafana_logs_dir }}"
+    - "{{ grafana_plugins_dir }}"
+    - "{{ grafana_dashboards_dir }}"
+    - "{{ grafana_provisioning_dir }}"
+    - "{{ grafana_provisioning_dir }}/datasources"
+    - "{{ grafana_provisioning_dir }}/dashboards"
+
+- name: Create Grafana configuration file
+  template:
+    src: grafana.ini.j2
+    dest: "{{ grafana_config_dir }}/grafana.ini"
+    owner: "{{ grafana_user }}"
+    group: "{{ grafana_group }}"
+    mode: '0640'
+    backup: yes
+  notify: restart grafana
+
+- name: Create datasources provisioning configuration
+  template:
+    src: datasources.yml.j2
+    dest: "{{ grafana_provisioning_dir }}/datasources/datasources.yml"
+    owner: "{{ grafana_user }}"
+    group: "{{ grafana_group }}"
+    mode: '0644'
+  notify: restart grafana
+
+- name: Create dashboard provisioning configuration
+  template:
+    src: dashboards.yml.j2
+    dest: "{{ grafana_provisioning_dir }}/dashboards/dashboards.yml"
+    owner: "{{ grafana_user }}"
+    group: "{{ grafana_group }}"
+    mode: '0644'
+  notify: restart grafana
+
+- name: Install Grafana plugins
+  grafana_plugin:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ grafana_plugins }}"
+  notify: restart grafana
+  ignore_errors: yes
+
+- name: Enable and start Grafana
+  systemd:
+    name: grafana-server
+    enabled: yes
+    state: started
+
+- name: Wait for Grafana to start
+  wait_for:
+    host: "{{ grafana_domain }}"
+    port: "{{ grafana_port }}"
+    delay: 10
+    timeout: 60
+
+- name: Check Grafana health
+  uri:
+    url: "{{ grafana_root_url }}/api/health"
+    method: GET
+    return_content: yes
+  register: grafana_health
+  retries: 5
+  delay: 5
+
+- name: Display Grafana status
+  debug:
+    msg: "Grafana is running at {{ grafana_root_url }}"

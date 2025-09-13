@@ -1,0 +1,47 @@
+---
+loki_version: "2.9.2"
+loki_port: 3100
+loki_user: "loki"
+loki_group: "loki"
+
+# Installation paths
+loki_bin_dir: "/usr/local/bin"
+loki_config_dir: "/etc/loki"
+loki_data_dir: "/var/lib/loki"
+loki_log_dir: "/var/log/loki"
+
+# Network configuration
+loki_listen_address: "0.0.0.0"
+loki_listen_port: "{{ loki_port }}"
+
+# Storage configuration
+loki_storage_type: "filesystem"
+loki_storage_filesystem_directory: "{{ loki_data_dir }}/chunks"
+
+# Retention settings
+loki_retention_enabled: true
+loki_retention_period: "720h"  # 30 days
+loki_compaction_enabled: true
+
+# Performance settings
+loki_max_query_parallelism: 32
+loki_ingestion_rate_limit_mb: 4
+loki_ingestion_burst_size_mb: 6
+loki_max_streams_per_user: 10000
+loki_max_line_size: 256000
+
+# Query limits
+loki_query_timeout: "1m"
+loki_max_query_series: 500
+loki_max_query_lookback: "0s"
+
+# Compaction settings
+loki_compaction_working_directory: "{{ loki_data_dir }}/boltdb-compactor"
+loki_compaction_shared_store_type: "filesystem"
+
+# Table manager settings
+loki_table_manager_retention_deletes_enabled: "{{ loki_retention_enabled }}"
+loki_table_manager_retention_period: "{{ loki_retention_period }}"
+
+# Analytics
+loki_analytics_reporting_enabled: false

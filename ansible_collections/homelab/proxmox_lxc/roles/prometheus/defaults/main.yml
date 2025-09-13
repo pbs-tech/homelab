@@ -1,0 +1,16 @@
+---
+prometheus_version: "2.48.0"
+prometheus_port: 9090
+prometheus_data_retention: "15d"
+prometheus_scrape_interval: "15s"
+prometheus_evaluation_interval: "15s"
+
+# K3s cluster nodes for scraping
+k3s_nodes:
+  - { name: "k3s-1", ip: "192.168.0.111" }
+  - { name: "k3s-2", ip: "192.168.0.112" }
+  - { name: "k3s-3", ip: "192.168.0.113" }
+  - { name: "k3s-4", ip: "192.168.0.114" }
+
+# Bastion host for running ansible
+k3s_bastion_ip: "192.168.0.110"

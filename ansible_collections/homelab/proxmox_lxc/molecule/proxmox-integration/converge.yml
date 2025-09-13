@@ -1,0 +1,36 @@
+---
+- name: Test service deployment on real LXC container
+  hosts: proxmox_test_containers
+  gather_facts: true
+  become: true
+  
+  tasks:
+    - name: Setup SSH key authentication
+      authorized_key:
+        user: root
+        key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+        state: present
+
+    - name: Test Prometheus deployment
+      include_role:
+        name: homelab.proxmox_lxc.prometheus
+      vars:
+        prometheus_storage_retention: "6h"  # Short retention for testing
+        prometheus_web_listen_address: "0.0.0.0:9090"
+      tags: ['prometheus']
+
+    - name: Test Loki deployment  
+      include_role:
+        name: homelab.proxmox_lxc.loki
+      vars:
+        loki_retention_period: "24h"
+        loki_listen_address: "0.0.0.0"
+      tags: ['loki']
+
+    - name: Test Promtail deployment
+      include_role:
+        name: homelab.proxmox_lxc.promtail
+      vars:
+        loki_endpoint: "http://192.168.0.250:3100"
+        promtail_service_name: "molecule-test"
+      tags: ['promtail']

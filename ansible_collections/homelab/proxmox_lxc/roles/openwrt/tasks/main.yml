@@ -1,0 +1,104 @@
+---
+- name: Update system packages
+  apt:
+    update_cache: yes
+    upgrade: yes
+
+- name: Install required packages
+  apt:
+    name:
+      - qemu-utils
+      - wget
+      - gzip
+      - parted
+      - kpartx
+      - rsync
+    state: present
+
+- name: Create openwrt directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - /opt/openwrt
+    - /opt/openwrt/config
+    - /var/log/openwrt
+
+- name: Download OpenWrt image
+  get_url:
+    url: "{{ openwrt_release_url }}"
+    dest: /tmp/openwrt.img.gz
+    mode: '0644'
+  register: openwrt_download
+
+- name: Extract OpenWrt image
+  command: gunzip -f /tmp/openwrt.img.gz
+  when: openwrt_download.changed
+
+- name: Convert OpenWrt image to VM disk
+  command: qemu-img convert -f raw -O qcow2 /tmp/openwrt.img /opt/openwrt/openwrt.qcow2
+  when: openwrt_download.changed
+
+- name: Resize OpenWrt disk
+  command: qemu-img resize /opt/openwrt/openwrt.qcow2 1G
+  when: openwrt_download.changed
+
+- name: Generate UCI network configuration
+  template:
+    src: network.j2
+    dest: /opt/openwrt/config/network
+    mode: '0644'
+
+- name: Generate UCI system configuration
+  template:
+    src: system.j2
+    dest: /opt/openwrt/config/system
+    mode: '0644'
+
+- name: Generate UCI firewall configuration
+  template:
+    src: firewall.j2
+    dest: /opt/openwrt/config/firewall
+    mode: '0644'
+
+- name: Generate UCI DHCP configuration
+  template:
+    src: dhcp.j2
+    dest: /opt/openwrt/config/dhcp
+    mode: '0644'
+
+- name: Generate UCI wireless configuration (if applicable)
+  template:
+    src: wireless.j2
+    dest: /opt/openwrt/config/wireless
+    mode: '0644'
+  when: openwrt_enable_wifi | default(false)
+
+- name: Create OpenWrt management script
+  template:
+    src: manage-openwrt.sh.j2
+    dest: /usr/local/bin/manage-openwrt
+    mode: '0755'
+
+- name: Create OpenWrt systemd service
+  template:
+    src: openwrt.service.j2
+    dest: /etc/systemd/system/openwrt.service
+  notify:
+    - reload systemd
+    - restart openwrt
+
+- name: Create rsyslog configuration for OpenWrt logs
+  template:
+    src: rsyslog-openwrt.conf.j2
+    dest: /etc/rsyslog.d/30-openwrt.conf
+  notify: restart rsyslog
+  when: openwrt_remote_syslog_server is defined
+
+- name: Enable and start OpenWrt service
+  systemd:
+    name: openwrt
+    enabled: yes
+    state: started
+    daemon_reload: yes

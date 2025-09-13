@@ -1,0 +1,74 @@
+---
+- name: Detect if running on Raspberry Pi
+  include_tasks: detect_pi.yml
+
+- name: Update package cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install security packages for Pi
+  apt:
+    name:
+      - ufw
+      - fail2ban
+      - unattended-upgrades
+      - apt-listchanges
+      - logrotate
+      - rsyslog
+      - rpi-update  # Pi-specific
+    state: present
+  when: raspberry_pi | default(false)
+
+- name: Install security packages for non-Pi
+  apt:
+    name:
+      - ufw
+      - fail2ban
+      - unattended-upgrades
+      - apt-listchanges
+      - logrotate
+      - rsyslog
+    state: present
+  when: not (raspberry_pi | default(false))
+
+- name: Configure UFW firewall with K3s compatibility
+  include_tasks: configure_ufw_k3s.yml
+  when: pi_security_hardening.ufw_enabled
+
+- name: Configure SSH hardening for K3s nodes
+  include_tasks: configure_ssh_k3s.yml
+
+- name: Configure Fail2ban for K3s environment
+  include_tasks: configure_fail2ban_k3s.yml
+  when: pi_security_hardening.fail2ban.enabled
+
+- name: Configure automatic updates for Pi
+  include_tasks: configure_unattended_upgrades_pi.yml
+  when: pi_security_hardening.unattended_upgrades.enabled
+
+- name: Apply Pi-specific system hardening
+  include_tasks: pi_system_hardening.yml
+  when: raspberry_pi | default(false)
+
+- name: Apply general system hardening
+  include_tasks: system_hardening_k3s.yml
+
+- name: Configure logging for K3s nodes
+  include_tasks: configure_logging_k3s.yml
+  when: pi_security_hardening.logging.rsyslog_enabled
+
+- name: Create K3s security monitoring script
+  template:
+    src: k3s_security_monitor.sh.j2
+    dest: /usr/local/bin/k3s_security_monitor.sh
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Setup K3s security monitoring cron job
+  cron:
+    name: "K3s security monitoring"
+    minute: "*/30"  # Less frequent than LXC containers
+    job: "/usr/local/bin/k3s_security_monitor.sh"
+    user: root
