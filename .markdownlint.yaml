@@ -1,0 +1,71 @@
+---
+# PyMarkdownLnt configuration for homelab project
+# See: https://pymarkdownlnt.readthedocs.io/en/latest/
+
+# Plugin configuration - disable problematic rules for technical documentation
+plugins:
+  # Disable line-length rule globally (too restrictive for technical docs)
+  md013:
+    enabled: false
+
+  # Allow inline HTML (useful for badges and complex formatting)
+  md033:
+    enabled: false
+
+  # Allow bare URLs (common in technical documentation)
+  md034:
+    enabled: false
+
+  # Allow emphasis used instead of headers (useful for callouts)
+  md036:
+    enabled: false
+
+  # Allow punctuation in headers (technical terms often need it)
+  md026:
+    enabled: false
+
+  # Allow multiple spaces after hash on atx style headers
+  md018:
+    enabled: false
+
+  # Allow multiple consecutive blank lines (useful for section separation)
+  md012:
+    enabled: false
+
+  # Configure proper names that can have multiple uppercase letters
+  md037:
+    enabled: false
+
+  # Allow backslash escapes
+  md044:
+    enabled: false
+
+  # Disable requirements for alt text in images (may not always be needed)
+  md045:
+    enabled: false
+
+  # Configure header styles - enforce ATX style headers (# ## ###)
+  md003:
+    style: "atx"
+
+  # Configure unordered list styles - use consistent dash style
+  md004:
+    style: "dash"
+
+  # Configure ordered list styles - use ordered style for numbered lists
+  md029:
+    style: "ordered"
+
+  # Allow duplicate headers (common in changelogs and documentation)
+  md024:
+    siblings_only: true
+
+  # Configure indentation for code blocks - allow both fenced and indented
+  md046:
+    style: "consistent"
+
+  # Configure blanks around fences
+  md031:
+    enabled: true
+  md032:
+    enabled: true

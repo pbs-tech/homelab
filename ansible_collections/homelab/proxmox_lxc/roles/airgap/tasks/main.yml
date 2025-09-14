@@ -2,7 +2,6 @@
 - name: Check for Airgap
   when: airgap_dir is defined
   block:
-
     - name: Verify Ansible meets airgap version requirements.
       ansible.builtin.assert:
         that: "ansible_version.full is version_compare('2.12', '>=')"
@@ -36,7 +35,8 @@
 
     - name: Determine architecture and set k3s_arch
       ansible.builtin.set_fact:
-        k3s_arch: "{{ 'arm64' if ansible_architecture == 'aarch64' else 'arm' if ansible_architecture == 'armv7l' else 'amd64' }}"
+        k3s_arch: "{{ 'arm64' if ansible_architecture == 'aarch64' else 'arm' if ansible_architecture == 'armv7l' else 'amd64'
+          }}"
 
     - name: Distribute K3s binary {{ k3s_arch }}
       ansible.builtin.copy:

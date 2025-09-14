@@ -15,6 +15,7 @@ The infrastructure follows a layered architecture with shared components, indepe
 ## Key Commands
 
 ### Main Deployment Commands
+
 ```bash
 # NEW RECOMMENDED APPROACH - Phased deployment with improved orchestration
 ansible-playbook playbooks/infrastructure.yml
@@ -34,6 +35,7 @@ ansible-playbook site.yml --tags "monitoring"               # Deploy specific se
 ```
 
 ### Security-Focused Deployment
+
 ```bash
 # Phase 1: Create secured bastion host (run from control machine)
 ansible-playbook security-deploy.yml --tags "phase1,bastion"
@@ -47,6 +49,7 @@ ansible-playbook test-security-hardening.yml
 ```
 
 ### LXC Template Management
+
 ```bash
 # Download LXC templates only (Ubuntu-focused for easier management with pre-installed python)
 ansible-playbook site.yml --tags "templates"
@@ -56,6 +59,7 @@ ansible-playbook site.yml --tags "templates" -e "force_download=true"
 ```
 
 ### Individual Collection Commands
+
 ```bash
 # K3s cluster management
 cd ansible_collections/homelab/k3s/
@@ -63,13 +67,14 @@ ansible-playbook playbooks/site.yml     # Deploy K3s cluster
 ansible-playbook playbooks/reset.yml    # Reset K3s cluster
 ansible-playbook playbooks/upgrade.yml  # Upgrade K3s cluster
 
-# LXC services management  
+# LXC services management
 cd ansible_collections/homelab/proxmox_lxc/
 ansible-playbook site.yml --tags "prometheus"
 ansible-playbook site.yml --tags "homeassistant"
 ```
 
 ### Installation
+
 ```bash
 # Install all required collections and dependencies
 ansible-galaxy install -r requirements.yml
@@ -80,17 +85,40 @@ ansible-galaxy collection install homelab.k3s
 ansible-galaxy collection install homelab.proxmox_lxc
 ```
 
+### Code Quality and Linting
+
+```bash
+# Quick linting commands
+make lint                    # Run all linting checks
+make lint-yaml              # Run YAML linting only
+make lint-ansible           # Run Ansible linting only
+make lint-markdown          # Run Markdown linting only
+
+# Alternative script-based linting
+./scripts/lint.sh           # Run all linting checks
+./scripts/lint.sh --yaml-only       # YAML only
+./scripts/lint.sh --ansible-only    # Ansible only
+./scripts/lint.sh --markdown-only   # Markdown only
+./scripts/lint.sh --install-deps    # Install missing linting tools
+
+# Manual linting commands
+yamllint .                  # Check YAML formatting
+ansible-lint                # Check Ansible best practices
+pymarkdown --config .markdownlint.yaml scan .  # Check Markdown formatting
+```
+
 ## Architecture and Structure
 
 ### Network Layout
+
 - **Raspberry Pi K3s cluster**: 192.168.0.111-114
   - k3s-01: 192.168.0.111 (server node)
   - k3s-02, k3s-03, k3s-04: 192.168.0.112-114 (agent nodes)
 - **Proxmox hosts**: 192.168.0.56-57 (pve-mac, pve-nas)
-- **Bastion hosts**: 
+- **Bastion hosts**:
   - k3s-bastion: 192.168.0.110 (main bastion)
   - nas-bastion: 192.168.0.109 (NAS services bastion)
-- **LXC container networks**: 
+- **LXC container networks**:
   - Core services: 192.168.0.200-210
   - NAS services: 192.168.0.230-235
   - NAS monitoring: 192.168.0.240+
@@ -99,6 +127,7 @@ ansible-galaxy collection install homelab.proxmox_lxc
 ### Core Services Deployed
 
 #### Security & Networking
+
 - **Bastion hosts** (192.168.0.109-110) - Secured jump hosts for infrastructure access
 - **Traefik** (192.168.0.205) - Central reverse proxy for LXC and K3s services
 - **Unbound/AdGuard** (192.168.0.202,204) - DNS filtering and resolution
@@ -106,6 +135,7 @@ ansible-galaxy collection install homelab.proxmox_lxc
 - **OpenWrt** (192.168.0.209) - Network management and routing
 
 #### Monitoring & Observability
+
 - **Prometheus** (192.168.0.200) - Metrics collection and storage
 - **Grafana** (192.168.0.201) - Visualization and dashboards
 - **AlertManager** (192.168.0.206) - Alert routing and management
@@ -113,6 +143,7 @@ ansible-galaxy collection install homelab.proxmox_lxc
 - **PVE Exporters** (192.168.0.207, 240) - Proxmox metrics exporters
 
 #### Home Automation & Media
+
 - **Home Assistant** (192.168.0.208) - Home automation platform
 - **Sonarr/Radarr/Bazarr** (192.168.0.230-232) - Media management suite
 - **Prowlarr** (192.168.0.233) - Indexer management
@@ -120,7 +151,8 @@ ansible-galaxy collection install homelab.proxmox_lxc
 - **Jellyfin** (192.168.0.235) - Media streaming server
 
 ### Directory Structure
-```
+
+```text
 /
 ├── site.yml                         # Legacy main orchestration (backwards compatibility)
 ├── requirements.yml                 # Consolidated collection and dependency requirements
@@ -141,7 +173,7 @@ ansible-galaxy collection install homelab.proxmox_lxc
     │   └── roles/                   # Shared roles (common_setup, container_base, security_hardening)
     ├── k3s/                         # K3s cluster management
     │   ├── playbooks/site.yml       # K3s deployment
-    │   ├── inventory/hosts.yml      # Raspberry Pi inventory  
+    │   ├── inventory/hosts.yml      # Raspberry Pi inventory
     │   └── roles/                   # K3s-specific roles (k3s_server, k3s_agent, airgap)
     └── proxmox_lxc/                 # LXC services management
         ├── site.yml                 # LXC services orchestration
@@ -154,16 +186,19 @@ ansible-galaxy collection install homelab.proxmox_lxc
 ## Key Integration Points
 
 ### K3s Cluster Integration
+
 - Traefik acts as unified ingress controller for both LXC services and K3s workloads
 - Service account and RBAC configured for Kubernetes API access
 - Certificate authority and token management for secure K3s communication
 
 ### Configuration Management
+
 - Global variables in `inventory/group_vars/all.yml` define network topology and service settings
 - Role-specific defaults in `roles/*/defaults/main.yml` for service configurations
 - Jinja2 templates generate service-specific configuration files
 
 ### Security Model
+
 - **Defense in Depth**: Multi-layered security with bastion hosts, VPN access, and network segmentation
 - **Bastion Architecture**: All infrastructure access routes through secured bastion hosts
 - **Phased Deployment**: Security-first deployment approach with DNS security before service deployment
@@ -176,18 +211,22 @@ ansible-galaxy collection install homelab.proxmox_lxc
 ## Development Patterns
 
 ### Role Structure
+
 Each service follows standard Ansible role organization with tasks/, defaults/, templates/, and handlers/ directories. Service configurations use Jinja2 templating for dynamic generation based on inventory variables.
 
 ### Deployment Strategy
+
 The collection uses idempotent deployment patterns with proper error handling and rollback capabilities. Services are tagged for selective deployment and organized into logical stacks (monitoring, networking, automation, etc.).
 
-**Security-First Approach**: 
+**Security-First Approach**:
+
 1. **Phase 1**: Deploy bastion hosts with hardened security configurations
 2. **Phase 2**: Deploy DNS security infrastructure (Unbound/AdGuard) from bastion
 3. **Phase 3**: Deploy VPN and reverse proxy services
 4. **Standard Deployment**: Use traditional site.yml for normal operations after security foundation
 
 **Service Organization**:
+
 - Core services grouped by function (monitoring, networking, automation)
 - NAS services isolated on separate network segments
 - Each service stack can be deployed independently via tags

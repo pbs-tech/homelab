@@ -13,7 +13,7 @@
     state: present
 
 - name: Set timezone
-  timezone:
+  community.general.timezone:
     name: "{{ timezone }}"
   notify: restart rsyslog
 
@@ -28,7 +28,7 @@
   when: common_users | length > 0
 
 - name: Configure SSH authorized keys
-  authorized_key:
+  ansible.posix.authorized_key:
     user: "{{ item.name }}"
     key: "{{ lookup('file', security_config.ssh_key_path + '.pub') }}"
     state: present

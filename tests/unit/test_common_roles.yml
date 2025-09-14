@@ -14,7 +14,7 @@
         name: homelab.common.common_setup
         tasks_from: main
       check_mode: true
-      
+
     - name: Verify default variables are defined
       assert:
         that:
@@ -26,7 +26,7 @@
         success_msg: "All required default variables are present"
 
 - name: Test container_base role
-  hosts: localhost  
+  hosts: localhost
   connection: local
   gather_facts: false
   vars:
@@ -43,8 +43,8 @@
         name: homelab.common.container_base
         tasks_from: main
       check_mode: true
-      ignore_errors: true  # Expected to fail without Proxmox
-      
+      ignore_errors: true # Expected to fail without Proxmox
+
     - name: Verify container configuration variables
       assert:
         that:
@@ -67,7 +67,7 @@
         name: homelab.common.security_hardening
         tasks_from: main
       check_mode: true
-      
+
     - name: Verify security configuration
       debug:
         msg: "Security hardening role loaded successfully"

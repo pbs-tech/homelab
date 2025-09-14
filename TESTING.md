@@ -16,6 +16,7 @@ This dual approach ensures both rapid iteration during development and confidenc
 ### Molecule Tests (Development & CI)
 
 #### Purpose
+
 - Rapid local testing during development
 - Reproducible test environments
 - Automated CI/CD validation
@@ -24,6 +25,7 @@ This dual approach ensures both rapid iteration during development and confidenc
 #### Types
 
 **Collection-Specific Tests:**
+
 - `homelab.common/molecule/default/` - Basic common role functionality
 - `homelab.common/molecule/common-roles/` - Advanced container and configuration logic
 - `homelab.k3s/molecule/raspberry-pi/` - K3s deployment patterns
@@ -31,6 +33,7 @@ This dual approach ensures both rapid iteration during development and confidenc
 - `homelab.proxmox_lxc/molecule/proxmox-integration/` - Proxmox API integration
 
 **Full-Stack Integration Test:**
+
 - `molecule/full-stack/` - Complete infrastructure orchestration using new playbook architecture
 
 #### Running Molecule Tests
@@ -52,13 +55,14 @@ molecule test
 
 # Specific scenario testing
 molecule converge -s default    # Deploy only
-molecule verify -s default     # Test only  
+molecule verify -s default     # Test only
 molecule destroy -s default    # Cleanup only
 ```
 
 ### Production Tests (Hardware Validation)
 
 #### Purpose
+
 - Validate actual production workflows
 - Test against real hardware (Raspberry Pi, Proxmox)
 - End-to-end infrastructure deployment verification
@@ -67,16 +71,19 @@ molecule destroy -s default    # Cleanup only
 #### Types
 
 **Unit Tests (`tests/unit/`):**
+
 - Role loading and variable validation
 - Configuration logic verification
 - Safe to run anywhere (check mode)
 
 **Integration Tests (`tests/integration/`):**
+
 - Service stack deployment using containers
 - Inter-service communication testing
 - Configuration validation across services
 
 **System Tests (`tests/system/`):**
+
 - K3s cluster deployment on actual Raspberry Pi hardware
 - Proxmox LXC container lifecycle management
 - Real infrastructure integration testing
@@ -105,34 +112,45 @@ ansible-playbook system/test_k3s_cluster.yml -e proxmox_password=your_password
 
 1. **Make changes** to roles, playbooks, or configuration
 2. **Run molecule tests** for rapid feedback:
+
    ```bash
    cd ansible_collections/homelab/common/
    molecule test
    ```
+
 3. **Test specific scenarios** as needed:
+
    ```bash
    molecule converge -s common-roles
    molecule verify -s common-roles
    ```
+
 4. **Run full-stack test** for integration validation:
+
    ```bash
    cd ../../molecule/full-stack/
    molecule test
    ```
+
 5. **Commit changes** once molecule tests pass
 
 ### Pre-Production Validation
 
 1. **Run production unit tests** (safe, no hardware required):
+
    ```bash
    cd tests/
    ansible-playbook test_suite.yml -e "test_types=['unit']" --tags quick
    ```
+
 2. **Run integration tests** (uses containers, no hardware required):
+
    ```bash
    ansible-playbook test_suite.yml -e "test_types=['integration']"
    ```
+
 3. **Run system tests** against test hardware:
+
    ```bash
    ansible-playbook test_suite.yml -e "test_types=['system']" -e proxmox_password=your_password
    ```
@@ -142,7 +160,7 @@ ansible-playbook system/test_k3s_cluster.yml -e proxmox_password=your_password
 The GitHub Actions workflow (`/.github/workflows/molecule.yml`) automatically:
 
 1. **Runs all molecule tests** across collections and scenarios
-2. **Executes full-stack integration test** 
+2. **Executes full-stack integration test**
 3. **Validates production unit tests**
 4. **Provides comprehensive test reporting**
 
@@ -151,6 +169,7 @@ The GitHub Actions workflow (`/.github/workflows/molecule.yml`) automatically:
 ### Molecule Configuration
 
 Each molecule scenario includes:
+
 - **molecule.yml** - Test infrastructure definition
 - **converge.yml** - Deployment test playbook
 - **verify.yml** - Validation test playbook
@@ -159,6 +178,7 @@ Each molecule scenario includes:
 ### Production Test Configuration
 
 Production tests use:
+
 - **tests/inventory/test_hosts.yml** - Test target configuration
 - **tests/ansible.cfg** - Test-specific Ansible settings
 - **Common collection variables** - Shared configuration
@@ -166,6 +186,7 @@ Production tests use:
 ### Environment Setup
 
 #### For Molecule Tests
+
 ```bash
 # Install molecule and dependencies
 pip install molecule[docker] molecule-plugins[docker] containers.podman
@@ -175,6 +196,7 @@ ansible-galaxy install -r requirements.yml
 ```
 
 #### For Production Tests
+
 ```bash
 # Configure test inventory
 cp tests/inventory/test_hosts.yml.example tests/inventory/test_hosts.yml
@@ -192,18 +214,21 @@ export PROXMOX_PASSWORD="your_proxmox_password"
 ## Best Practices
 
 ### Molecule Test Development
+
 - **Keep tests fast** - Use check mode where possible
 - **Mock external dependencies** - Avoid real API calls in molecule
 - **Test role logic** - Focus on variable computation and task flow
 - **Use realistic scenarios** - Mirror production inventory patterns
 
-### Production Test Development  
+### Production Test Development
+
 - **Ensure idempotency** - Tests should be runnable multiple times
 - **Clean up resources** - Always clean up test containers/VMs
 - **Include comprehensive assertions** - Verify expected outcomes
 - **Document prerequisites** - Clear setup requirements
 
 ### Test Data Management
+
 - **Use consistent test data** - Standardize mock configurations
 - **Avoid hardcoded values** - Use variables for test configuration
 - **Mock secrets safely** - Never commit real credentials
@@ -214,6 +239,7 @@ export PROXMOX_PASSWORD="your_proxmox_password"
 ### Common Issues
 
 **Molecule Tests:**
+
 ```bash
 # Podman connection issues
 podman system reset  # Reset podman state
@@ -227,6 +253,7 @@ molecule test --scenario-name default  # Specify scenario explicitly
 ```
 
 **Production Tests:**
+
 ```bash
 # SSH connectivity
 ansible all -m ping -i tests/inventory/test_hosts.yml
@@ -263,6 +290,7 @@ ansible-playbook test_suite.yml --check -e "test_types=['unit']"
 ## Contributing
 
 When adding new tests:
+
 1. **Follow existing patterns** - Use established test structures
 2. **Update documentation** - Document new test scenarios
 3. **Verify CI compatibility** - Ensure tests work in GitHub Actions

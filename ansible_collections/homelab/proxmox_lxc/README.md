@@ -24,7 +24,7 @@ This Ansible collection automates the deployment of LXC containers in Proxmox fo
 
 ## Network Architecture
 
-```
+```text
 Internet
     ↓
 Traefik LXC (192.168.0.205)
@@ -42,6 +42,7 @@ Traefik LXC (192.168.0.205)
 ## Installation
 
 1. **Install the collection:**
+
    ```bash
    ansible-galaxy collection install homelab.proxmox_lxc
    ```
@@ -57,12 +58,14 @@ Traefik LXC (192.168.0.205)
 
 ## Usage
 
-### Deploy all services:
+### Deploy all services
+
 ```bash
 ansible-playbook site.yml
 ```
 
-### Deploy specific services:
+### Deploy specific services
+
 ```bash
 # Deploy containers only
 ansible-playbook site.yml --tags "deploy"
@@ -74,7 +77,8 @@ ansible-playbook site.yml --tags "monitoring"
 ansible-playbook site.yml --tags "traefik"
 ```
 
-### Individual service deployment:
+### Individual service deployment
+
 ```bash
 # Deploy and configure Prometheus
 ansible-playbook site.yml --tags "prometheus"
@@ -104,22 +108,28 @@ After deployment, services will be available at:
 
 ## Configuration
 
-### Customizing IP addresses:
+### Customizing IP addresses
+
 Override default IPs in your inventory or group vars:
+
 ```yaml
 prometheus_ip: "192.168.0.220"
 grafana_ip: "192.168.0.221"
 ```
 
-### SSL certificates:
+### SSL certificates
+
 Configure Let's Encrypt in `roles/traefik/defaults/main.yml`:
+
 ```yaml
 ssl_email: "your-email@domain.com"
 homelab_domain: "your-domain.com"
 ```
 
-### Container resources:
+### Container resources
+
 Adjust container specs in `playbooks/deploy_services.yml`:
+
 ```yaml
 container_memory: 2048
 container_cores: 2
@@ -135,7 +145,7 @@ The collection sets up comprehensive monitoring:
   - K3s API server and workloads
   - LXC services
   - Proxmox host
-  
+
 - **Grafana** provides pre-configured dashboards for:
   - K3s cluster overview
   - Node resource utilization
@@ -152,17 +162,20 @@ The collection sets up comprehensive monitoring:
 
 ## Troubleshooting
 
-### Container creation fails:
+### Container creation fails
+
 - Verify Proxmox API connectivity
 - Check LXC template availability
 - Ensure sufficient Proxmox resources
 
-### Services not accessible:
+### Services not accessible
+
 - Verify DNS resolution for homelab domain
 - Check Traefik logs: `systemctl status traefik` or `journalctl -u traefik -f`
 - Confirm firewall rules allow traffic
 
-### K3s integration issues:
+### K3s integration issues
+
 - Verify kubeconfig accessibility from Traefik container
 - Check K3s service account permissions
 - Ensure network connectivity between Traefik and K3s nodes

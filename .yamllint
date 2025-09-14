@@ -1,12 +1,76 @@
 ---
 extends: default
 
+ignore: |
+  .venv/
+  venv/
+  .cache/
+  .molecule/
+  molecule/
+  node_modules/
+  __pycache__/
+  .ansible/
+
 rules:
+  # Line length - be more permissive for Ansible
   line-length:
     max: 120
     level: warning
+    allow-non-breakable-words: true
+    allow-non-breakable-inline-mappings: true
+
+  # Document separators
+  document-start:
+    present: true
+  document-end:
+    present: false
+
+  # Indentation rules
+  indentation:
+    spaces: 2
+    indent-sequences: true
+    check-multi-line-strings: false
+
+  # Comments
   comments:
     min-spaces-from-content: 1
+    require-starting-space: true
   comments-indentation: disable
+
+  # Boolean values
   truthy:
-    allowed-values: ['true', 'false', 'yes', 'no']
+    allowed-values: ["true", "false", "yes", "no", "on", "off"]
+    check-keys: true
+
+  # Brackets and braces
+  brackets:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
+  braces:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
+
+  # Empty lines
+  empty-lines:
+    max: 2
+    max-start: 0
+    max-end: 1
+
+  # Trailing spaces
+  trailing-spaces:
+    level: error
+
+  # Key ordering
+  key-ordering: disable # Ansible tasks don't need alphabetical ordering
+
+  # Octal values
+  octal-values:
+    forbid-implicit-octal: true
+    forbid-explicit-octal: true
+
+  # Quoted strings
+  quoted-strings:
+    quote-type: any
+    required: only-when-needed
+    extra-required: []
+    extra-allowed: []

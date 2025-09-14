@@ -6,18 +6,44 @@ exclude_paths:
   - .github/
   - molecule/
   - .molecule/
+  - .venv/
+  - venv/
+  - node_modules/
+  - __pycache__/
+  - "*.pyc"
+  - .ansible/
+
+# Ansible-lint will include all .yml/.yaml files by default
+# Use exclude_paths to control what gets linted
 
 skip_list:
   - yaml[line-length]  # Handled by yamllint
   - role-name[path]    # Allow collection-style role names
+  - galaxy[no-changelog]  # Collections may not have changelog
+  - fqcn[action-core]  # Allow core modules without FQCN in collections
+  - var-naming[no-role-prefix]  # Allow variables without role prefix in vars files
 
 warn_list:
   - experimental  # Allow experimental rules as warnings
+  - yaml[octal-values]  # Warn about octal values
+  - risky-file-permissions  # Warn about risky file permissions
 
 use_default_rules: true
 
+# Additional rules to enable for better security and practices
 enable_list:
   - no-log-password
   - no-same-owner
   - name[template]
   - risky-shell-pipe
+  - command-instead-of-shell
+  - deprecated-command-syntax
+  - empty-string-compare
+  - literal-compare
+  - no-free-form
+  - no-jinja-when
+  - package-latest
+  - risky-octal
+  - syntax-check
+
+# No additional rule configuration needed - defaults are appropriate

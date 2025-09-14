@@ -10,7 +10,7 @@
     - name: Ensure automation containers exist
       include_role:
         name: homelab.common.container_base
-      when: 
+      when:
         - inventory_hostname.endswith('-lxc')
         - container_id is defined
 
@@ -27,12 +27,12 @@
   hosts: nas_services
   become: true
   gather_facts: true
-  serial: 2  # Deploy NAS services in batches to avoid resource contention
+  serial: 2 # Deploy NAS services in batches to avoid resource contention
   pre_tasks:
     - name: Ensure NAS containers exist
       include_role:
         name: homelab.common.container_base
-      when: 
+      when:
         - inventory_hostname.endswith('-lxc')
         - container_id is defined
 

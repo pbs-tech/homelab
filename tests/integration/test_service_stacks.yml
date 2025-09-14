@@ -11,15 +11,15 @@
       - name: monitoring-test
         image: "geerlingguy/docker-ubuntu2204-ansible:latest"
         ports:
-          - "19090:9090"  # Prometheus
-          - "13000:3000"  # Grafana
-          - "13100:3100"  # Loki
+          - "19090:9090" # Prometheus
+          - "13000:3000" # Grafana
+          - "13100:3100" # Loki
         groups: ["monitoring"]
       - name: networking-test
         image: "geerlingguy/docker-ubuntu2204-ansible:latest"
         ports:
-          - "18080:8080"  # Traefik
-          - "1053:53/udp"  # DNS
+          - "18080:8080" # Traefik
+          - "1053:53/udp" # DNS
         groups: ["networking"]
   tasks:
     - name: Create test containers
@@ -67,8 +67,8 @@
       include_role:
         name: homelab.common.common_setup
       vars:
-        common_users: []  # Skip user creation in test
-        
+        common_users: [] # Skip user creation in test
+
     - name: Verify container accessibility
       wait_for:
         port: "{{ service_port }}"
@@ -82,12 +82,12 @@
         url: "http://127.0.0.1:{{ service_port }}"
         method: GET
         timeout: 10
-        status_code: [200, 302, 404]  # Many services return 404 for root path
+        status_code: [200, 302, 404] # Many services return 404 for root path
       delegate_to: localhost
       when: service_port is defined
       ignore_errors: true
 
-- name: Test networking stack configuration  
+- name: Test networking stack configuration
   hosts: networking
   gather_facts: true
   vars:
@@ -96,7 +96,7 @@
     traefik_version: "3.0.4"
     traefik_dashboard_enabled: true
     homelab_network:
-      gateway_ip: "172.17.0.1"  
+      gateway_ip: "172.17.0.1"
       dns_servers: ["8.8.8.8"]
     security_config:
       ssh_key_path: "/tmp/test_key"
@@ -105,8 +105,8 @@
       include_role:
         name: homelab.common.common_setup
       vars:
-        common_users: []  # Skip user creation in test
-        
+        common_users: [] # Skip user creation in test
+
     - name: Verify networking container accessibility
       wait_for:
         port: "{{ service_port }}"

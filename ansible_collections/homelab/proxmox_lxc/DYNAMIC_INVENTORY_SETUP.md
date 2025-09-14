@@ -5,9 +5,11 @@ This collection now uses the `community.proxmox.proxmox` dynamic inventory plugi
 ## Setup Steps
 
 1. **Run the setup script:**
+
    ```bash
    ./setup_proxmox_inventory.sh
    ```
+
    This will:
    - Create a vault password file at `~/.ansible_vault_pass`
    - Help you encrypt your Proxmox password
@@ -18,6 +20,7 @@ This collection now uses the `community.proxmox.proxmox` dynamic inventory plugi
    - Adjust the Proxmox server URL if needed (currently set to `https://192.168.0.56:8006`)
 
 3. **Test the inventory:**
+
    ```bash
    ansible-inventory --vault-password-file ~/.ansible_vault_pass --list
    ```
@@ -25,6 +28,7 @@ This collection now uses the `community.proxmox.proxmox` dynamic inventory plugi
 ## Configuration Details
 
 ### Automatic Grouping
+
 The dynamic inventory automatically creates groups based on:
 
 - **Service Type**: `monitoring`, `networking`, `automation`, `logging`, `nas_services`, `nas_monitoring`, `nas_storage`
@@ -33,12 +37,15 @@ The dynamic inventory automatically creates groups based on:
 - **Status**: `running`, `stopped`
 
 ### Automatic Variables
+
 The following variables are automatically set:
+
 - `ansible_host`: Container/VM IP address
 - `container_id`: Proxmox VMID
 - `service_port`: Automatically detected based on service name
 
 ### Filters
+
 - Only running containers/VMs are included by default
 - This can be adjusted in the `filters` section of `inventory/proxmox.yml`
 

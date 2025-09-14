@@ -4,7 +4,7 @@
 
 - name: Update package cache
   apt:
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 3600
 
 - name: Install security packages for Pi
@@ -16,7 +16,7 @@
       - apt-listchanges
       - logrotate
       - rsyslog
-      - rpi-update  # Pi-specific
+      - rpi-update # Pi-specific
     state: present
   when: raspberry_pi | default(false)
 
@@ -62,13 +62,13 @@
   template:
     src: k3s_security_monitor.sh.j2
     dest: /usr/local/bin/k3s_security_monitor.sh
-    mode: '0755'
+    mode: "0755"
     owner: root
     group: root
 
 - name: Setup K3s security monitoring cron job
   cron:
     name: "K3s security monitoring"
-    minute: "*/30"  # Less frequent than LXC containers
+    minute: "*/30" # Less frequent than LXC containers
     job: "/usr/local/bin/k3s_security_monitor.sh"
     user: root

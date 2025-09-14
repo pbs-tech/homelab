@@ -7,11 +7,11 @@
         regexp: "{{ item.regexp }}"
         line: "{{ item.line }}"
         state: present
-        backup: yes
+        backup: true
       loop:
-        - { regexp: '^gpu_mem=', line: "gpu_mem={{ pi_security_hardening.pi_system.gpu_split }}" }
-        - { regexp: '^camera_auto_detect=', line: "camera_auto_detect=0" }
-        - { regexp: '^display_auto_detect=', line: "display_auto_detect=0" }
+        - { regexp: "^gpu_mem=", line: "gpu_mem={{ pi_security_hardening.pi_system.gpu_split }}" }
+        - { regexp: "^camera_auto_detect=", line: "camera_auto_detect=0" }
+        - { regexp: "^display_auto_detect=", line: "display_auto_detect=0" }
       notify: reboot pi
       when: pi_security_hardening.pi_system.optimize_memory
 
@@ -28,7 +28,7 @@
           template:
             src: avahi-daemon.conf.j2
             dest: /etc/avahi/avahi-daemon.conf
-            mode: '0644'
+            mode: "0644"
             owner: root
             group: root
           notify: restart avahi-daemon
@@ -37,7 +37,7 @@
           template:
             src: hostname.service.j2
             dest: "/etc/avahi/services/{{ inventory_hostname }}.service"
-            mode: '0644'
+            mode: "0644"
             owner: root
             group: root
           notify: restart avahi-daemon
@@ -45,13 +45,13 @@
         - name: Enable and start avahi-daemon
           systemd:
             name: avahi-daemon
-            enabled: yes
+            enabled: true
             state: started
 
     - name: Disable unnecessary Pi services (excluding avahi)
       systemd:
         name: "{{ item }}"
-        enabled: no
+        enabled: false
         state: stopped
       loop:
         - bluetooth
@@ -59,15 +59,15 @@
         - triggerhappy
         - cups
         - cups-browsed
-      failed_when: false  # Services might not exist on all Pi versions
+      failed_when: false # Services might not exist on all Pi versions
 
     - name: Configure memory split for headless operation
       lineinfile:
         path: /boot/cmdline.txt
-        regexp: 'cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory'
+        regexp: "cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory"
         line: "{{ ansible_facts.cmdline | default('') }} cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory"
         state: present
-        backup: yes
+        backup: true
       notify: reboot pi
       when: "'cgroup_enable=memory' not in ansible_facts.cmdline | default('')"
 
@@ -76,12 +76,12 @@
         name: "{{ item.name }}"
         value: "{{ item.value }}"
         state: present
-        reload: yes
+        reload: true
       loop:
-        - { name: 'vm.swappiness', value: '10' }  # Reduce swap usage
-        - { name: 'vm.vfs_cache_pressure', value: '50' }  # Optimize caching
-        - { name: 'vm.dirty_background_ratio', value: '5' }  # SD card friendly
-        - { name: 'vm.dirty_ratio', value: '10' }  # SD card friendly
+        - { name: "vm.swappiness", value: "10" } # Reduce swap usage
+        - { name: "vm.vfs_cache_pressure", value: "50" } # Optimize caching
+        - { name: "vm.dirty_background_ratio", value: "5" } # SD card friendly
+        - { name: "vm.dirty_ratio", value: "10" } # SD card friendly
 
     - name: Configure log2ram for SD card longevity
       block:
@@ -101,7 +101,7 @@
               unarchive:
                 src: /tmp/log2ram.tar.gz
                 dest: /tmp/
-                remote_src: yes
+                remote_src: true
 
             - name: Install log2ram
               command: /tmp/log2ram-master/install.sh

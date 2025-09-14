@@ -49,24 +49,24 @@
   fail:
     msg: |
       SECURITY PREREQUISITE FAILURE:
-      
+
       Before deploying monitoring/automation services, you must first deploy the security infrastructure:
-      
+
       Phase 1: Create bastion host
         ansible-playbook security-deploy.yml --tags "phase1,bastion"
-      
+
       Phase 2: Deploy security services (run FROM bastion: ssh pbs@192.168.0.110)
         ansible-playbook phase2-security.yml
-      
+
       Current status:
       - Bastion (192.168.0.110:22): {{ 'OK' if bastion_check.state is defined and bastion_check.state == 'started' else 'FAILED' }}
-      - Unbound DNS (192.168.0.202:53): {{ 'OK' if unbound_check.state is defined and unbound_check.state == 'started' else 'FAILED' }}  
+      - Unbound DNS (192.168.0.202:53): {{ 'OK' if unbound_check.state is defined and unbound_check.state == 'started' else 'FAILED' }}
       - AdGuard (192.168.0.204:80): {{ 'OK' if adguard_check.state is defined and adguard_check.state == 'started' else 'FAILED' }}
       - WireGuard (192.168.0.203:51820): {{ 'OK' if wireguard_check.state is defined and wireguard_check.state == 'started' else 'FAILED' }}
       - Traefik (192.168.0.205:80): {{ 'OK' if traefik_check.state is defined and traefik_check.state == 'started' else 'FAILED' }}
-      
+
       All security services must be running before deploying application services.
-  when: >
+  when: >-
     bastion_check.state is not defined or bastion_check.state != 'started' or
     unbound_check.state is not defined or unbound_check.state != 'started' or
     adguard_check.state is not defined or adguard_check.state != 'started' or

@@ -3,6 +3,7 @@
 ## Quick Start
 
 ### Podman Testing (Development)
+
 ```bash
 # Test basic service functionality
 molecule test
@@ -12,6 +13,7 @@ molecule test --tags prometheus,grafana
 ```
 
 ### Real Infrastructure Testing
+
 ```bash
 # Set required environment variables
 export PROXMOX_PASSWORD="your-password"
@@ -27,12 +29,14 @@ molecule test -s service-stack
 ## Available Test Scenarios
 
 ### `default` - Podman-based Testing
+
 - **Platform**: Podman containers
 - **Purpose**: Fast development feedback
 - **Services Tested**: Prometheus, Grafana, Loki, Promtail
 - **Runtime**: ~5-10 minutes
 
-### `proxmox-integration` - Real LXC Testing  
+### `proxmox-integration` - Real LXC Testing
+
 - **Platform**: Proxmox LXC (pve-mac:192.168.0.56)
 - **Purpose**: Production-like validation
 - **Container**: 192.168.0.250 (auto-created/destroyed)
@@ -40,6 +44,7 @@ molecule test -s service-stack
 - **Runtime**: ~10-15 minutes
 
 ### `service-stack` - Multi-Service Integration
+
 - **Platform**: Podman (multi-container)
 - **Purpose**: Test service interactions
 - **Services Tested**: Monitoring + Networking stacks
@@ -60,15 +65,17 @@ molecule test -s service-stack
 ## Environment Setup
 
 ### Required Collections
+
 ```bash
 ansible-galaxy install -r requirements.yml
 ```
 
 ### Environment Variables
+
 ```bash
 # For Proxmox testing
 export PROXMOX_PASSWORD="your-proxmox-root-password"
-export CONTAINER_PASSWORD="password-for-test-containers" 
+export CONTAINER_PASSWORD="password-for-test-containers"
 export SSH_PUBLIC_KEY="$(cat ~/.ssh/id_rsa.pub)"
 
 # Optional overrides
@@ -79,6 +86,7 @@ export PROXMOX_NODE="pve-mac"       # Default: pve-mac
 ## Troubleshooting
 
 ### Proxmox Connection Issues
+
 ```bash
 # Test Proxmox API connectivity
 curl -k -d "username=root@pam&password=$PROXMOX_PASSWORD" \
@@ -86,11 +94,13 @@ curl -k -d "username=root@pam&password=$PROXMOX_PASSWORD" \
 ```
 
 ### Container Creation Failures
+
 - Check IP 192.168.0.250 is available
 - Verify container template exists: `ubuntu-22.04-standard_22.04-1_amd64.tar.zst`
 - Ensure sufficient resources on Proxmox node
 
 ### Service Startup Issues
+
 ```bash
 # Debug running container
 molecule login -s proxmox-integration -h molecule-test-lxc
