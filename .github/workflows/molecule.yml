@@ -88,7 +88,7 @@ jobs:
           PY_COLORS: '1'
 
       - name: Upload test results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: molecule-results-${{ matrix.collection }}-${{ matrix.scenario }}
@@ -157,7 +157,7 @@ jobs:
           ansible-playbook test_suite.yml -e "test_types=['unit']" --tags quick
 
       - name: Upload test results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: production-test-results
@@ -174,13 +174,13 @@ jobs:
           molecule_result="${{ needs.molecule.result }}"
           fullstack_result="${{ needs.full-stack-test.result }}"
           production_result="${{ needs.production-tests.result }}"
-          
+
           echo "Test Results Summary:"
           echo "===================="
           echo "Molecule Tests: $molecule_result"
-          echo "Full-Stack Test: $fullstack_result" 
+          echo "Full-Stack Test: $fullstack_result"
           echo "Production Tests: $production_result"
-          
+
           if [[ "$molecule_result" == "failure" || "$fullstack_result" == "failure" || "$production_result" == "failure" ]]; then
             echo "❌ Some tests failed"
             exit 1
