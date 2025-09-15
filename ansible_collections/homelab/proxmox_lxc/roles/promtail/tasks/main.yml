@@ -14,26 +14,26 @@
 
 - name: Create promtail user
   user:
-    name: "{{ promtail_user }}"
+    name: {{ promtail_user }}
     system: true
     shell: /bin/false
-    home: "{{ promtail_data_dir }}"
+    home: {{ promtail_data_dir }}
     create_home: false
-    groups: "adm,systemd-journal"
-    group: "{{ promtail_group }}"
+    groups: adm,systemd-journal
+    group: {{ promtail_group }}
 
 - name: Create promtail group
   group:
-    name: "{{ promtail_group }}"
+    name: {{ promtail_group }}
     system: true
 
 - name: Create promtail directories
   file:
-    path: "{{ item }}"
+    path: {{ item }}
     state: directory
-    owner: "{{ promtail_user }}"
-    group: "{{ promtail_group }}"
-    mode: "0755"
+    owner: {{ promtail_user }}
+    group: {{ promtail_group }}
+    mode: 0755
   loop:
     - "{{ promtail_config_dir }}"
     - "{{ promtail_data_dir }}"
@@ -41,9 +41,9 @@
 
 - name: Download Promtail binary
   get_url:
-    url: "https://github.com/grafana/loki/releases/download/v{{ promtail_version }}/promtail-linux-amd64.zip"
+    url: https://github.com/grafana/loki/releases/download/v{{ promtail_version }}/promtail-linux-amd64.zip
     dest: /tmp/promtail.zip
-    mode: "0644"
+    mode: 0644
   register: promtail_download
 
 - name: Extract Promtail binary
@@ -56,10 +56,10 @@
 - name: Install Promtail binary
   copy:
     src: /tmp/promtail-linux-amd64
-    dest: "{{ promtail_bin_dir }}/promtail"
+    dest: {{ promtail_bin_dir }}/promtail
     owner: root
     group: root
-    mode: "0755"
+    mode: 0755
     remote_src: true
   when: promtail_download.changed
   notify: restart promtail
@@ -67,10 +67,10 @@
 - name: Create Promtail configuration file
   template:
     src: promtail.yml.j2
-    dest: "{{ promtail_config_dir }}/promtail.yml"
-    owner: "{{ promtail_user }}"
-    group: "{{ promtail_group }}"
-    mode: "0644"
+    dest: {{ promtail_config_dir }}/promtail.yml
+    owner: {{ promtail_user }}
+    group: {{ promtail_group }}
+    mode: 0644
     backup: true
   notify: restart promtail
 
@@ -78,7 +78,7 @@
   template:
     src: promtail.service.j2
     dest: /etc/systemd/system/promtail.service
-    mode: "0644"
+    mode: 0644
   notify:
     - reload systemd
     - restart promtail
@@ -92,14 +92,14 @@
 
 - name: Wait for Promtail to start
   wait_for:
-    host: "{{ promtail_listen_address }}"
-    port: "{{ promtail_listen_port }}"
+    host: {{ promtail_listen_address }}
+    port: {{ promtail_listen_port }}
     delay: 5
     timeout: 30
 
 - name: Check Promtail readiness
   uri:
-    url: "http://{{ ansible_default_ipv4.address }}:{{ promtail_listen_port }}/ready"
+    url: http://{{ ansible_default_ipv4.address }}:{{ promtail_listen_port }}/ready
     method: GET
     return_content: true
   register: promtail_health
@@ -109,4 +109,4 @@
 
 - name: Display Promtail status
   debug:
-    msg: "Promtail is running and shipping logs to {{ loki_endpoint }}"
+    msg: Promtail is running and shipping logs to {{ loki_endpoint }}

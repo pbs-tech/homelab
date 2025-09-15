@@ -108,7 +108,8 @@ ssh pbs@192.168.0.114  # k3s-4
 ansible raspberry_pi_test -i molecule/raspberry-pi/molecule.yml -m ping
 
 # Check node resources
-ansible raspberry_pi_test -i molecule/raspberry-pi/molecule.yml -m shell -a "free -h && df -h"
+ansible raspberry_pi_test -i molecule/raspberry-pi/molecule.yml \
+  -m shell -a "free -h && df -h"
 ```
 
 ### K3s Service Issues

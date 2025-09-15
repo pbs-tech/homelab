@@ -46,15 +46,15 @@ plugins:
 
   # Configure header styles - enforce ATX style headers (# ## ###)
   md003:
-    style: "atx"
+    style: atx
 
   # Configure unordered list styles - use consistent dash style
   md004:
-    style: "dash"
+    style: dash
 
   # Configure ordered list styles - use ordered style for numbered lists
   md029:
-    style: "ordered"
+    style: ordered
 
   # Allow duplicate headers (common in changelogs and documentation)
   md024:
@@ -62,7 +62,7 @@ plugins:
 
   # Configure indentation for code blocks - allow both fenced and indented
   md046:
-    style: "consistent"
+    style: consistent
 
   # Configure blanks around fences
   md031:

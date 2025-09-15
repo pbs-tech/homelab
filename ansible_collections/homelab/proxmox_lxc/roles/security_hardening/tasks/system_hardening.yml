@@ -1,8 +1,8 @@
 ---
 - name: Disable unused network protocols
-  sysctl:
-    name: "{{ item }}"
-    value: '0'
+  ansible.posix.sysctl:
+    name: {{ item }}
+    value: 0
     state: present
     reload: yes
   loop:
@@ -17,9 +17,9 @@
     - net.ipv6.conf.default.accept_redirects
 
 - name: Enable security-related sysctl settings
-  sysctl:
-    name: "{{ item.name }}"
-    value: "{{ item.value }}"
+  ansible.posix.sysctl:
+    name: {{ item.name }}
+    value: {{ item.value }}
     state: present
     reload: yes
   loop:
@@ -41,7 +41,7 @@
     autoremove: yes
 
 - name: Secure shared memory
-  mount:
+  ansible.posix.mount:
     path: /dev/shm
     src: tmpfs
     fstype: tmpfs
@@ -50,10 +50,10 @@
 
 - name: Set proper permissions on sensitive files
   file:
-    path: "{{ item.path }}"
-    mode: "{{ item.mode }}"
-    owner: "{{ item.owner | default('root') }}"
-    group: "{{ item.group | default('root') }}"
+    path: {{ item.path }}
+    mode: {{ item.mode }}
+    owner: {{ item.owner | default('root') }}
+    group: {{ item.group | default('root') }}
   loop:
     - { path: '/etc/passwd', mode: '0644' }
     - { path: '/etc/group', mode: '0644' }

@@ -1,39 +1,45 @@
 ---
+- name: Check if SSH config backup exists
+  ansible.builtin.stat:
+    path: /etc/ssh/sshd_config.backup
+  register: ssh_backup_stat
+
 - name: Backup original SSH config
-  copy:
+  ansible.builtin.copy:
     src: /etc/ssh/sshd_config
     dest: /etc/ssh/sshd_config.backup
-    remote_src: yes
-    mode: '0600'
+    remote_src: true
+    mode: 0600
     owner: root
     group: root
-  creates: /etc/ssh/sshd_config.backup
+  when: not ssh_backup_stat.stat.exists
 
 - name: Configure SSH hardening for K3s nodes
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/ssh/sshd_config
-    regexp: "{{ item.regexp }}"
-    line: "{{ item.line }}"
+    regexp: {{ item.regexp }}
+    line: {{ item.line }}
     state: present
-    backup: yes
+    backup: true
   loop:
-    - { regexp: '^#?Port', line: "Port {{ pi_security_hardening.ssh_hardening.port }}" }
-    - { regexp: '^#?PermitRootLogin', line: "PermitRootLogin {{ 'yes' if pi_security_hardening.ssh_hardening.permit_root_login else 'no' }}" }
-    - { regexp: '^#?PasswordAuthentication', line: "PasswordAuthentication {{ 'yes' if pi_security_hardening.ssh_hardening.password_authentication else 'no' }}" }
-    - { regexp: '^#?PubkeyAuthentication', line: "PubkeyAuthentication {{ 'yes' if pi_security_hardening.ssh_hardening.pubkey_authentication else 'no' }}" }
-    - { regexp: '^#?MaxAuthTries', line: "MaxAuthTries {{ pi_security_hardening.ssh_hardening.max_auth_tries }}" }
-    - { regexp: '^#?ClientAliveInterval', line: "ClientAliveInterval {{ pi_security_hardening.ssh_hardening.client_alive_interval }}" }
-    - { regexp: '^#?ClientAliveCountMax', line: "ClientAliveCountMax {{ pi_security_hardening.ssh_hardening.client_alive_count_max }}" }
-    - { regexp: '^#?AllowTcpForwarding', line: "AllowTcpForwarding {{ 'yes' if pi_security_hardening.ssh_hardening.allow_tcp_forwarding else 'no' }}" }
-    - { regexp: '^#?GatewayPorts', line: "GatewayPorts {{ 'yes' if pi_security_hardening.ssh_hardening.gateway_ports else 'no' }}" }
-    - { regexp: '^#?Protocol', line: "Protocol 2" }
-    - { regexp: '^#?X11Forwarding', line: "X11Forwarding no" }
-    - { regexp: '^#?AllowAgentForwarding', line: "AllowAgentForwarding no" }
-    - { regexp: '^#?PermitEmptyPasswords', line: "PermitEmptyPasswords no" }
+    - { regexp: "^#?Port", line: "Port {{ pi_security_hardening.ssh_hardening.port }}" }
+    - { regexp: "^#?PermitRootLogin", line: "PermitRootLogin {{ 'yes' if pi_security_hardening.ssh_hardening.permit_root_login else 'no' }}" }
+    - regexp: ^#?PasswordAuthentication
+      line: PasswordAuthentication {{ 'yes' if pi_security_hardening.ssh_hardening.password_authentication else 'no' }}
+    - { regexp: "^#?PubkeyAuthentication", line: "PubkeyAuthentication {{ 'yes' if pi_security_hardening.ssh_hardening.pubkey_authentication else 'no' }}" }
+    - { regexp: "^#?MaxAuthTries", line: "MaxAuthTries {{ pi_security_hardening.ssh_hardening.max_auth_tries }}" }
+    - { regexp: "^#?ClientAliveInterval", line: "ClientAliveInterval {{ pi_security_hardening.ssh_hardening.client_alive_interval }}" }
+    - { regexp: "^#?ClientAliveCountMax", line: "ClientAliveCountMax {{ pi_security_hardening.ssh_hardening.client_alive_count_max }}" }
+    - { regexp: "^#?AllowTcpForwarding", line: "AllowTcpForwarding {{ 'yes' if pi_security_hardening.ssh_hardening.allow_tcp_forwarding else 'no' }}" }
+    - { regexp: "^#?GatewayPorts", line: "GatewayPorts {{ 'yes' if pi_security_hardening.ssh_hardening.gateway_ports else 'no' }}" }
+    - { regexp: "^#?Protocol", line: "Protocol 2" }
+    - { regexp: "^#?X11Forwarding", line: "X11Forwarding no" }
+    - { regexp: "^#?AllowAgentForwarding", line: "AllowAgentForwarding no" }
+    - { regexp: "^#?PermitEmptyPasswords", line: "PermitEmptyPasswords no" }
   notify: restart ssh
 
 - name: Add K3s-specific SSH security settings
-  blockinfile:
+  ansible.builtin.blockinfile:
     path: /etc/ssh/sshd_config
     block: |
       # K3s-specific SSH configuration
@@ -44,15 +50,15 @@
       LoginGraceTime 30
       MaxSessions 10
       MaxStartups 10:30:60
-      
+
       # Allow K3s management users
       AllowUsers {{ ansible_user }}
       AllowGroups sudo
-    marker: "# {mark} ANSIBLE MANAGED K3S SSH SECURITY"
+    marker: # {mark} ANSIBLE MANAGED K3S SSH SECURITY
   notify: restart ssh
 
 - name: Test SSH configuration
-  command: sshd -t
+  ansible.builtin.command: sshd -t
   register: ssh_test
   failed_when: ssh_test.rc != 0
   changed_when: false

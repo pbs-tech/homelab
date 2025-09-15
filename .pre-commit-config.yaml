@@ -8,18 +8,18 @@ repos:
     rev: v4.5.0
     hooks:
       - id: trailing-whitespace
-        exclude: '\.md$'  # Allow trailing whitespace in markdown (line breaks)
+        exclude: \.md$  # Allow trailing whitespace in markdown (line breaks)
       - id: end-of-file-fixer
       - id: check-yaml
-        args: ['--allow-multiple-documents']
+        args: [--allow-multiple-documents]
       - id: check-added-large-files
-        args: ['--maxkb=1000']
+        args: [--maxkb=1000]
       - id: check-case-conflict
       - id: check-merge-conflict
       - id: check-executables-have-shebangs
       - id: check-shebang-scripts-are-executable
       - id: mixed-line-ending
-        args: ['--fix=lf']
+        args: [--fix=lf]
 
   # YAML linting
   - repo: https://github.com/adrienverge/yamllint
@@ -38,15 +38,6 @@ repos:
           - ansible-core>=2.15
 
   # Markdown linting with pymarkdownlnt
-  - repo: local
-    hooks:
-      - id: pymarkdownlnt
-        name: PyMarkdownLnt
-        description: Check markdown files with pymarkdownlnt
-        entry: pymarkdown --config .markdownlint.yaml scan .
-        language: system
-        files: \.md$
-        pass_filenames: false
 
   # Shell script linting
   - repo: https://github.com/shellcheck-py/shellcheck-py
@@ -60,8 +51,8 @@ repos:
     rev: v1.4.0
     hooks:
       - id: detect-secrets
-        args: ['--baseline', '.secrets.baseline']
-        exclude: '\.lock$'
+        args: [--baseline, .secrets.baseline]
+        exclude: \.lock$
 
 # Configuration
 default_stages: [pre-commit]

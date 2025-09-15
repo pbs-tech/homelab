@@ -2,11 +2,11 @@
 - name: Verify monitoring stack integration
   hosts: monitoring
   gather_facts: true
-  
+
   tasks:
     - name: Test Prometheus is accessible
       uri:
-        url: "http://127.0.0.1:9090/api/v1/status/config"
+        url: http://127.0.0.1:9090/api/v1/status/config
         method: GET
         status_code: 200
       retries: 10
@@ -14,11 +14,11 @@
 
     - name: Test Prometheus can scrape itself
       uri:
-        url: "http://127.0.0.1:9090/api/v1/query"
+        url: http://127.0.0.1:9090/api/v1/query
         method: GET
         body_format: form-urlencoded
         body:
-          query: "up{job='prometheus'}"
+          query: up{job='prometheus'}
       register: prometheus_self_scrape
       retries: 5
       delay: 10
@@ -28,11 +28,11 @@
         that:
           - prometheus_self_scrape.json.status == "success"
           - prometheus_self_scrape.json.data.result | length > 0
-        fail_msg: "Prometheus cannot scrape itself"
+        fail_msg: Prometheus cannot scrape itself
 
     - name: Test Loki is ready
       uri:
-        url: "http://127.0.0.1:3100/ready"
+        url: http://127.0.0.1:3100/ready
         method: GET
         status_code: 200
       retries: 10
@@ -40,7 +40,7 @@
 
     - name: Test Grafana health
       uri:
-        url: "http://127.0.0.1:3000/api/health"
+        url: http://127.0.0.1:3000/api/health
         method: GET
         status_code: 200
       retries: 10
@@ -48,7 +48,7 @@
 
     - name: Test Grafana datasources
       uri:
-        url: "http://admin:molecule123@127.0.0.1:3000/api/datasources"
+        url: http://admin:molecule123@127.0.0.1:3000/api/datasources
         method: GET
         status_code: 200
         return_content: yes
@@ -59,7 +59,7 @@
         that:
           - grafana_datasources.json | selectattr('name', 'equalto', 'Prometheus') | list | length == 1
           - grafana_datasources.json | selectattr('name', 'equalto', 'Loki') | list | length == 1
-        fail_msg: "Grafana datasources not configured correctly"
+        fail_msg: Grafana datasources not configured correctly
 
     - name: Generate test logs for integration test
       shell: echo "MOLECULE_STACK_TEST_$(date +%s): Testing monitoring stack integration" | systemd-cat -t molecule-stack-test
@@ -70,29 +70,29 @@
 
     - name: Test log query in Loki
       uri:
-        url: "http://127.0.0.1:3100/loki/api/v1/query_range"
+        url: http://127.0.0.1:3100/loki/api/v1/query_range
         method: GET
         body_format: form-urlencoded
         body:
-          query: '{job="systemd-journal"} |= "MOLECULE_STACK_TEST"'
-          start: "{{ (ansible_date_time.epoch | int - 60) }}000000000"
-          end: "{{ ansible_date_time.epoch }}000000000"
+          query: {job="systemd-journal"} |= "MOLECULE_STACK_TEST"
+          start: {{ (ansible_date_time.epoch | int - 60) }}000000000
+          end: {{ ansible_date_time.epoch }}000000000
       register: loki_integration_test
 
     - name: Verify log integration
       assert:
         that:
           - loki_integration_test.json.status == "success"
-        fail_msg: "Log integration test failed"
+        fail_msg: Log integration test failed
 
 - name: Verify networking stack
   hosts: networking
   gather_facts: true
-  
+
   tasks:
     - name: Test Traefik dashboard
       uri:
-        url: "http://127.0.0.1:8080/api/overview"
+        url: http://127.0.0.1:8080/api/overview
         method: GET
         status_code: 200
       retries: 10
@@ -108,16 +108,16 @@
       assert:
         that:
           - "'172.17.0.3' in dns_resolution.stdout"
-        fail_msg: "DNS resolution not working"
+        fail_msg: DNS resolution not working
 
 - name: Test cross-container connectivity
   hosts: networking
   gather_facts: true
-  
+
   tasks:
     - name: Test connectivity to monitoring stack
       uri:
-        url: "http://172.17.0.2:9090/api/v1/status/config"
+        url: http://172.17.0.2:9090/api/v1/status/config
         method: GET
         status_code: 200
         timeout: 10
@@ -127,14 +127,14 @@
       assert:
         that:
           - cross_container_test.status == 200
-        fail_msg: "Cross-container communication failed"
+        fail_msg: Cross-container communication failed
 
     - name: Test Traefik routing to Prometheus
       uri:
-        url: "http://127.0.0.1:8080/"
+        url: http://127.0.0.1:8080/
         method: GET
         headers:
-          Host: "prometheus.molecule.test"
+          Host: prometheus.molecule.test
         follow_redirects: false
         status_code: [200, 301, 302, 404]  # Various expected responses
       register: traefik_routing

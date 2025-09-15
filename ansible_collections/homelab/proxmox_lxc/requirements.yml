@@ -1,14 +1,14 @@
 ---
 collections:
-  - name: homelab.common
+    - name: homelab.common
     source: ../common
   - name: community.general
-    version: ">=7.0.0"
+    version: >=7.0.0
   - name: community.proxmox
-    version: ">=1.3.0"
+    version: >=1.3.0
   - name: containers.podman
-    version: ">=1.10.0"
+    version: >=1.10.0
   - name: ansible.posix
-    version: ">=1.5.0"
+    version: >=1.5.0
   - name: community.crypto
-    version: ">=2.0.0"
+    version: >=2.0.0

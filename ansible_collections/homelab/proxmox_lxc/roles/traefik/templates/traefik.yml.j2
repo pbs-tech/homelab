@@ -18,7 +18,7 @@ entryPoints:
         entrypoint:
           to: websecure
           scheme: https
-  
+
   websecure:
     address: ":{{ traefik_https_port }}"
 
@@ -34,7 +34,7 @@ providers:
   file:
     directory: /etc/traefik/dynamic
     watch: true
-  
+
   # Kubernetes provider for K3s services
   kubernetesIngress:
     endpoints:

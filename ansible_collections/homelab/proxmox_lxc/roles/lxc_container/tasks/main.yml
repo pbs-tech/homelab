@@ -1,35 +1,84 @@
 ---
-- name: Create LXC container in Proxmox
+- name: Include Proxmox API validation tasks
+  ansible.builtin.include_tasks: homelab.common.proxmox_api_validation
+  delegate_to: localhost
+  run_once: true
+  tags:
+    - validation
+    - proxmox
+
+- name: Create LXC container in Proxmox using secure API token authentication
   community.general.proxmox:
+    # Secure API token authentication (preferred)
+    api_host: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+    api_token_id: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id }}"
+    api_token_secret: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_secret }}"
+    validate_certs: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].validate_certs }}"
+    timeout: "{{ proxmox_api_defaults.timeout | default(300) }}"
+
+    # Container configuration
     vmid: "{{ container_id }}"
     node: "{{ proxmox_node }}"
     hostname: "{{ container_hostname }}"
     ostemplate: "{{ container_template }}"
     pubkey: "{{ container_ssh_key | default(omit) }}"
-    disk: "{{ container_disk_size | default('8') }}"
-    cores: "{{ container_cores | default(1) }}"
-    memory: "{{ container_memory | default(512) }}"
-    swap: "{{ container_swap | default(0) }}"
-    netif: "{{ container_network_config }}"
-    onboot: "{{ container_onboot | default(true) }}"
-    unprivileged: "{{ container_unprivileged | default(true) }}"
-    state: present
-    timeout: 300
-  register: container_result
-  delegate_to: "{{ groups['proxmox'][0] }}"
 
-- name: Start LXC container
+    # Resource allocation
+    disk: "{{ container_disk_size | default(container_defaults.disk_size) }}"
+    cores: "{{ container_cores | default(container_defaults.cores) }}"
+    memory: "{{ container_memory | default(container_defaults.memory) }}"
+    swap: "{{ container_swap | default(container_defaults.swap) }}"
+
+    # Network and management settings
+    netif: "{{ container_network_config }}"
+    nameserver: "{{ homelab_network.dns_servers | join(' ') }}"
+    searchdomain: "{{ homelab_domain }}"
+    onboot: "{{ container_onboot | default(container_defaults.onboot) }}"
+    unprivileged: "{{ container_unprivileged | default(container_defaults.unprivileged) }}"
+
+    state: present
+
+  register: container_result
+  retries: "{{ proxmox_api.retry_count | default(3) }}"
+  delay: "{{ proxmox_api.retry_delay | default(5) }}"
+  until: container_result is succeeded
+  delegate_to: localhost
+  tags:
+    - proxmox
+    - lxc
+    - containers
+
+- name: Start LXC container with standardized API authentication
   community.general.proxmox:
+    # API connection parameters
+    api_host: "{{ proxmox_host }}"
+    api_token_id: "{{ proxmox_api_token_id | default(omit) }}"
+    api_token_secret: "{{ proxmox_api_token_secret | default(omit) }}"
+    api_user: "{{ proxmox_user | default(omit) }}"
+    api_password: "{{ proxmox_password | default(omit) }}"
+    validate_certs: "{{ proxmox_api.validate_certs | default(true) }}"
+    timeout: "{{ proxmox_api.timeout | default(300) }}"
+
+    # Container identification and state
     vmid: "{{ container_id }}"
     node: "{{ proxmox_node }}"
     state: started
-    timeout: 60
+
+  register: container_start_result
+  retries: "{{ proxmox_api.retry_count | default(3) }}"
+  delay: "{{ proxmox_api.retry_delay | default(5) }}"
+  until: container_start_result is succeeded
   when: container_result is changed
-  delegate_to: "{{ groups['proxmox'][0] }}"
+  delegate_to: localhost
+  tags:
+    - proxmox
+    - lxc
+    - containers
+    - state
 
 - name: Wait for container to be reachable
   wait_for:
-    host: "{{ container_ip }}"
+    host: {{ container_ip }}
     port: 22
     delay: 10
     timeout: 120
@@ -37,8 +86,8 @@
 
 - name: Add container to inventory
   add_host:
-    name: "{{ container_hostname }}"
-    ansible_host: "{{ container_ip }}"
+    name: {{ container_hostname }}
+    ansible_host: {{ container_ip }}
     ansible_user: root
-    ansible_ssh_private_key_file: "{{ container_ssh_private_key | default(omit) }}"
-    groups: "{{ container_groups | default(['lxc_containers']) }}"
+    ansible_ssh_private_key_file: {{ container_ssh_private_key | default(omit) }}
+    groups: {{ container_groups | default(['lxc_containers']) }}

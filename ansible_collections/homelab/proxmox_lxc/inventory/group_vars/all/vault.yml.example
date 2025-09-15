@@ -4,7 +4,7 @@
 # Grafana Configuration
 vault_grafana_admin_password: "your_secure_grafana_password_here"
 
-# OpenWrt Configuration  
+# OpenWrt Configuration
 vault_openwrt_root_password_hash: "$2y$10$your_bcrypt_password_hash_here"
 
 # SSL Configuration

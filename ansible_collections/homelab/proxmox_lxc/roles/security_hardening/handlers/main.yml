@@ -1,19 +1,19 @@
 ---
-- name: restart ssh
+- name: Restart ssh
   systemd:
     name: ssh
     state: restarted
 
-- name: restart fail2ban
+- name: Restart fail2ban
   systemd:
     name: fail2ban
     state: restarted
 
-- name: reload ufw
-  ufw:
+- name: Reload ufw
+  community.general.ufw:
     state: reloaded
 
-- name: restart rsyslog
+- name: Restart rsyslog
   systemd:
     name: rsyslog
     state: restarted

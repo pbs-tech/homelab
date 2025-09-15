@@ -1,7 +1,7 @@
 ---
 # Shared security prerequisite checks
 - name: Check if bastion host is accessible
-  wait_for:
+  ansible.builtin.wait_for:
     host: 192.168.0.110
     port: 22
     timeout: 10
@@ -10,7 +10,7 @@
   register: bastion_check
 
 - name: Check if DNS security stack is deployed
-  wait_for:
+  ansible.builtin.wait_for:
     host: 192.168.0.202
     port: 53
     timeout: 10
@@ -19,7 +19,7 @@
   register: unbound_check
 
 - name: Check if AdGuard is deployed
-  wait_for:
+  ansible.builtin.wait_for:
     host: 192.168.0.204
     port: 80
     timeout: 10
@@ -28,7 +28,7 @@
   register: adguard_check
 
 - name: Check if WireGuard is deployed
-  wait_for:
+  ansible.builtin.wait_for:
     host: 192.168.0.203
     port: 51820
     timeout: 10
@@ -37,7 +37,7 @@
   register: wireguard_check
 
 - name: Check if Traefik reverse proxy is deployed
-  wait_for:
+  ansible.builtin.wait_for:
     host: 192.168.0.205
     port: 80
     timeout: 10
@@ -46,7 +46,7 @@
   register: traefik_check
 
 - name: Fail if security prerequisites are not met
-  fail:
+  ansible.builtin.fail:
     msg: |
       SECURITY PREREQUISITE FAILURE:
 

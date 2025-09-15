@@ -8,7 +8,7 @@
   hosts: localhost
   gather_facts: false
   tasks:
-  - name: Display test overview
+    - name: Display test overview
       debug:
         msg: |
           ============================================================
@@ -33,30 +33,30 @@
 
           Run with: ansible-playbook test-security-hardening.yml
 
-  - name: Syntax check - K3s security role
+    - name: Syntax check - K3s security role
       include_role:
         name: homelab.k3s.security_hardening
       check_mode: yes
       delegate_to: localhost
       vars:
         ansible_connection: local
-      tags: ['syntax-check']
+      tags: [syntax-check]
 
-  - name: Syntax check - Proxmox LXC security role
+    - name: Syntax check - Proxmox LXC security role
       include_role:
         name: homelab.proxmox_lxc.security_hardening
       check_mode: yes
       delegate_to: localhost
       vars:
         ansible_connection: local
-      tags: ['syntax-check']
+      tags: [syntax-check]
 
 - name: Validate K3s Pi security configurations
   hosts: k3s_cluster
   gather_facts: true
   become: true
   tasks:
-  - name: Test UFW firewall configuration
+    - name: Test UFW firewall configuration
       block:
     - name: Check UFW status
           command: ufw status verbose
@@ -95,7 +95,7 @@
           register: avahi_status
 
     - name: Test .local resolution
-          command: "avahi-resolve -n {{ inventory_hostname }}.local"
+          command: avahi-resolve -n {{ inventory_hostname }}.local
           register: local_resolution_test
           failed_when: false
           changed_when: false
@@ -141,7 +141,7 @@
       block:
     - name: Check if running on Pi
           set_fact:
-            is_raspberry_pi: "{{ raspberry_pi | default(false) }}"
+            is_raspberry_pi: {{ raspberry_pi | default(false) }}
 
     - name: Test Pi boot configuration
           stat:
@@ -165,7 +165,7 @@
 
     - name: Check K3s service configuration
           systemd:
-            name: "{{ 'k3s' if inventory_hostname in groups['server'] else 'k3s-agent' }}"
+            name: {{ 'k3s' if inventory_hostname in groups['server'] else 'k3s-agent' }}
           register: k3s_service_check
           when: ansible_facts.services['k3s.service'] is defined or ansible_facts.services['k3s-agent.service'] is defined
 
@@ -221,7 +221,7 @@
   hosts: localhost
   gather_facts: false
   tasks:
-  - name: Display validation complete message
+    - name: Display validation complete message
       debug:
         msg: |
 

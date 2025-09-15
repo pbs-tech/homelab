@@ -47,7 +47,7 @@ jobs:
           cd ansible_collections/homelab/k3s
           ansible-playbook --syntax-check playbooks/site.yml
 
-      - name: Syntax check - Proxmox LXC collection  
+      - name: Syntax check - Proxmox LXC collection
         run: |
           cd ansible_collections/homelab/proxmox_lxc
           ansible-playbook --syntax-check site.yml

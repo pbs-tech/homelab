@@ -31,7 +31,7 @@ dns:
   parental_block_host: family-block.dns.adguard.com
   safebrowsing_block_host: standard-block.dns.adguard.com
   rewrites: []
-  
+
   # Upstream DNS - point to Unbound for recursive resolution
   upstream_dns:
     - 192.168.0.202:53
@@ -41,7 +41,7 @@ dns:
     - 1.0.0.1
   all_servers: true
   fastest_addr: false
-  allowed_clients: 
+  allowed_clients:
     - 192.168.0.0/24
   disallowed_clients: []
   blocked_hosts:
@@ -73,7 +73,7 @@ filters:
     url: https://adguardteam.github.io/AdGuardSDNSFilter/Filters/filter.txt
     name: AdGuard DNS filter
     id: 1
-  - enabled: true  
+  - enabled: true
     url: https://someonewhocares.org/hosts/zero/hosts
     name: Dan Pollock's List
     id: 2
@@ -103,7 +103,7 @@ blocked_services:
 user_rules:
   # Block known malicious TLDs
   - "||tk^$important"
-  - "||ml^$important" 
+  - "||ml^$important"
   - "||ga^$important"
   - "||cf^$important"
   # Allow homelab services

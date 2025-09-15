@@ -1,19 +1,24 @@
 ---
+- name: Check if SSH config backup exists
+  stat:
+    path: /etc/ssh/sshd_config.backup
+  register: ssh_backup_stat
+
 - name: Backup original SSH config
   copy:
     src: /etc/ssh/sshd_config
     dest: /etc/ssh/sshd_config.backup
     remote_src: yes
-    mode: '0600'
+    mode: 0600
     owner: root
     group: root
-  creates: /etc/ssh/sshd_config.backup
+  when: not ssh_backup_stat.stat.exists
 
 - name: Configure SSH hardening
   lineinfile:
     path: /etc/ssh/sshd_config
-    regexp: "{{ item.regexp }}"
-    line: "{{ item.line }}"
+    regexp: {{ item.regexp }}
+    line: {{ item.line }}
     state: present
     backup: yes
   loop:
@@ -43,7 +48,7 @@
       LoginGraceTime 30
       MaxSessions 4
       MaxStartups 10:30:60
-    marker: "# {mark} ANSIBLE MANAGED SSH SECURITY"
+    marker: # {mark} ANSIBLE MANAGED SSH SECURITY
   notify: restart ssh
 
 - name: Test SSH configuration

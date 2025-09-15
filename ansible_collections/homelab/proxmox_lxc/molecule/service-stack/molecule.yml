@@ -57,25 +57,25 @@ provisioner:
         ansible_user: root
         ansible_connection: podman
         ansible_default_ipv4:
-          address: "172.17.0.2"
+          address: 172.17.0.2
         # Service-specific configs
-        prometheus_storage_retention: "2h"
-        loki_retention_period: "6h"
-        grafana_admin_password: "molecule123"
-        
+        prometheus_storage_retention: 2h
+        loki_retention_period: 6h
+        grafana_admin_password: molecule123
+
       networking-stack:
         ansible_user: root
         ansible_connection: podman
         ansible_default_ipv4:
-          address: "172.17.0.3"
+          address: 172.17.0.3
         # Networking configs
-        traefik_version: "3.0.4"
+        traefik_version: 3.0.4
         traefik_dashboard_enabled: true
     group_vars:
       all:
-        homelab_domain: "molecule.test"
-        ssl_email: "test@molecule.test"
-        container_ssh_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC... molecule-key"
+        homelab_domain: molecule.test
+        ssl_email: test@molecule.test
+        container_ssh_key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC... molecule-key
 
 verifier:
   name: ansible

@@ -1,0 +1,401 @@
+---
+name: Performance Testing
+
+on:
+  schedule:
+    - cron: '0 4 * * 6'  # Weekly on Saturday at 4 AM UTC
+  workflow_dispatch:
+    inputs:
+      test_scope:
+        description: 'Scope of performance tests'
+        required: false
+        default: 'full'
+        type: choice
+        options:
+          - quick
+          - full
+          - stress
+      target_environment:
+        description: 'Target environment'
+        required: false
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - performance
+
+concurrency:
+  group: performance-${{ inputs.target_environment }}
+  cancel-in-progress: false
+
+env:
+  ANSIBLE_FORCE_COLOR: '1'
+  PERFORMANCE_TEST_DIR: 'tests/performance'
+
+jobs:
+  baseline-performance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible-core>=2.15 requests psutil matplotlib pandas
+
+      - name: Install collections
+        run: |
+          ansible-galaxy collection install -r requirements.yml --force
+
+      - name: Configure test environment
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.ANSIBLE_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > ~/.ansible_vault_pass
+          chmod 600 ~/.ansible_vault_pass
+
+      - name: Create performance test infrastructure
+        run: |
+          mkdir -p ${{ env.PERFORMANCE_TEST_DIR }}
+
+          # Create performance test playbook
+          cat > ${{ env.PERFORMANCE_TEST_DIR }}/performance_test.yml << 'EOF'
+          ---
+          - name: Performance baseline testing
+            hosts: all
+            gather_facts: true
+            tasks:
+              - name: Collect system baseline
+                shell: |
+                  echo "=== System Performance Baseline ==="
+                  echo "Timestamp: $(date -u -Iseconds)"
+                  echo "Hostname: $(hostname)"
+                  echo "Uptime: $(uptime)"
+                  echo "CPU Info: $(nproc) cores, $(cat /proc/cpuinfo | grep 'model name' | head -1 | cut -d: -f2)"
+                  echo "Memory: $(free -h | grep Mem: | awk '{print $2}')"
+                  echo "Disk: $(df -h / | tail -1 | awk '{print $2}')"
+                  echo ""
+                  echo "=== Load Testing ==="
+
+                  # CPU stress test
+                  echo "CPU stress test (30 seconds)..."
+                  timeout 30 stress-ng --cpu $(nproc) --metrics-brief 2>/dev/null || echo "stress-ng not available"
+
+                  # Memory usage
+                  echo "Memory usage:"
+                  free -h
+
+                  # I/O performance
+                  echo "Disk I/O performance:"
+                  dd if=/dev/zero of=/tmp/test bs=1M count=100 2>&1 | grep copied || echo "I/O test completed"
+                  rm -f /tmp/test
+
+                  # Network connectivity
+                  echo "Network performance:"
+                  ping -c 5 8.8.8.8 | tail -1 || echo "Network test completed"
+                register: baseline_results
+
+              - name: Save baseline results
+                copy:
+                  content: "{{ baseline_results.stdout }}"
+                  dest: "/tmp/performance-baseline-{{ inventory_hostname }}.log"
+
+              - name: Fetch baseline results
+                fetch:
+                  src: "/tmp/performance-baseline-{{ inventory_hostname }}.log"
+                  dest: "./performance-results/"
+                  flat: true
+          EOF
+
+      - name: Run baseline performance tests
+        run: |
+          mkdir -p performance-results
+
+          ansible-playbook ${{ env.PERFORMANCE_TEST_DIR }}/performance_test.yml \
+            -i inventory/hosts.yml \
+            --private-key ~/.ssh/id_rsa \
+            --vault-password-file ~/.ansible_vault_pass \
+            --limit "{{ inputs.target_environment | default('staging') }}_hosts"
+
+      - name: Ansible playbook performance test
+        run: |
+          echo "Testing Ansible playbook execution performance..."
+
+          # Test infrastructure deployment performance
+          time_start=$(date +%s)
+
+          ansible-playbook playbooks/infrastructure.yml \
+            -i inventory/hosts.yml \
+            --private-key ~/.ssh/id_rsa \
+            --vault-password-file ~/.ansible_vault_pass \
+            --tags "{{ inputs.test_scope | default('quick') }}" \
+            --check --diff > performance-results/ansible-performance.log 2>&1
+
+          time_end=$(date +%s)
+          execution_time=$((time_end - time_start))
+
+          echo "Ansible execution time: ${execution_time} seconds" >> performance-results/ansible-performance.log
+
+          # Extract performance metrics
+          grep -E "(TASK|PLAY RECAP)" performance-results/ansible-performance.log > performance-results/ansible-timing.log
+
+      - name: Service response time testing
+        run: |
+          cat > ${{ env.PERFORMANCE_TEST_DIR }}/service_performance.py << 'EOF'
+          import requests
+          import time
+          import statistics
+          import json
+          from concurrent.futures import ThreadPoolExecutor, as_completed
+
+          def test_service_response(url, num_requests=50):
+              response_times = []
+              errors = 0
+
+              def single_request():
+                  try:
+                      start_time = time.time()
+                      response = requests.get(url, timeout=10)
+                      end_time = time.time()
+                      return {
+                          'response_time': (end_time - start_time) * 1000,  # ms
+                          'status_code': response.status_code,
+                          'success': response.status_code < 400
+                      }
+                  except Exception as e:
+                      return {
+                          'response_time': None,
+                          'status_code': None,
+                          'success': False,
+                          'error': str(e)
+                      }
+
+              with ThreadPoolExecutor(max_workers=10) as executor:
+                  futures = [executor.submit(single_request) for _ in range(num_requests)]
+
+                  for future in as_completed(futures):
+                      result = future.result()
+                      if result['success']:
+                          response_times.append(result['response_time'])
+                      else:
+                          errors += 1
+
+              if response_times:
+                  return {
+                      'url': url,
+                      'total_requests': num_requests,
+                      'successful_requests': len(response_times),
+                      'failed_requests': errors,
+                      'avg_response_time': statistics.mean(response_times),
+                      'min_response_time': min(response_times),
+                      'max_response_time': max(response_times),
+                      'median_response_time': statistics.median(response_times),
+                      'p95_response_time': sorted(response_times)[int(0.95 * len(response_times))]
+                  }
+              else:
+                  return {
+                      'url': url,
+                      'total_requests': num_requests,
+                      'successful_requests': 0,
+                      'failed_requests': errors,
+                      'error': 'No successful requests'
+                  }
+
+          # Test common services
+          services = [
+              'http://192.168.0.200:9090/metrics',  # Prometheus
+              'http://192.168.0.201:3000/api/health',  # Grafana
+              'http://192.168.0.205:8080/api/overview',  # Traefik
+          ]
+
+          results = []
+          for service_url in services:
+              print(f"Testing {service_url}...")
+              result = test_service_response(service_url)
+              results.append(result)
+              print(f"  Avg response: {result.get('avg_response_time', 'N/A')}ms")
+
+          # Save results
+          with open('performance-results/service-performance.json', 'w') as f:
+              json.dump(results, f, indent=2)
+
+          print("Service performance testing completed")
+          EOF
+
+          python ${{ env.PERFORMANCE_TEST_DIR }}/service_performance.py
+
+      - name: Generate performance report
+        run: |
+          cat > ${{ env.PERFORMANCE_TEST_DIR }}/generate_report.py << 'EOF'
+          import json
+          import os
+          import matplotlib.pyplot as plt
+          import pandas as pd
+          from datetime import datetime
+
+          # Load service performance data
+          with open('performance-results/service-performance.json', 'r') as f:
+              service_data = json.load(f)
+
+          # Create performance report
+          report = {
+              'timestamp': datetime.now().isoformat(),
+              'test_scope': '${{ inputs.test_scope | default("full") }}',
+              'environment': '${{ inputs.target_environment | default("staging") }}',
+              'services': service_data
+          }
+
+          # Generate summary
+          successful_services = [s for s in service_data if s.get('successful_requests', 0) > 0]
+          failed_services = [s for s in service_data if s.get('successful_requests', 0) == 0]
+
+          avg_response_times = [s['avg_response_time'] for s in successful_services]
+          overall_avg = sum(avg_response_times) / len(avg_response_times) if avg_response_times else 0
+
+          report['summary'] = {
+              'total_services_tested': len(service_data),
+              'successful_services': len(successful_services),
+              'failed_services': len(failed_services),
+              'overall_avg_response_time': overall_avg,
+              'max_response_time': max(s['max_response_time'] for s in successful_services) if successful_services else 0
+          }
+
+          # Save detailed report
+          with open('performance-results/performance-report.json', 'w') as f:
+              json.dump(report, f, indent=2)
+
+          # Generate simple visualization if matplotlib is available
+          try:
+              if successful_services:
+                  plt.figure(figsize=(12, 6))
+
+                  services_names = [s['url'].split('/')[-1] or s['url'].split('/')[-2] for s in successful_services]
+                  response_times = [s['avg_response_time'] for s in successful_services]
+
+                  plt.bar(services_names, response_times)
+                  plt.title('Service Response Times')
+                  plt.ylabel('Response Time (ms)')
+                  plt.xticks(rotation=45)
+                  plt.tight_layout()
+                  plt.savefig('performance-results/response-times.png')
+                  plt.close()
+
+              print("Performance visualization created")
+          except Exception as e:
+              print(f"Visualization creation failed: {e}")
+
+          print(f"Performance report generated: {report['summary']}")
+          EOF
+
+          python ${{ env.PERFORMANCE_TEST_DIR }}/generate_report.py
+
+      - name: Upload performance results
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-results-${{ inputs.target_environment }}-${{ github.run_number }}
+          path: performance-results/
+          retention-days: 90
+
+      - name: Performance regression check
+        run: |
+          # Download previous performance results for comparison
+          # This would typically compare against a baseline stored in your repository
+
+          cat > ${{ env.PERFORMANCE_TEST_DIR }}/regression_check.py << 'EOF'
+          import json
+          import sys
+
+          # Load current results
+          with open('performance-results/performance-report.json', 'r') as f:
+              current = json.load(f)
+
+          # Define performance thresholds
+          thresholds = {
+              'max_avg_response_time': 2000,  # ms
+              'max_p95_response_time': 5000,  # ms
+              'min_success_rate': 95  # percent
+          }
+
+          issues = []
+
+          for service in current['services']:
+              if service.get('successful_requests', 0) > 0:
+                  success_rate = (service['successful_requests'] / service['total_requests']) * 100
+
+                  if service['avg_response_time'] > thresholds['max_avg_response_time']:
+                      issues.append(f"Service {service['url']} avg response time too high: {service['avg_response_time']:.2f}ms")
+
+                  if service.get('p95_response_time', 0) > thresholds['max_p95_response_time']:
+                      issues.append(f"Service {service['url']} P95 response time too high: {service['p95_response_time']:.2f}ms")
+
+                  if success_rate < thresholds['min_success_rate']:
+                      issues.append(f"Service {service['url']} success rate too low: {success_rate:.1f}%")
+              else:
+                  issues.append(f"Service {service['url']} failed all requests")
+
+          if issues:
+              print("Performance regression detected:")
+              for issue in issues:
+                  print(f"  - {issue}")
+              sys.exit(1)
+          else:
+              print("All performance checks passed")
+          EOF
+
+          python ${{ env.PERFORMANCE_TEST_DIR }}/regression_check.py
+
+      - name: Create performance issue on regression
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            let report = {};
+            try {
+              const reportData = fs.readFileSync('performance-results/performance-report.json', 'utf8');
+              report = JSON.parse(reportData);
+            } catch (e) {
+              console.log('Could not load performance report');
+            }
+
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Performance Regression Detected - ${{ inputs.target_environment }}`,
+              body: `## Performance Regression Alert\n\nPerformance regression detected in **${{ inputs.target_environment }}** environment.\n\n**Test Summary:**\n- Environment: ${{ inputs.target_environment }}\n- Scope: ${{ inputs.test_scope }}\n- Services Tested: ${report.summary?.total_services_tested || 'N/A'}\n- Failed Services: ${report.summary?.failed_services || 'N/A'}\n- Overall Avg Response: ${report.summary?.overall_avg_response_time?.toFixed(2) || 'N/A'}ms\n\n**Action Required:**\n- [ ] Review performance test results\n- [ ] Investigate performance bottlenecks\n- [ ] Optimize infrastructure if needed\n- [ ] Update performance baselines\n\n**Workflow Run**: [${context.runNumber}](${context.payload.repository.html_url}/actions/runs/${context.runId})`,
+              labels: ['performance', 'regression', 'infrastructure']
+            });
+
+            console.log(`Created performance issue #${issue.data.number}`);
+
+      - name: Cleanup sensitive files
+        if: always()
+        run: |
+          rm -f ~/.ssh/id_rsa
+          rm -f ~/.ansible_vault_pass
+
+      - name: Performance summary
+        if: always()
+        run: |
+          if [ -f "performance-results/performance-report.json" ]; then
+            echo "## Performance Test Summary" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Environment:** ${{ inputs.target_environment | default('staging') }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Scope:** ${{ inputs.test_scope | default('full') }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Results:** Available in workflow artifacts" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Next Steps:**" >> $GITHUB_STEP_SUMMARY
+            echo "- Review performance metrics" >> $GITHUB_STEP_SUMMARY
+            echo "- Compare against previous baselines" >> $GITHUB_STEP_SUMMARY
+            echo "- Address any performance regressions" >> $GITHUB_STEP_SUMMARY
+          fi

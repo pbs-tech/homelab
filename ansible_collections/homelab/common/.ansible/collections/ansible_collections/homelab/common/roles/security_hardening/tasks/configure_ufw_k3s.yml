@@ -1,0 +1,79 @@
+---
+- name: Get current UFW status
+  ansible.builtin.command: ufw status
+  register: ufw_status_check
+  changed_when: false
+  failed_when: false
+
+- name: Configure UFW for K3s nodes
+  when: "'Status: active' not in ufw_status_check.stdout or pi_security_hardening.ufw_hardening"
+  block:
+    - name: Set UFW default policies
+      community.general.ufw:
+        direction: "{{ item.direction }}"
+        policy: "{{ item.policy }}"
+      loop:
+        - { direction: "incoming", policy: "deny" }
+        - { direction: "outgoing", policy: "allow" }
+        - { direction: "routed", policy: "deny" }
+
+    - name: Allow SSH from management network
+      community.general.ufw:
+        rule: allow
+        port: "{{ pi_security_hardening.ssh_hardening.port }}"
+        src: "192.168.0.0/24"
+        comment: "SSH from management network"
+
+    - name: Allow K3s API server port (6443)
+      community.general.ufw:
+        rule: allow
+        port: "6443"
+        comment: "K3s API server"
+      when: inventory_hostname in groups['server']
+
+    - name: Allow etcd ports for multi-master
+      community.general.ufw:
+        rule: allow
+        port: "2379:2381"
+        proto: tcp
+        src: "{{ item }}"
+        comment: "etcd cluster communication"
+      loop: "{{ groups['server'] | map('extract', hostvars, 'ansible_host') | list }}"
+      when:
+        - inventory_hostname in groups['server']
+        - groups['server'] | length > 1
+
+    - name: Allow K3s inter-node communication
+      community.general.ufw:
+        rule: allow
+        port: "{{ item.port }}"
+        proto: "{{ item.proto }}"
+        src: "{{ ansible_default_ipv4.network }}/{{ ansible_default_ipv4.netmask }}"
+        comment: "{{ item.comment }}"
+      loop:
+        - { port: "10250", proto: "tcp", comment: "Kubelet metrics" }
+        - { port: "8472", proto: "udp", comment: "Flannel VXLAN" }
+        - { port: "51820", proto: "udp", comment: "Flannel Wireguard IPv4" }
+        - { port: "51821", proto: "udp", comment: "Flannel Wireguard IPv6" }
+        - { port: "5001", proto: "tcp", comment: "Spegel registry" }
+
+    - name: Allow K3s cluster CIDR traffic
+      community.general.ufw:
+        rule: allow
+        src: "{{ item }}"
+        comment: "K3s cluster traffic"
+      loop:
+        - "10.42.0.0/16" # Default cluster CIDR
+        - "10.43.0.0/16" # Default service CIDR
+
+    - name: Allow NodePort range if configured
+      community.general.ufw:
+        rule: allow
+        port: "30000:32767"
+        comment: "NodePort services"
+      when: k3s_security.allow_nodeports | default(false)
+
+    - name: Enable UFW with logging
+      community.general.ufw:
+        state: enabled
+        logging: "on"

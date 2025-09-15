@@ -4,24 +4,38 @@ name: common
 version: 1.0.0
 readme: README.md
 authors:
-  - "Homelab Administrator"
-description: Common utilities and shared roles for homelab infrastructure collections
+    - "Homelab Administrator"
+description: >
+  Common utilities and shared roles for homelab infrastructure collections.
+  Provides shared configuration, security hardening, and container management
+  for K3s and Proxmox LXC deployments.
 license:
-  - Apache-2.0
+    - Apache-2.0
 tags:
   - homelab
   - common
   - utilities
   - shared
   - infrastructure
+  - security
+  - containers
+  - automation
 dependencies:
   community.general: ">=7.0.0"
   ansible.posix: ">=1.5.0"
   community.crypto: ">=2.0.0"
   kubernetes.core: ">=2.4.0"
   community.proxmox: ">=1.3.0"
-repository: ""
-documentation: ""
-homepage: ""
-issues: ""
-build_ignore: []
+repository: "https://github.com/your-org/homelab-ansible"
+documentation: "https://github.com/your-org/homelab-ansible/tree/main/ansible_collections/homelab/common"
+homepage: "https://github.com/your-org/homelab-ansible"
+issues: "https://github.com/your-org/homelab-ansible/issues"
+build_ignore:
+  - "*.tar.gz"
+  - "molecule/"
+  - "tests/"
+  - "**/__pycache__"
+  - "**/*.pyc"
+  - ".ansible/"
+  - ".cache/"
+  - ".pytest_cache/"

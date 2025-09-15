@@ -4,7 +4,7 @@ pi_security_hardening:
   # Firewall configuration (works with existing UFW setup)
   ufw_enabled: true
   ufw_hardening: true
-  
+
   # SSH hardening (adapted for Pi environment)
   ssh_hardening:
     port: 22
@@ -15,9 +15,9 @@ pi_security_hardening:
     client_alive_interval: 300
     client_alive_count_max: 2
     # Pi-specific settings
-    allow_tcp_forwarding: true  # Needed for K3s tunneling
+    allow_tcp_forwarding: true # Needed for K3s tunneling
     gateway_ports: false
-  
+
   # Fail2ban configuration
   fail2ban:
     enabled: true
@@ -27,20 +27,20 @@ pi_security_hardening:
     ignoreip:
       - "127.0.0.1/8"
       - "192.168.0.0/24"
-      - "10.42.0.0/16"  # K3s cluster CIDR
-      - "10.43.0.0/16"  # K3s service CIDR
-  
+      - "10.42.0.0/16" # K3s cluster CIDR
+      - "10.43.0.0/16" # K3s service CIDR
+
   # Automatic updates (more conservative for K3s nodes)
   unattended_upgrades:
     enabled: true
     auto_reboot: false
-    auto_reboot_time: "02:00"
+    auto_reboot_time: 02:00
     mail_on_error: false
     # Pi-specific: avoid kernel updates that could break K3s
     package_blacklist:
       - "linux-*"
       - "raspberry-kernel-*"
-  
+
   # Pi-specific system hardening
   pi_system:
     disable_unused_services: true
@@ -48,9 +48,9 @@ pi_security_hardening:
     network_hardening: true
     # Pi-specific optimizations
     optimize_memory: true
-    disable_swap: false  # Keep swap for stability
-    gpu_split: 16        # Minimal GPU memory
-    
+    disable_swap: false # Keep swap for stability
+    gpu_split: 16 # Minimal GPU memory
+
   # Logging and monitoring (lightweight for Pi)
   logging:
     rsyslog_enabled: true
@@ -59,20 +59,20 @@ pi_security_hardening:
     # Pi-specific log management
     log_retention_days: 7
     compress_logs: true
-    
+
 # K3s-specific security settings
 k3s_security:
   # Network security
   cluster_hardening: true
   pod_security_standards: true
   network_policies: true
-  
+
   # Node security
   kubelet_hardening: true
   api_server_hardening: true
-  
+
   # Resource limits for Pi nodes
   resource_limits:
-    max_pods_per_node: 50  # Conservative for Pi resources
-    node_allocatable_memory: "512Mi"  # Reserve for system
-    node_allocatable_cpu: "0.5"      # Reserve for system
+    max_pods_per_node: 50 # Conservative for Pi resources
+    node_allocatable_memory: "512Mi" # Reserve for system
+    node_allocatable_cpu: "0.5" # Reserve for system

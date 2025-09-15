@@ -5,7 +5,6 @@
 # Install with: ansible-galaxy install -r requirements.yml
 
 collections:
-
 # Core homelab collections
 
   - source: ansible_collections/homelab/common

@@ -2,7 +2,7 @@
 # Provides common development and deployment tasks
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint lint-yaml lint-ansible lint-markdown test deploy clean
+.PHONY: help install lint lint-yaml lint-ansible lint-markdown test deploy clean performance drift-check release monitor backup restore ci-status
 
 # Colors for output
 YELLOW := \033[1;33m
@@ -107,6 +107,45 @@ docs: ## Generate documentation
 	@echo "$(YELLOW)Generating documentation...$(NC)"
 	@echo "$(YELLOW)Documentation is maintained in markdown files$(NC)"
 	@echo "See: README.md, CLAUDE.md, and collection-specific docs"
+	@echo ""
+	@echo "$(YELLOW)Available documentation:$(NC)"
+	@find . -name "*.md" -not -path "./.git/*" | sed 's/^/  - /'
+
+performance: ## Run performance tests locally
+	@echo "$(YELLOW)Running performance tests...$(NC)"
+	@mkdir -p tests/performance/results
+	@ansible-playbook tests/performance/local_performance_test.yml
+
+drift-check: ## Check for configuration drift
+	@echo "$(YELLOW)Checking for configuration drift...$(NC)"
+	@ansible-playbook playbooks/infrastructure.yml --check --diff
+
+release: lint test ## Prepare a release (run tests and linting first)
+	@echo "$(YELLOW)Preparing release...$(NC)"
+	@echo "Current version in galaxy.yml files:"
+	@grep "version:" ansible_collections/homelab/*/galaxy.yml
+	@echo "$(GREEN)Ready for release! Create a git tag to trigger release workflow.$(NC)"
+
+monitor: ## Display monitoring dashboard URLs
+	@echo "$(YELLOW)Monitoring Dashboard URLs$(NC)"
+	@echo "========================="
+	@echo "Prometheus: http://192.168.0.200:9090"
+	@echo "Grafana: http://192.168.0.201:3000"
+	@echo "Traefik: http://192.168.0.205:8080"
+	@echo "AlertManager: http://192.168.0.206:9093"
+
+backup: ## Create infrastructure backup
+	@echo "$(YELLOW)Creating infrastructure backup...$(NC)"
+	@ansible-playbook playbooks/backup.yml
+
+restore: ## Restore from backup (requires BACKUP_TIMESTAMP variable)
+	@echo "$(YELLOW)Restoring from backup...$(NC)"
+	@if [ -z "$(BACKUP_TIMESTAMP)" ]; then \
+		echo "$(RED)Error: BACKUP_TIMESTAMP variable is required$(NC)"; \
+		echo "Usage: make restore BACKUP_TIMESTAMP=2024-01-15_14:30:00"; \
+		exit 1; \
+	fi
+	@ansible-playbook playbooks/rollback.yml -e "backup_timestamp=$(BACKUP_TIMESTAMP)"
 
 status: ## Show project status
 	@echo "$(YELLOW)Project Status$(NC)"
@@ -116,3 +155,15 @@ status: ## Show project status
 	@echo "Python version: $$(python --version)"
 	@echo "Ansible version: $$(ansible --version | head -1)"
 	@echo "Collections installed: $$(ansible-galaxy collection list | grep -c homelab || echo 0)"
+	@echo ""
+	@echo "$(YELLOW)Infrastructure Status$(NC)"
+	@echo "==================="
+	@ansible all -m ping -i inventory/hosts.yml --one-line 2>/dev/null | head -10 || echo "$(RED)Infrastructure check failed$(NC)"
+
+ci-status: ## Show CI/CD pipeline status
+	@echo "$(YELLOW)CI/CD Pipeline Status$(NC)"
+	@echo "========================"
+	@echo "Last commit: $$(git log -1 --pretty=format:'%h - %s (%an, %ar)')"
+	@echo "GitHub Actions: Check repository for latest workflow runs"
+	@echo "Available workflows:"
+	@ls -1 .github/workflows/*.yml | sed 's/.*\//  - /' | sed 's/\.yml$$//'

@@ -4,23 +4,23 @@
 
 # Container resource defaults (inherited from common config)
 container_resources:
-  disk_size: "{{ container_defaults.disk_size }}"
-  cores: "{{ container_defaults.cores }}"
-  memory: "{{ container_defaults.memory }}"
-  swap: "{{ container_defaults.swap }}"
+  disk_size: {{ container_defaults.disk_size }}
+  cores: {{ container_defaults.cores }}
+  memory: {{ container_defaults.memory }}
+  swap: {{ container_defaults.swap }}
 
 # Network configuration
 container_network:
-  bridge: "vmbr0"
-  ip_config: "dhcp"
+  bridge: vmbr0
+  ip_config: dhcp
   firewall: true
 
 # LXC specific settings
 lxc_config:
-  onboot: "{{ container_defaults.onboot }}"
-  unprivileged: "{{ container_defaults.unprivileged }}"
-  template: "{{ container_defaults.template }}"
-  storage: "local-lvm"
+  onboot: {{ container_defaults.onboot }}
+  unprivileged: {{ container_defaults.unprivileged }}
+  template: {{ container_defaults.template }}
+  storage: local-lvm
 
 # Proxmox node selection logic
 container_node: >-

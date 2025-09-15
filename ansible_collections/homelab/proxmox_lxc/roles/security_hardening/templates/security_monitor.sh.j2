@@ -33,12 +33,12 @@ check_services() {
         log_message "ERROR: $SERVICE_NAME service is not running"
     fi
     {% endif %}
-    
+
     # Check UFW status
     if ! ufw status | grep -q "Status: active"; then
         log_message "ERROR: UFW firewall is not active"
     fi
-    
+
     # Check Fail2ban status
     if ! systemctl is-active --quiet fail2ban; then
         log_message "ERROR: Fail2ban is not running"
@@ -57,7 +57,7 @@ check_processes() {
 # Main execution
 log_message "Starting security monitoring check"
 check_logins
-check_disk_space  
+check_disk_space
 check_services
 check_processes
 log_message "Security monitoring check completed"

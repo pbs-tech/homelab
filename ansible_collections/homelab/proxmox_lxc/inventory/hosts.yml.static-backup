@@ -13,7 +13,7 @@ all:
           ansible_user: root
           proxmox_host: 192.168.0.57
           proxmox_user: root@pam
-    
+
     bastion_host:
       hosts:
         k3s-bastion:
@@ -38,8 +38,8 @@ all:
         k3s-4:
           ansible_host: 192.168.0.114
           ansible_user: pbs
-    
-    
+
+
     lxc_containers:
       children:
         monitoring:
@@ -60,7 +60,7 @@ all:
               ansible_host: 192.168.0.207
               container_id: 207
               service_port: 9221
-        
+
         networking:
           hosts:
             unbound-lxc:
@@ -83,21 +83,21 @@ all:
               ansible_host: 192.168.0.209
               container_id: 209
               service_port: 80
-        
+
         automation:
           hosts:
             homeassistant-lxc:
               ansible_host: 192.168.0.208
               container_id: 208
               service_port: 8123
-        
+
         logging:
           hosts:
             loki-lxc:
               ansible_host: 192.168.0.210
               container_id: 210
               service_port: 3100
-        
+
         nas_services:
           hosts:
             sonarr-lxc:
@@ -124,14 +124,14 @@ all:
               ansible_host: 192.168.0.235
               container_id: 235
               service_port: 8096
-        
+
         nas_monitoring:
           hosts:
             pve-exporter-nas-lxc:
               ansible_host: 192.168.0.240
               container_id: 240
               service_port: 9221
-        
+
         nas_storage:
           hosts:
             truenas-vm:

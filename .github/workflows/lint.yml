@@ -3,9 +3,9 @@ name: Lint
 
 on:
   push:
-    branches: [ "main", "develop", "update-actions" ]
+    branches: [main, develop, update-actions]
   pull_request:
-    branches: [ "main", "develop" ]
+    branches: [main, develop]
   workflow_dispatch:
 
 concurrency:

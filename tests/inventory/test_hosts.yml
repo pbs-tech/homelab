@@ -10,15 +10,15 @@ all:
     k3s_test_servers:
       hosts:
         k3s-test-server:
-          ansible_host: 192.168.0.111  # k3s-1 IP
+          ansible_host: 192.168.0.111 # k3s-1 IP
           ansible_user: pbs
           k3s_role: server
           k3s_server_init: true
-    
+
     k3s_test_agents:
       hosts:
         k3s-test-agent:
-          ansible_host: 192.168.0.114  # k3s-4 IP
+          ansible_host: 192.168.0.114 # k3s-4 IP
           ansible_user: pbs
           k3s_role: agent
 
@@ -26,7 +26,7 @@ all:
     proxmox_hosts:
       hosts:
         pve-test:
-          ansible_host: 192.168.0.56  # pve-mac IP
+          ansible_host: 192.168.0.56 # pve-mac IP
           ansible_user: root
           proxmox_host: 192.168.0.56
           proxmox_user: root@pam
@@ -35,30 +35,30 @@ all:
   vars:
     # Test-specific configuration
     ansible_ssh_private_key_file: ~/.ssh/id_rsa
-    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
-    
+    ansible_ssh_common_args: -o StrictHostKeyChecking=no
+
     # Import common configuration from homelab.common collection
-    homelab_domain: "test.local"
+    homelab_domain: test.local
     homelab_network:
-      gateway_ip: "192.168.0.1"
+      gateway_ip: 192.168.0.1
       dns_servers:
         - "192.168.0.202"
         - "8.8.8.8"
-      cluster_cidr: "10.42.0.0/16"
-      service_cidr: "10.43.0.0/16"
-    
+      cluster_cidr: 10.42.0.0/16
+      service_cidr: 10.43.0.0/16
+
     # Container defaults for testing
     container_defaults:
-      template: "ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
-      disk_size: "4"  # Smaller for tests
+      template: ubuntu-22.04-standard_22.04-1_amd64.tar.zst
+      disk_size: "4" # Smaller for tests
       cores: 1
       memory: 512
       swap: 0
-      onboot: false  # Don't auto-start test containers
+      onboot: false # Don't auto-start test containers
       unprivileged: true
-    
+
     # Security configuration for tests
     security_config:
       hardening_enabled: true
-      ssh_key_path: "~/.ssh/id_rsa"
-      log_retention_days: 1  # Short retention for tests
+      ssh_key_path: ~/.ssh/id_rsa
+      log_retention_days: 1 # Short retention for tests

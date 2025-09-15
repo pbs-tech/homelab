@@ -8,7 +8,7 @@ driver:
   name: podman
 
 platforms:
-  - name: ubuntu-test
+    - name: ubuntu-test
     image: geerlingguy/docker-ubuntu2204-ansible:latest
     pre_build_image: true
     privileged: true
@@ -39,11 +39,11 @@ provisioner:
         ansible_connection: podman
         # Override network settings for Podman testing
         ansible_default_ipv4:
-          address: "127.0.0.1"
+          address: 127.0.0.1
         # Mock Proxmox settings for testing
-        proxmox_host: "127.0.0.1"
-        proxmox_user: "root@pam"
-        container_ssh_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC... mock-key"
+        proxmox_host: 127.0.0.1
+        proxmox_user: root@pam
+        container_ssh_key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC... mock-key
 
 verifier:
   name: ansible

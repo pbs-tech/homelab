@@ -7,110 +7,110 @@
       prometheus:
         container_id: 200
         container_hostname: prometheus-lxc
-        container_ip: "{{ prometheus_ip | default('192.168.0.200') }}"
+        container_ip: {{ prometheus_ip | default('192.168.0.200') }}
         container_memory: 1024
         container_cores: 2
-        container_disk_size: "16"
+        container_disk_size: 16
         service_port: 9090
-        container_template_name: "ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
-        
+        container_template_name: ubuntu-22.04-standard_22.04-1_amd64.tar.zst
+
       grafana:
         container_id: 201
         container_hostname: grafana-lxc
-        container_ip: "{{ grafana_ip | default('192.168.0.201') }}"
+        container_ip: {{ grafana_ip | default('192.168.0.201') }}
         container_memory: 512
         container_cores: 1
-        container_disk_size: "8"
+        container_disk_size: 8
         service_port: 3000
-        container_template_name: "ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
-        
+        container_template_name: ubuntu-22.04-standard_22.04-1_amd64.tar.zst
+
       unbound:
         container_id: 202
         container_hostname: unbound-lxc
-        container_ip: "{{ unbound_ip | default('192.168.0.202') }}"
+        container_ip: {{ unbound_ip | default('192.168.0.202') }}
         container_memory: 256
         container_cores: 1
-        container_disk_size: "4"
+        container_disk_size: 4
         service_port: 53
-        container_template_name: "ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
-        
+        container_template_name: ubuntu-22.04-standard_22.04-1_amd64.tar.zst
+
       wireguard:
         container_id: 203
         container_hostname: wireguard-lxc
-        container_ip: "{{ wireguard_ip | default('192.168.0.203') }}"
+        container_ip: {{ wireguard_ip | default('192.168.0.203') }}
         container_memory: 256
         container_cores: 1
-        container_disk_size: "4"
+        container_disk_size: 4
         service_port: 51820
-        container_template_name: "ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
-        
+        container_template_name: ubuntu-22.04-standard_22.04-1_amd64.tar.zst
+
       adguard:
         container_id: 204
         container_hostname: adguard-lxc
-        container_ip: "{{ adguard_ip | default('192.168.0.204') }}"
+        container_ip: {{ adguard_ip | default('192.168.0.204') }}
         container_memory: 512
         container_cores: 1
-        container_disk_size: "8"
+        container_disk_size: 8
         service_port: 80
-        container_template_name: "ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
-        
+        container_template_name: ubuntu-22.04-standard_22.04-1_amd64.tar.zst
+
       traefik:
         container_id: 205
         container_hostname: traefik-lxc
-        container_ip: "{{ traefik_ip | default('192.168.0.205') }}"
+        container_ip: {{ traefik_ip | default('192.168.0.205') }}
         container_memory: 512
         container_cores: 1
-        container_disk_size: "8"
+        container_disk_size: 8
         service_port: 80
-        container_template_name: "ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
-        
+        container_template_name: ubuntu-22.04-standard_22.04-1_amd64.tar.zst
+
       alertmanager:
         container_id: 206
         container_hostname: alertmanager-lxc
-        container_ip: "{{ alertmanager_ip | default('192.168.0.206') }}"
+        container_ip: {{ alertmanager_ip | default('192.168.0.206') }}
         container_memory: 256
         container_cores: 1
-        container_disk_size: "4"
+        container_disk_size: 4
         service_port: 9093
-        container_template_name: "ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
-        
+        container_template_name: ubuntu-22.04-standard_22.04-1_amd64.tar.zst
+
       pve_exporter:
         container_id: 207
         container_hostname: pve-exporter-lxc
-        container_ip: "{{ pve_exporter_ip | default('192.168.0.207') }}"
+        container_ip: {{ pve_exporter_ip | default('192.168.0.207') }}
         container_memory: 256
         container_cores: 1
-        container_disk_size: "4"
+        container_disk_size: 4
         service_port: 9221
-        container_template_name: "ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
-        
+        container_template_name: ubuntu-22.04-standard_22.04-1_amd64.tar.zst
+
       homeassistant:
         container_id: 208
         container_hostname: homeassistant-lxc
-        container_ip: "{{ homeassistant_ip | default('192.168.0.208') }}"
+        container_ip: {{ homeassistant_ip | default('192.168.0.208') }}
         container_memory: 1024
         container_cores: 2
-        container_disk_size: "16"
+        container_disk_size: 16
         service_port: 8123
-        container_template_name: "ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
+        container_template_name: ubuntu-22.04-standard_22.04-1_amd64.tar.zst
 
   tasks:
     - name: Create LXC containers for all services
       include_role:
         name: homelab.proxmox_lxc.lxc_container
       vars:
-        container_id: "{{ item.value.container_id }}"
-        container_hostname: "{{ item.value.container_hostname }}"
-        container_ip: "{{ item.value.container_ip }}"
-        container_memory: "{{ item.value.container_memory }}"
-        container_cores: "{{ item.value.container_cores }}"
-        container_disk_size: "{{ item.value.container_disk_size }}"
-        container_template_name: "{{ item.value.container_template_name | default('ubuntu-22.04-standard_22.04-1_amd64.tar.zst') }}"
+        container_id: {{ item.value.container_id }}
+        container_hostname: {{ item.value.container_hostname }}
+        container_ip: {{ item.value.container_ip }}
+        container_memory: {{ item.value.container_memory }}
+        container_cores: {{ item.value.container_cores }}
+        container_disk_size: {{ item.value.container_disk_size }}
+        container_template_name: {{ item.value.container_template_name | default('ubuntu-22.04-standard_22.04-1_amd64.tar.zst') }}
         container_network_config:
-          net0: "name=eth0,bridge=vmbr0,ip={{ item.value.container_ip }}/24,gw={{ gateway_ip | default('192.168.0.1') }}"
+          net0: name=eth0,bridge=vmbr0,ip={{ item.value.container_ip }}/24,gw={{ gateway_ip | default('192.168.0.1') }}
         container_groups:
           - lxc_containers
           - "{{ item.key }}_containers"
-      loop: "{{ services | dict2items }}"
+      loop: {{ services | dict2items }}
       tags:
         - create_containers

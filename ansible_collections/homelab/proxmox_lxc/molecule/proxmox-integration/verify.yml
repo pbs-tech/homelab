@@ -2,11 +2,11 @@
 - name: Verify services on real LXC container
   hosts: proxmox_test_containers
   gather_facts: true
-  
+
   tasks:
     - name: Verify Prometheus is accessible
       uri:
-        url: "http://{{ ansible_default_ipv4.address }}:9090/api/v1/status/config"
+        url: http://{{ ansible_default_ipv4.address }}:9090/api/v1/status/config
         method: GET
         status_code: 200
       register: prometheus_check
@@ -15,14 +15,14 @@
 
     - name: Check Prometheus targets
       uri:
-        url: "http://{{ ansible_default_ipv4.address }}:9090/api/v1/targets"
+        url: http://{{ ansible_default_ipv4.address }}:9090/api/v1/targets
         method: GET
         return_content: yes
       register: prometheus_targets
 
     - name: Verify Loki is ready
       uri:
-        url: "http://{{ ansible_default_ipv4.address }}:3100/ready"
+        url: http://{{ ansible_default_ipv4.address }}:3100/ready
         method: GET
         status_code: 200
       register: loki_check
@@ -38,7 +38,7 @@
       assert:
         that:
           - promtail_status.status.ActiveState == "active"
-        fail_msg: "Promtail service is not running"
+        fail_msg: Promtail service is not running
 
     - name: Test log ingestion from container to Loki
       block:
@@ -51,13 +51,13 @@
 
         - name: Query logs in Loki
           uri:
-            url: "http://{{ ansible_default_ipv4.address }}:3100/loki/api/v1/query_range"
+            url: http://{{ ansible_default_ipv4.address }}:3100/loki/api/v1/query_range
             method: GET
             body_format: form-urlencoded
             body:
-              query: '{job="systemd-journal"} |= "MOLECULE_LXC_TEST"'
-              start: "{{ (ansible_date_time.epoch | int - 120) }}000000000"
-              end: "{{ ansible_date_time.epoch }}000000000"
+              query: {job="systemd-journal"} |= "MOLECULE_LXC_TEST"
+              start: {{ (ansible_date_time.epoch | int - 120) }}000000000
+              end: {{ ansible_date_time.epoch }}000000000
           register: loki_logs
 
         - name: Verify log ingestion
@@ -65,7 +65,7 @@
             that:
               - loki_logs.json.status == "success"
               - loki_logs.json.data.result | length > 0
-            fail_msg: "Test logs not found in Loki"
+            fail_msg: Test logs not found in Loki
 
     - name: Report container network info
       debug:

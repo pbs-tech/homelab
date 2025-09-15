@@ -9,7 +9,7 @@
 
 - name: Set k3s installed version
   ansible.builtin.set_fact:
-    installed_k3s_version: "{{ k3s_version_output.stdout_lines[0].split(' ')[2] }}"
+    installed_k3s_version: {{ k3s_version_output.stdout_lines[0].split(' ')[2] }}
   check_mode: false
 
 # We should be downloading and installing the newer version only if we are in the following case :
@@ -19,18 +19,18 @@
   block:
     - name: Find K3s service files
       ansible.builtin.find:
-        paths: "{{ systemd_dir }}"
-        patterns: "k3s*.service"
+        paths: {{ systemd_dir }}
+        patterns: k3s*.service
       register: k3s_service_files
 
     - name: Save current K3s service
       ansible.builtin.copy:
-        src: "{{ item.path }}"
-        dest: "{{ item.path }}.bak"
+        src: {{ item.path }}
+        dest: {{ item.path }}.bak
         remote_src: true
         mode: preserve
         force: true
-      loop: "{{ k3s_service_files.files }}"
+      loop: {{ k3s_service_files.files }}
 
     - name: Install new K3s Version
       # For some reason, ansible-lint thinks using enviroment with command is an error
@@ -46,28 +46,28 @@
 
     - name: Restore K3s service
       ansible.builtin.copy:
-        src: "{{ item.path }}.bak"
-        dest: "{{ item.path }}"
+        src: {{ item.path }}.bak
+        dest: {{ item.path }}
         remote_src: true
         mode: preserve
         force: true
-      loop: "{{ k3s_service_files.files }}"
+      loop: {{ k3s_service_files.files }}
 
     - name: Clean up temporary K3s service backups
       ansible.builtin.file:
-        path: "{{ item.path }}.bak"
+        path: {{ item.path }}.bak
         state: absent
-      loop: "{{ k3s_service_files.files }}"
+      loop: {{ k3s_service_files.files }}
 
     - name: Restart K3s service [server]
-      when: "server_group in group_names"
+      when: server_group in group_names
       ansible.builtin.systemd:
         state: restarted
         daemon_reload: true
         name: k3s
 
     - name: Restart K3s service [agent]
-      when: "agent_group in group_names"
+      when: agent_group in group_names
       ansible.builtin.systemd:
         state: restarted
         daemon_reload: true

@@ -29,29 +29,29 @@ common_packages:
 common_users: []
 # Example:
 # common_users:
-#   - name: "serviceuser"
-#     shell: "/bin/bash"
+#   - name: serviceuser
+#     shell: /bin/bash
 #     groups: ["sudo"]
 
 # SSH configuration
 ssh_config:
   port: 22
-  permit_root_login: "no"
-  password_authentication: "no"
-  pubkey_authentication: "yes"
-  authorized_keys_file: "/home/%u/.ssh/authorized_keys"
+  permit_root_login: no
+  password_authentication: no
+  pubkey_authentication: yes
+  authorized_keys_file: /home/%u/.ssh/authorized_keys
 
 # Timezone configuration
-timezone: "{{ homelab_timezone | default('UTC') }}"
+timezone: {{ homelab_timezone | default('UTC') }}
 
 # Logging configuration
 rsyslog_config:
-  max_message_size: "64k"
-  preserve_fqdn: "on"
+  max_message_size: 64k
+  preserve_fqdn: on
   remote_logging: false
 
 # Security settings
 security_settings:
   disable_ipv6: false
   enable_fail2ban: true
-  ufw_default_policy: "deny"
+  ufw_default_policy: deny

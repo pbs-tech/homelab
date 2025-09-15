@@ -1,6 +1,7 @@
 # Proxmox Dynamic Inventory Setup
 
-This collection now uses the `community.proxmox.proxmox` dynamic inventory plugin for automatic discovery of Proxmox VMs and LXC containers.
+This collection now uses the `community.proxmox.proxmox` dynamic inventory plugin for automatic
+discovery of Proxmox VMs and LXC containers.
 
 ## Setup Steps
 
@@ -51,7 +52,8 @@ The following variables are automatically set:
 
 ## Migration from Static Inventory
 
-The old static inventory (`inventory/hosts.yml`) has been kept for reference but is no longer used. The dynamic inventory should automatically discover all your containers and VMs.
+The old static inventory (`inventory/hosts.yml`) has been kept for reference but is no longer
+used. The dynamic inventory should automatically discover all your containers and VMs.
 
 If you need to add custom variables for specific hosts, create files in `inventory/host_vars/[hostname].yml`.
 

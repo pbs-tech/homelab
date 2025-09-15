@@ -1,0 +1,152 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base",
+    "security:openssf-scorecard",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":automergeDisabled"
+  ],
+  "timezone": "America/New_York",
+  "schedule": [
+    "before 6am on Monday"
+  ],
+  "prConcurrentLimit": 3,
+  "prHourlyLimit": 2,
+  "stabilityDays": 3,
+  "minimumReleaseAge": "3 days",
+  "dependencyDashboard": true,
+  "dependencyDashboardTitle": "Homelab Infrastructure Dependency Dashboard",
+  "assignees": ["@homelab-maintainers"],
+  "reviewers": ["@homelab-maintainers"],
+  "packageRules": [
+    {
+      "groupName": "Ansible Core and Collections",
+      "matchDatasources": ["pypi"],
+      "matchPackagePatterns": [
+        "ansible-core",
+        "ansible-lint",
+        "molecule"
+      ],
+      "schedule": ["before 6am on Monday"],
+      "automerge": false,
+      "reviewersFromCodeOwners": true
+    },
+    {
+      "groupName": "GitHub Actions",
+      "matchManagers": ["github-actions"],
+      "automerge": true,
+      "automergeType": "pr",
+      "schedule": ["at any time"],
+      "minimumReleaseAge": "1 day",
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "groupName": "Python Development Tools",
+      "matchDatasources": ["pypi"],
+      "matchPackagePatterns": [
+        "yamllint",
+        "pymarkdownlnt",
+        "pre-commit",
+        "detect-secrets"
+      ],
+      "schedule": ["before 6am on Monday"],
+      "automerge": true,
+      "automergeType": "pr",
+      "matchUpdateTypes": ["patch"]
+    },
+    {
+      "groupName": "Container Images",
+      "matchDatasources": ["docker"],
+      "schedule": ["before 6am on Sunday"],
+      "automerge": false,
+      "stabilityDays": 7,
+      "reviewersFromCodeOwners": true
+    },
+    {
+      "groupName": "Monitoring Stack",
+      "matchPackagePatterns": [
+        "prometheus",
+        "grafana",
+        "loki",
+        "node-exporter"
+      ],
+      "schedule": ["before 6am on Saturday"],
+      "automerge": false,
+      "reviewersFromCodeOwners": true,
+      "prBodyTemplate": "This PR updates monitoring stack components. Please review the changelog and test in staging environment before merging."
+    },
+    {
+      "groupName": "Security Updates",
+      "matchUpdateTypes": ["patch"],
+      "matchCurrentAge": "< 1 week",
+      "labels": ["security", "high-priority"],
+      "schedule": ["at any time"],
+      "automerge": true,
+      "automergeType": "pr",
+      "prPriority": 10
+    },
+    {
+      "groupName": "Major Updates",
+      "matchUpdateTypes": ["major"],
+      "schedule": ["before 6am on first day of month"],
+      "automerge": false,
+      "reviewersFromCodeOwners": true,
+      "labels": ["major-update", "breaking-change"],
+      "prBodyTemplate": "⚠️ **Major Update** ⚠️\n\nThis is a major version update that may contain breaking changes. Please:\n\n- [ ] Review the changelog thoroughly\n- [ ] Test in staging environment\n- [ ] Update documentation if needed\n- [ ] Verify compatibility with existing configurations"
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "schedule": ["at any time"],
+    "labels": ["security", "vulnerability"],
+    "assignees": ["@security-team"],
+    "prPriority": 20
+  },
+  "osvVulnerabilityAlerts": true,
+  "configWarningReuseIssue": false,
+  "onboarding": false,
+  "requireConfig": "optional",
+  "forkProcessing": "enabled",
+  "includeForks": false,
+  "ignorePresets": [],
+  "ignorePaths": [
+    "**/node_modules/**",
+    "**/bower_components/**",
+    "**/.ansible/**",
+    "**/molecule/*/.*",
+    "**/tests/results/**"
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "^ansible_collections/.*/roles/.*/defaults/main\\.ya?ml$",
+        "^ansible_collections/.*/inventory/group_vars/.*\\.ya?ml$"
+      ],
+      "matchStrings": [
+        "(?<depName>[a-zA-Z0-9_-]+)_version:\\s*['\"]?(?<currentValue>[^'\"\\s]+)['\"]?"
+      ],
+      "datasourceTemplate": "github-releases",
+      "lookupNameTemplate": "{{depName}}/{{depName}}"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["^requirements\\.ya?ml$"],
+      "matchStrings": [
+        "name:\\s*(?<depName>[^\\s]+)\\s*version:\\s*['\"]?(?<currentValue>[^'\"\\s]+)['\"]?"
+      ],
+      "datasourceTemplate": "galaxy-collection"
+    }
+  ],
+  "git": {
+    "ignoredAuthors": ["renovate[bot]"]
+  },
+  "prBody": "This PR contains dependency updates for the homelab infrastructure.\n\n{{{table}}}\n\n{{{notes}}}\n\n---\n\n**Deployment Checklist:**\n- [ ] All CI checks pass\n- [ ] Staging deployment successful\n- [ ] Security scans complete\n- [ ] Breaking changes reviewed\n- [ ] Documentation updated if needed",
+  "commitMessage": "{{semanticPrefix}}{{#if scope}}({{scope}}): {{/if}}{{title}}",
+  "commitMessageTopic": "{{depName}}",
+  "commitMessageAction": "update",
+  "commitMessageExtra": "to {{newVersion}}",
+  "semanticCommitType": "chore",
+  "semanticCommitScope": "deps"
+}

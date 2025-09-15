@@ -21,6 +21,7 @@ If you discover a security vulnerability in this project, please report it respo
 This repository implements several security measures:
 
 ### Infrastructure Security
+
 - **Bastion Host Architecture**: All infrastructure access routes through secured jump hosts
 - **SSH Key-based Authentication**: Password authentication disabled across all services
 - **Network Segmentation**: Services isolated in appropriate network segments
@@ -28,12 +29,14 @@ This repository implements several security measures:
 - **Security Hardening**: Automated security hardening roles for both K3s and LXC
 
 ### Configuration Security
+
 - **Ansible Vault**: Sensitive data encrypted using Ansible Vault
 - **No Hardcoded Secrets**: All credentials use vault variables or environment variables
 - **SSL/TLS**: Certificate management handled centrally with Let's Encrypt
 - **Firewall Rules**: Service-specific firewall rules implemented
 
 ### CI/CD Security
+
 - **Secret Scanning**: TruffleHog OSS scans for exposed credentials
 - **Security Linting**: Ansible-lint with security profile enabled
 - **Dependency Scanning**: OWASP Dependency Check for vulnerabilities

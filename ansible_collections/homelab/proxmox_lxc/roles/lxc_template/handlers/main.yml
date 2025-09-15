@@ -1,4 +1,5 @@
 ---
 - name: Update template cache
   ansible.builtin.command: pveam update
-  listen: "refresh template cache"
+  listen: refresh template cache
+  changed_when: false

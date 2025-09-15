@@ -1,11 +1,11 @@
 ---
 - name: Update system packages
-  apt:
-    update_cache: yes
-    upgrade: yes
+  ansible.builtin.apt:
+    update_cache: true
+    upgrade: true
 
 - name: Install required packages
-  apt:
+  ansible.builtin.apt:
     name:
       - curl
       - gnupg
@@ -14,28 +14,28 @@
     state: present
 
 - name: Add Grafana GPG key
-  apt_key:
+  ansible.builtin.apt_key:
     url: https://apt.grafana.com/gpg.key
     state: present
 
 - name: Add Grafana repository
-  apt_repository:
-    repo: "deb https://apt.grafana.com stable main"
+  ansible.builtin.apt_repository:
+    repo: deb https://apt.grafana.com stable main
     state: present
 
 - name: Install Grafana
-  apt:
+  ansible.builtin.apt:
     name: grafana
     state: present
-    update_cache: yes
+    update_cache: true
 
 - name: Create grafana directories
-  file:
-    path: "{{ item }}"
+  ansible.builtin.file:
+    path: {{ item }}
     state: directory
-    owner: "{{ grafana_user }}"
-    group: "{{ grafana_group }}"
-    mode: '0755'
+    owner: {{ grafana_user }}
+    group: {{ grafana_group }}
+    mode: 0755
   loop:
     - "{{ grafana_data_dir }}"
     - "{{ grafana_logs_dir }}"
@@ -46,63 +46,63 @@
     - "{{ grafana_provisioning_dir }}/dashboards"
 
 - name: Create Grafana configuration file
-  template:
+  ansible.builtin.template:
     src: grafana.ini.j2
-    dest: "{{ grafana_config_dir }}/grafana.ini"
-    owner: "{{ grafana_user }}"
-    group: "{{ grafana_group }}"
-    mode: '0640'
-    backup: yes
+    dest: {{ grafana_config_dir }}/grafana.ini
+    owner: {{ grafana_user }}
+    group: {{ grafana_group }}
+    mode: 0640
+    backup: true
   notify: restart grafana
 
 - name: Create datasources provisioning configuration
-  template:
+  ansible.builtin.template:
     src: datasources.yml.j2
-    dest: "{{ grafana_provisioning_dir }}/datasources/datasources.yml"
-    owner: "{{ grafana_user }}"
-    group: "{{ grafana_group }}"
-    mode: '0644'
+    dest: {{ grafana_provisioning_dir }}/datasources/datasources.yml
+    owner: {{ grafana_user }}
+    group: {{ grafana_group }}
+    mode: 0644
   notify: restart grafana
 
 - name: Create dashboard provisioning configuration
-  template:
+  ansible.builtin.template:
     src: dashboards.yml.j2
-    dest: "{{ grafana_provisioning_dir }}/dashboards/dashboards.yml"
-    owner: "{{ grafana_user }}"
-    group: "{{ grafana_group }}"
-    mode: '0644'
+    dest: {{ grafana_provisioning_dir }}/dashboards/dashboards.yml
+    owner: {{ grafana_user }}
+    group: {{ grafana_group }}
+    mode: 0644
   notify: restart grafana
 
 - name: Install Grafana plugins
-  grafana_plugin:
-    name: "{{ item }}"
+  community.grafana.grafana_plugin:
+    name: {{ item }}
     state: present
-  loop: "{{ grafana_plugins }}"
+  loop: {{ grafana_plugins }}
   notify: restart grafana
-  ignore_errors: yes
+  failed_when: false # Plugin installation can fail if already installed or unavailable
 
 - name: Enable and start Grafana
-  systemd:
+  ansible.builtin.systemd:
     name: grafana-server
-    enabled: yes
+    enabled: true
     state: started
 
 - name: Wait for Grafana to start
-  wait_for:
-    host: "{{ grafana_domain }}"
-    port: "{{ grafana_port }}"
+  ansible.builtin.wait_for:
+    host: {{ grafana_domain }}
+    port: {{ grafana_port }}
     delay: 10
     timeout: 60
 
 - name: Check Grafana health
-  uri:
-    url: "{{ grafana_root_url }}/api/health"
+  ansible.builtin.uri:
+    url: {{ grafana_root_url }}/api/health
     method: GET
-    return_content: yes
+    return_content: true
   register: grafana_health
   retries: 5
   delay: 5
 
 - name: Display Grafana status
-  debug:
-    msg: "Grafana is running at {{ grafana_root_url }}"
+  ansible.builtin.debug:
+    msg: Grafana is running at {{ grafana_root_url }}

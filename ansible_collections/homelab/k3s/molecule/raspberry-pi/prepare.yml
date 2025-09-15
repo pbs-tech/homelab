@@ -3,15 +3,15 @@
   hosts: raspberry_pi_test
   become: true
   gather_facts: true
-  
+
   tasks:
     - name: Create test namespace marker
       set_fact:
-        molecule_test_id: "{{ ansible_date_time.epoch }}"
+        molecule_test_id: {{ ansible_date_time.epoch }}
 
     - name: Stop existing K3s services (if any)
       systemd:
-        name: "{{ item }}"
+        name: {{ item }}
         state: stopped
         enabled: false
       loop:
@@ -27,18 +27,18 @@
             path: /usr/local/bin/k3s
             state: absent
 
-        - name: Clean K3s data directories  
+        - name: Clean K3s data directories
           file:
-            path: "{{ item }}"
+            path: {{ item }}
             state: absent
           loop:
             - /var/lib/rancher/k3s
             - /etc/rancher/k3s
             - /run/k3s
-          
+
         - name: Remove K3s systemd services
           file:
-            path: "{{ item }}"
+            path: {{ item }}
             state: absent
           loop:
             - /etc/systemd/system/k3s.service
@@ -72,7 +72,7 @@
           assert:
             that:
               - available_memory.stdout | int >= 1000
-            fail_msg: "Insufficient memory for K3s testing: {{ available_memory.stdout }}MB"
+            fail_msg: Insufficient memory for K3s testing: {{ available_memory.stdout }}MB
 
     - name: Create test marker file
       copy:
@@ -80,4 +80,4 @@
           Molecule K3s test started: {{ ansible_date_time.iso8601 }}
           Test ID: {{ molecule_test_id }}
         dest: /tmp/molecule-k3s-test
-        mode: '0644'
+        mode: 0644

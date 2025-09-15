@@ -1,6 +1,7 @@
 # Homelab Testing Strategy
 
-This document outlines the comprehensive testing approach for the homelab infrastructure, combining rapid local development with production workflow validation.
+This document outlines the comprehensive testing approach for the homelab infrastructure, combining
+rapid local development with production workflow validation.
 
 ## Testing Philosophy
 
@@ -15,14 +16,14 @@ This dual approach ensures both rapid iteration during development and confidenc
 
 ### Molecule Tests (Development & CI)
 
-#### Purpose
+#### Molecule Purpose
 
 - Rapid local testing during development
 - Reproducible test environments
 - Automated CI/CD validation
 - Role and collection functionality verification
 
-#### Types
+#### Molecule Types
 
 **Collection-Specific Tests:**
 
@@ -61,14 +62,14 @@ molecule destroy -s default    # Cleanup only
 
 ### Production Tests (Hardware Validation)
 
-#### Purpose
+#### Production Purpose
 
 - Validate actual production workflows
 - Test against real hardware (Raspberry Pi, Proxmox)
 - End-to-end infrastructure deployment verification
 - Production readiness confirmation
 
-#### Types
+#### Production Types
 
 **Unit Tests (`tests/unit/`):**
 
@@ -159,10 +160,10 @@ ansible-playbook system/test_k3s_cluster.yml -e proxmox_password=your_password
 
 The GitHub Actions workflow (`/.github/workflows/molecule.yml`) automatically:
 
-1. **Runs all molecule tests** across collections and scenarios
-2. **Executes full-stack integration test**
-3. **Validates production unit tests**
-4. **Provides comprehensive test reporting**
+1. Runs all molecule tests across collections and scenarios
+2. Executes full-stack integration test
+3. Validates production unit tests
+4. Provides comprehensive test reporting
 
 ## Test Configuration
 
@@ -238,7 +239,7 @@ export PROXMOX_PASSWORD="your_proxmox_password"
 
 ### Common Issues
 
-**Molecule Tests:**
+### Molecule Tests
 
 ```bash
 # Podman connection issues
@@ -252,7 +253,7 @@ ansible-galaxy install -r requirements.yml --force
 molecule test --scenario-name default  # Specify scenario explicitly
 ```
 
-**Production Tests:**
+### Production Tests
 
 ```bash
 # SSH connectivity

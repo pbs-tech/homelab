@@ -1,40 +1,40 @@
 ---
 - name: Configure rsyslog for K3s nodes
-  blockinfile:
+  ansible.builtin.blockinfile:
     path: /etc/rsyslog.conf
-    marker: "# {mark} ANSIBLE MANAGED K3S LOGGING"
+    marker: # {mark} ANSIBLE MANAGED K3S LOGGING
     block: |
       # K3s and system security logs
       auth,authpriv.*                 /var/log/auth.log
       kern.*                         /var/log/kern.log
-      
+
       # K3s specific logging
       local0.*                       /var/log/k3s/k3s.log
       local1.*                       /var/log/k3s/kubelet.log
-      
+
       # Container and audit logs (for server nodes)
       {% if inventory_hostname in groups['server'] %}
       local2.*                       /var/log/k3s/audit.log
       {% endif %}
-      
+
       # Log rotation and management
       $WorkDirectory /var/spool/rsyslog
       $ActionFileDefaultTemplate RSYSLOG_TraditionalFileFormat
       $ActionFileEnableSync on
       $IncludeConfig /etc/rsyslog.d/*.conf
-    insertafter: '^#.*facilities.*'
+    insertafter: ^#.*facilities.*
   notify: restart rsyslog
 
 - name: Create K3s log directories
-  file:
-    path: "/var/log/k3s"
+  ansible.builtin.file:
+    path: /var/log/k3s
     state: directory
-    mode: '0755'
+    mode: 0755
     owner: syslog
     group: adm
 
 - name: Configure log rotation for K3s logs
-  copy:
+  ansible.builtin.copy:
     content: |
       /var/log/k3s/*.log {
           {{ 'daily' }}
@@ -50,32 +50,32 @@
           endscript
       }
     dest: /etc/logrotate.d/k3s
-    mode: '0644'
+    mode: 0644
     owner: root
     group: root
 
 - name: Configure system log rotation (Pi-friendly)
-  replace:
+  ansible.builtin.replace:
     path: /etc/logrotate.d/rsyslog
-    regexp: '^(\s*)(weekly|monthly)$'
-    replace: '\1daily'
+    regexp: ^(\\s*)(weekly|monthly)$
+    replace: \\1daily
 
 - name: Set log retention policy for Pi
-  replace:
+  ansible.builtin.replace:
     path: /etc/logrotate.d/rsyslog
-    regexp: '^(\s*)rotate\s+\d+'
-    replace: '\1rotate {{ pi_security_hardening.logging.log_retention_days }}'
+    regexp: ^(\\s*)rotate\\s+\\d+
+    replace: \\1rotate {{ pi_security_hardening.logging.log_retention_days }}
 
 - name: Enable log compression for Pi storage
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/logrotate.d/rsyslog
-    line: '    compress'
-    insertafter: '^\s*missingok'
+    line:     compress
+    insertafter: ^\\s*missingok
     state: present
   when: pi_security_hardening.logging.compress_logs
 
 - name: Start and enable rsyslog
-  systemd:
+  ansible.builtin.systemd:
     name: rsyslog
     state: started
-    enabled: yes
+    enabled: true

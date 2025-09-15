@@ -3,51 +3,83 @@
 # This file contains common settings used across all collections
 
 # Infrastructure topology
-homelab_domain: "homelab.local"
-homelab_timezone: "America/New_York"
+homelab_domain: homelab.local
+homelab_timezone: America/New_York
 
 # Network configuration
 homelab_network:
-  gateway_ip: "192.168.0.1"
+  gateway_ip: 192.168.0.1
   dns_servers:
-    - "192.168.0.202"  # Unbound DNS
-    - "192.168.0.204"  # AdGuard DNS
-    - "1.1.1.1"        # Fallback
-  cluster_cidr: "10.42.0.0/16"
-  service_cidr: "10.43.0.0/16"
+    - "192.168.0.202" # Unbound DNS
+    - "192.168.0.204" # AdGuard DNS
+    - "1.1.1.1" # Fallback
+  cluster_cidr: 10.42.0.0/16
+  service_cidr: 10.43.0.0/16
 
 # Proxmox configuration
 proxmox_config:
   pve_mac:
-    host: "192.168.0.56"
-    user: "root@pam"
-    node: "pve-mac"
+    host: 192.168.0.56
+    user: root@pam
+    node: pve-mac
+    # API Token Authentication (preferred - secure)
+    api_token_id: "{{ vault_proxmox_api_tokens.pve_mac.token_id }}"
+    api_token_secret: "{{ vault_proxmox_api_tokens.pve_mac.token_secret }}"
+    # Legacy password fallback (will be removed in future version)
+    password: "{{ vault_proxmox_passwords.pve_mac | default('') }}"
+    validate_certs: false
   pve_nas:
-    host: "192.168.0.57"
-    user: "root@pam"
-    node: "pve-nas"
+    host: 192.168.0.57
+    user: root@pam
+    node: pve-nas
+    # API Token Authentication (preferred - secure)
+    api_token_id: "{{ vault_proxmox_api_tokens.pve_nas.token_id }}"
+    api_token_secret: "{{ vault_proxmox_api_tokens.pve_nas.token_secret }}"
+    # Legacy password fallback (will be removed in future version)
+    password: "{{ vault_proxmox_passwords.pve_nas | default('') }}"
+    validate_certs: false
+
+# Proxmox API defaults and validation
+proxmox_api_defaults:
+  # Default timeout for API operations (seconds)
+  timeout: 300
+  # Default retry configuration
+  retry_count: 3
+  retry_delay: 5
+  # API version compatibility
+  api_version: 2
+  # SSL/TLS settings
+  validate_certs: false  # Set to true in production with valid certs
+  # Connection pooling settings
+  connection_timeout: 30
+
+# Default Proxmox node for operations (can be overridden per host/group)
+proxmox_default_node: pve_mac
+
+# Proxmox API helper - provides unified access to configuration
+proxmox_api: "{{ proxmox_config }}"
 
 # K3s cluster configuration
 k3s_config:
-  version: "v1.30.2+k3s1"
-  cluster_name: "homelab"
+  version: v1.30.2+k3s1
+  cluster_name: homelab
   api_port: 6443
   server_endpoints:
     - "https://192.168.0.111:6443"
-  kubeconfig_path: "/etc/rancher/k3s/k3s.yaml"
+  kubeconfig_path: /etc/rancher/k3s/k3s.yaml
 
 # Security configuration
 security_config:
   hardening_enabled: true
   audit_enabled: true
   log_retention_days: 30
-  ssh_key_path: "~/.ssh/id_rsa"
-  vault_password_file: "~/.ansible_vault_pass"
+  ssh_key_path: ~/.ssh/id_rsa
+  vault_password_file: ~/.ansible_vault_pass
 
 # Container defaults
 container_defaults:
-  template: "ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
-  disk_size: "8"
+  template: ubuntu-22.04-standard_22.04-1_amd64.tar.zst
+  disk_size: 8
   cores: 1
   memory: 512
   swap: 0
@@ -56,21 +88,21 @@ container_defaults:
 
 # Service configuration
 services_config:
-  ssl_email: "{{ vault_ssl_email }}"
+  ssl_email: {{ vault_ssl_email }}
   traefik:
-    host: "192.168.0.205"
+    host: 192.168.0.205
     dashboard_port: 8080
   prometheus:
-    host: "192.168.0.200"
+    host: 192.168.0.200
     port: 9090
   grafana:
-    host: "192.168.0.201"
+    host: 192.168.0.201
     port: 3000
 
 # Monitoring and logging
 monitoring_config:
   enabled: true
-  retention_policy: "30d"
+  retention_policy: 30d
   exporters:
     node_exporter_port: 9100
     cadvisor_port: 8080
@@ -79,4 +111,4 @@ monitoring_config:
 backup_config:
   enabled: true
   retention_days: 7
-  backup_path: "/opt/backups"
+  backup_path: /opt/backups

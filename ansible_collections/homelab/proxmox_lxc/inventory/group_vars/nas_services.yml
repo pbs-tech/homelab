@@ -1,23 +1,23 @@
 ---
 # Arr-stack services configuration
 arr_stack_config:
-  base_url: "https://{{ inventory_hostname }}.homelab.local"
-  timezone: "Europe/London"
+  base_url: https://{{ inventory_hostname }}.homelab.local
+  timezone: Europe/London
   puid: 1000
   pgid: 1000
 
 # Service-specific configurations
 sonarr_config:
-  api_key: "{{ vault_sonarr_api_key }}"
+  api_key: {{ vault_sonarr_api_key }}
   root_folders:
     - "/media/tv"
-  download_client: "qbittorrent"
+  download_client: qbittorrent
 
 radarr_config:
-  api_key: "{{ vault_radarr_api_key }}"
+  api_key: {{ vault_radarr_api_key }}
   root_folders:
     - "/media/movies"
-  download_client: "qbittorrent"
+  download_client: qbittorrent
 
 bazarr_config:
   languages:
@@ -25,14 +25,14 @@ bazarr_config:
     - "es"
 
 prowlarr_config:
-  api_key: "{{ vault_prowlarr_api_key }}"
+  api_key: {{ vault_prowlarr_api_key }}
   sync_apps:
     - "sonarr"
     - "radarr"
 
 qbittorrent_config:
-  download_path: "/downloads/incomplete"
-  completed_path: "/downloads/complete"
+  download_path: /downloads/incomplete
+  completed_path: /downloads/complete
   vpn_required: true
   port: 8080
 
@@ -41,18 +41,18 @@ jellyfin_config:
     - "/media/movies"
     - "/media/tv"
     - "/media/music"
-  cache_path: "/config/cache"
-  log_path: "/config/logs"
+  cache_path: /config/cache
+  log_path: /config/logs
 
 # Security hardening
 security_config:
   fail2ban_enabled: true
   ufw_enabled: true
   auto_updates: true
-  log_level: "INFO"
-  
+  log_level: INFO
+
 # Backup configuration
 backup_config:
   schedule: "0 2 * * *"  # Daily at 2 AM
   retention: 7           # Keep 7 days
-  destination: "/mnt/nas/backups/configs"
+  destination: /mnt/nas/backups/configs

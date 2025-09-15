@@ -6,32 +6,56 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a modular Ansible collection setup for homelab infrastructure management with three core collections:
 
-1. **Common Collection** (`ansible_collections/homelab/common/`) - Shared utilities, roles, and configuration for all infrastructure components
-2. **K3s Collection** (`ansible_collections/homelab/k3s/`) - Manages K3s Kubernetes cluster deployment on Raspberry Pi nodes
-3. **Proxmox LXC Collection** (`ansible_collections/homelab/proxmox_lxc/`) - Manages LXC container services in Proxmox that integrate with the K3s cluster via Traefik reverse proxy
+1. **Common Collection** (`ansible_collections/homelab/common/`) - Shared utilities, roles, and configuration
+   for all infrastructure components
+2. **K3s Collection** (`ansible_collections/homelab/k3s/`) - Manages K3s Kubernetes cluster deployment
+   on Raspberry Pi nodes
+3. **Proxmox LXC Collection** (`ansible_collections/homelab/proxmox_lxc/`) - Manages LXC container services
+   in Proxmox that integrate with the K3s cluster via Traefik reverse proxy
 
-The infrastructure follows a layered architecture with shared components, independent but integrated services, and unified orchestration through improved playbook structure.
+The infrastructure follows a layered architecture with shared components, independent but integrated
+services, and unified orchestration through improved playbook structure.
 
 ## Key Commands
+
+### Security Validation Commands
+
+```bash
+# Run comprehensive security audit
+./scripts/security-audit.sh
+
+# Test Proxmox API token authentication
+ansible-playbook test-proxmox-api-tokens.yml
+
+# Validate Proxmox connectivity
+ansible-playbook -i inventory/proxmox.yml playbooks/validate-proxmox.yml --tags validation
+```
 
 ### Main Deployment Commands
 
 ```bash
-# NEW RECOMMENDED APPROACH - Phased deployment with improved orchestration
+# 🔒 RECOMMENDED: Security-First Phased Deployment
 ansible-playbook playbooks/infrastructure.yml
 
 # Phase-specific deployments
-ansible-playbook playbooks/infrastructure.yml --tags "foundation,phase1"    # Bastion hosts and Proxmox setup
-ansible-playbook playbooks/infrastructure.yml --tags "networking,phase2"   # DNS, VPN, reverse proxy
-ansible-playbook playbooks/infrastructure.yml --tags "monitoring,phase3"   # Prometheus, Grafana, Loki
-ansible-playbook playbooks/infrastructure.yml --tags "applications,phase4"  # Home automation, NAS services
-ansible-playbook playbooks/infrastructure.yml --tags "k3s,phase5"          # K3s cluster
+# Bastion hosts and Proxmox setup
+ansible-playbook playbooks/infrastructure.yml --tags "foundation,phase1"
+# DNS, VPN, reverse proxy
+ansible-playbook playbooks/infrastructure.yml --tags "networking,phase2"
+# Prometheus, Grafana, Loki
+ansible-playbook playbooks/infrastructure.yml --tags "monitoring,phase3"
+# Home automation, NAS services
+ansible-playbook playbooks/infrastructure.yml --tags "applications,phase4"
+# K3s cluster
+ansible-playbook playbooks/infrastructure.yml --tags "k3s,phase5"
 
 # LEGACY APPROACH - Still supported for backwards compatibility
 ansible-playbook site.yml                                    # Deploy entire infrastructure
 ansible-playbook site.yml --tags "k3s,cluster"              # Deploy only K3s cluster
-ansible-playbook site.yml --tags "proxmox,lxc,services"     # Deploy only Proxmox LXC services
-ansible-playbook site.yml --tags "monitoring"               # Deploy specific service stacks
+# Deploy only Proxmox LXC services
+ansible-playbook site.yml --tags "proxmox,lxc,services"
+# Deploy specific service stacks
+ansible-playbook site.yml --tags "monitoring"
 ```
 
 ### Security-Focused Deployment
@@ -51,7 +75,8 @@ ansible-playbook test-security-hardening.yml
 ### LXC Template Management
 
 ```bash
-# Download LXC templates only (Ubuntu-focused for easier management with pre-installed python)
+# Download LXC templates only
+# (Ubuntu-focused for easier management with pre-installed python)
 ansible-playbook site.yml --tags "templates"
 
 # Force re-download of templates
@@ -94,17 +119,17 @@ make lint-yaml              # Run YAML linting only
 make lint-ansible           # Run Ansible linting only
 make lint-markdown          # Run Markdown linting only
 
-# Alternative script-based linting
-./scripts/lint.sh           # Run all linting checks
-./scripts/lint.sh --yaml-only       # YAML only
-./scripts/lint.sh --ansible-only    # Ansible only
-./scripts/lint.sh --markdown-only   # Markdown only
-./scripts/lint.sh --install-deps    # Install missing linting tools
+# Pre-commit hooks (recommended for development)
+pre-commit install          # Install pre-commit hooks
+pre-commit run --all-files  # Run hooks on all files
 
 # Manual linting commands
 yamllint .                  # Check YAML formatting
-ansible-lint                # Check Ansible best practices
+ansible-lint                # Check Ansible best practices with security profile
 pymarkdown --config .markdownlint.yaml scan .  # Check Markdown formatting
+
+# Security scanning
+trufflehog git file://. --only-verified  # Scan for secrets
 ```
 
 ## Architecture and Structure
@@ -170,17 +195,20 @@ pymarkdown --config .markdownlint.yaml scan .  # Check Markdown formatting
     │   ├── galaxy.yml               # Common collection metadata
     │   ├── requirements.yml         # Common dependencies
     │   ├── inventory/group_vars/    # Shared infrastructure configuration
-    │   └── roles/                   # Shared roles (common_setup, container_base, security_hardening)
+    │   └── roles/                   # Shared roles (common_setup, container_base,
+    │                                # security_hardening)
     ├── k3s/                         # K3s cluster management
     │   ├── playbooks/site.yml       # K3s deployment
     │   ├── inventory/hosts.yml      # Raspberry Pi inventory
-    │   └── roles/                   # K3s-specific roles (k3s_server, k3s_agent, airgap)
+    │   └── roles/                   # K3s-specific roles (k3s_server, k3s_agent,
+    │                                # airgap)
     └── proxmox_lxc/                 # LXC services management
         ├── site.yml                 # LXC services orchestration
         ├── inventory/               # Dynamic and static inventory
         │   ├── proxmox.yml          # Dynamic Proxmox inventory
         │   └── hosts.yml.static-backup  # Backup of static inventory
-        └── roles/                   # Service roles (traefik, prometheus, grafana, etc.)
+        └── roles/                   # Service roles (traefik, prometheus,
+                                     # grafana, etc.)
 ```
 
 ## Key Integration Points
@@ -212,11 +240,36 @@ pymarkdown --config .markdownlint.yaml scan .  # Check Markdown formatting
 
 ### Role Structure
 
-Each service follows standard Ansible role organization with tasks/, defaults/, templates/, and handlers/ directories. Service configurations use Jinja2 templating for dynamic generation based on inventory variables.
+Each role follows standard Ansible organization with comprehensive documentation:
+
+```text
+roles/{role_name}/
+├── README.md              # Role documentation and usage
+├── tasks/main.yml         # Main role tasks
+├── defaults/main.yml      # Default variables
+├── templates/             # Jinja2 configuration templates
+├── handlers/main.yml      # Service restart/reload handlers
+└── molecule/             # Testing scenarios (where applicable)
+```
+
+### Documentation Standards
+
+- **README.md** files for all major roles and collections
+- **Inline comments** for complex tasks and variables
+- **Usage examples** with common configuration patterns
+- **Troubleshooting guides** for common issues
+- **Security considerations** for each component
 
 ### Deployment Strategy
 
-The collection uses idempotent deployment patterns with proper error handling and rollback capabilities. Services are tagged for selective deployment and organized into logical stacks (monitoring, networking, automation, etc.).
+The collection implements:
+
+- **Idempotent operations** with proper change detection
+- **Error handling** with rollback capabilities
+- **Dependency management** between services
+- **Tagged deployment** for selective service management
+- **Resource validation** before deployment
+- **Security-first approach** with hardening by default
 
 **Security-First Approach**:
 
@@ -227,6 +280,19 @@ The collection uses idempotent deployment patterns with proper error handling an
 
 **Service Organization**:
 
-- Core services grouped by function (monitoring, networking, automation)
-- NAS services isolated on separate network segments
-- Each service stack can be deployed independently via tags
+- **Core services** grouped by function (monitoring, networking, automation)
+- **NAS services** isolated on separate network segments for security
+- **Management services** on dedicated bastion hosts
+- **Service stacks** deployed independently via tags with dependency management
+- **Resource allocation** with intelligent node placement
+- **Health checks** and validation for all services
+
+**Documentation Coverage**:
+
+- **Repository README** with comprehensive overview and quick start
+- **Collection READMEs** with detailed feature descriptions
+- **Role documentation** for major components (Traefik, Security Hardening, etc.)
+- **API documentation** via galaxy.yml metadata
+- **Security architecture** documentation with threat model
+- **Testing procedures** with both development and production validation
+- **Troubleshooting guides** with common issues and solutions

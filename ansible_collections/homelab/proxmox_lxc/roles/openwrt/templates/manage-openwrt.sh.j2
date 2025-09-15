@@ -11,15 +11,15 @@ case "$1" in
             echo "OpenWrt is already running (PID: $(cat $OPENWRT_PID))"
             exit 1
         fi
-        
+
         echo "Starting OpenWrt router..."
-        
+
         # Create virtual network interfaces if needed
         if ! ip link show br-openwrt >/dev/null 2>&1; then
             ip link add br-openwrt type bridge
             ip link set br-openwrt up
         fi
-        
+
         # Start QEMU with OpenWrt
         qemu-system-x86_64 \
             -enable-kvm \
@@ -35,24 +35,24 @@ case "$1" in
             -pidfile "$OPENWRT_PID" \
             -monitor unix:"$OPENWRT_MONITOR",server,nowait \
             -serial file:/var/log/openwrt/console.log
-        
+
         echo "OpenWrt started successfully"
         ;;
-        
+
     stop)
         if [ ! -f "$OPENWRT_PID" ]; then
             echo "OpenWrt is not running"
             exit 1
         fi
-        
+
         echo "Stopping OpenWrt router..."
-        
+
         # Send shutdown command via monitor
         echo "system_powerdown" | socat - unix-connect:"$OPENWRT_MONITOR" 2>/dev/null
-        
+
         # Wait for graceful shutdown
         sleep 5
-        
+
         # Force kill if still running
         if [ -f "$OPENWRT_PID" ]; then
             PID=$(cat "$OPENWRT_PID")
@@ -65,17 +65,17 @@ case "$1" in
             fi
             rm -f "$OPENWRT_PID"
         fi
-        
+
         rm -f "$OPENWRT_MONITOR"
         echo "OpenWrt stopped successfully"
         ;;
-        
+
     restart)
         $0 stop
         sleep 2
         $0 start
         ;;
-        
+
     status)
         if [ -f "$OPENWRT_PID" ]; then
             PID=$(cat "$OPENWRT_PID")
@@ -92,7 +92,7 @@ case "$1" in
             exit 1
         fi
         ;;
-        
+
     *)
         echo "Usage: $0 {start|stop|restart|status}"
         exit 1

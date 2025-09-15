@@ -1,18 +1,53 @@
 # Homelab Proxmox LXC Collection
 
-This Ansible collection automates the deployment of LXC containers in Proxmox for various homelab services, with Traefik providing HTTPS connectivity to both LXC services and existing K3s cluster services.
+A comprehensive Ansible collection for deploying and managing LXC containers in Proxmox VE, providing essential homelab services with integrated security, monitoring, and automation capabilities.
 
-## Services Deployed
+## Features
 
-- **Prometheus** (192.168.0.200:9090) - Metrics collection and monitoring
-- **Grafana** (192.168.0.201:3000) - Metrics visualization and dashboards
-- **Unbound** (192.168.0.202:53) - Recursive DNS resolver
-- **WireGuard** (192.168.0.203:51820) - VPN server
-- **AdGuard Home** (192.168.0.204:80) - DNS filtering and ad blocking
-- **Traefik** (192.168.0.205:80/443) - Reverse proxy and load balancer
-- **AlertManager** (192.168.0.206:9093) - Alert routing and management
-- **Proxmox VE Exporter** (192.168.0.207:9221) - Proxmox metrics for Prometheus
-- **Home Assistant** (192.168.0.208:8123) - Home automation platform
+- **Automated LXC deployment** with intelligent node placement
+- **Comprehensive service stack** covering monitoring, networking, and applications
+- **Security-first architecture** with bastion hosts and VPN access
+- **Integrated monitoring** with Prometheus, Grafana, and Loki
+- **DNS security stack** with Unbound and AdGuard Home
+- **Reverse proxy** with Traefik and automatic SSL certificates
+- **K3s integration** for unified ingress and service discovery
+- **Resource management** with dynamic allocation and scaling
+
+## Service Architecture
+
+### Core Services (192.168.0.200-210)
+
+| Service | IP | Port | Purpose |
+|---------|-------|------|----------|
+| **Prometheus** | 192.168.0.200 | 9090 | Metrics collection and alerting |
+| **Grafana** | 192.168.0.201 | 3000 | Visualization and dashboards |
+| **Unbound** | 192.168.0.202 | 53 | Recursive DNS resolver |
+| **WireGuard** | 192.168.0.203 | 51820 | VPN server for secure access |
+| **AdGuard Home** | 192.168.0.204 | 80 | DNS filtering and ad blocking |
+| **Traefik** | 192.168.0.205 | 80/443 | Reverse proxy and SSL termination |
+| **AlertManager** | 192.168.0.206 | 9093 | Alert routing and notification |
+| **PVE Exporter** | 192.168.0.207 | 9221 | Proxmox metrics for monitoring |
+| **Home Assistant** | 192.168.0.208 | 8123 | Home automation platform |
+| **OpenWrt** | 192.168.0.209 | 80 | Network management |
+| **Loki** | 192.168.0.210 | 3100 | Log aggregation and storage |
+
+### NAS Services (192.168.0.230-235)
+
+| Service | IP | Port | Purpose |
+|---------|-------|------|----------|
+| **Sonarr** | 192.168.0.230 | 8989 | TV series management |
+| **Radarr** | 192.168.0.231 | 7878 | Movie management |
+| **Bazarr** | 192.168.0.232 | 6767 | Subtitle management |
+| **Prowlarr** | 192.168.0.233 | 9696 | Indexer management |
+| **qBittorrent** | 192.168.0.234 | 8080 | BitTorrent client |
+| **Jellyfin** | 192.168.0.235 | 8096 | Media streaming server |
+
+### Management Services (192.168.0.109-110)
+
+| Service | IP | Purpose |
+|---------|-------|----------|
+| **nas-bastion** | 192.168.0.109 | NAS services bastion host |
+| **k3s-bastion** | 192.168.0.110 | Main infrastructure bastion |
 
 ## Prerequisites
 

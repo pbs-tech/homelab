@@ -1,51 +1,51 @@
 ---
-grafana_version: "10.2.0"
+grafana_version: 10.2.0
 grafana_port: 3000
-grafana_user: "grafana"
-grafana_group: "grafana"
+grafana_user: grafana
+grafana_group: grafana
 
 # Installation paths
-grafana_config_dir: "/etc/grafana"
-grafana_data_dir: "/var/lib/grafana"
-grafana_logs_dir: "/var/log/grafana"
-grafana_plugins_dir: "{{ grafana_data_dir }}/plugins"
+grafana_config_dir: /etc/grafana
+grafana_data_dir: /var/lib/grafana
+grafana_logs_dir: /var/log/grafana
+grafana_plugins_dir: {{ grafana_data_dir }}/plugins
 
 # Admin user
-grafana_admin_user: "admin"
-grafana_admin_password: "{{ vault_grafana_admin_password }}"
+grafana_admin_user: admin
+grafana_admin_password: {{ vault_grafana_admin_password }}
 
 # Server configuration
-grafana_domain: "{{ ansible_default_ipv4.address }}"
-grafana_root_url: "http://{{ grafana_domain }}:{{ grafana_port }}"
+grafana_domain: {{ ansible_default_ipv4.address }}
+grafana_root_url: http://{{ grafana_domain }}:{{ grafana_port }}
 
 # Security settings
 grafana_allow_sign_up: false
 grafana_allow_org_create: false
 grafana_auto_assign_org: true
-grafana_auto_assign_org_role: "Viewer"
+grafana_auto_assign_org_role: Viewer
 
 # Database (using SQLite for simplicity)
-grafana_database_type: "sqlite3"
-grafana_database_path: "{{ grafana_data_dir }}/grafana.db"
+grafana_database_type: sqlite3
+grafana_database_path: {{ grafana_data_dir }}/grafana.db
 
 # Logging
-grafana_log_mode: "file"
-grafana_log_level: "info"
+grafana_log_mode: file
+grafana_log_level: info
 
 # Datasources configuration
 grafana_datasources:
-  - name: "Prometheus"
-    type: "prometheus"
-    access: "proxy"
-    url: "http://192.168.0.200:9090"
+    - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://192.168.0.200:9090
     is_default: true
     basic_auth: false
     editable: true
-    
-  - name: "Loki"
-    type: "loki"
-    access: "proxy"
-    url: "http://192.168.0.210:3100"
+
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://192.168.0.210:3100
     is_default: false
     basic_auth: false
     editable: true
@@ -53,10 +53,10 @@ grafana_datasources:
       maxLines: 1000
 
 # Dashboard provisioning
-grafana_dashboards_dir: "{{ grafana_data_dir }}/dashboards"
-grafana_provisioning_dir: "{{ grafana_config_dir }}/provisioning"
+grafana_dashboards_dir: {{ grafana_data_dir }}/dashboards
+grafana_provisioning_dir: {{ grafana_config_dir }}/provisioning
 
 # Plugins to install
 grafana_plugins:
-  - grafana-piechart-panel
+    - grafana-piechart-panel
   - grafana-worldmap-panel

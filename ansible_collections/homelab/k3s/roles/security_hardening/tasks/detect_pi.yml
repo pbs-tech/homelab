@@ -19,10 +19,10 @@
 - name: Set raspberry_pi fact to false if not detected
   set_fact:
     raspberry_pi: false
-  when: 
+  when:
     - grep_cpuinfo_raspberrypi.rc != 0
     - grep_device_tree_model_raspberrypi.rc != 0
 
 - name: Display Pi detection result
   debug:
-    msg: "Raspberry Pi detected: {{ raspberry_pi | default(false) }}"
+    msg: Raspberry Pi detected: {{ raspberry_pi | default(false) }}

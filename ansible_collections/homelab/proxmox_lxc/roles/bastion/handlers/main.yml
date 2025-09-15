@@ -1,12 +1,12 @@
 ---
-- name: restart ssh
+- name: Restart ssh
   service:
     name: ssh
     state: restarted
-  delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
+  delegate_to: {{ bastion_container.ip.split('/')[0] }}
 
-- name: restart fail2ban
+- name: Restart fail2ban
   service:
     name: fail2ban
     state: restarted
-  delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
+  delegate_to: {{ bastion_container.ip.split('/')[0] }}

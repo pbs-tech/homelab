@@ -3,7 +3,7 @@
   template:
     src: jail.local.j2
     dest: /etc/fail2ban/jail.local
-    mode: '0644'
+    mode: 0644
     owner: root
     group: root
   notify: restart fail2ban
@@ -12,7 +12,7 @@
   template:
     src: arr-stack.conf.j2
     dest: /etc/fail2ban/filter.d/arr-stack.conf
-    mode: '0644'
+    mode: 0644
     owner: root
     group: root
   when: inventory_hostname in groups['nas_services']
@@ -21,7 +21,7 @@
 - name: Configure Fail2ban jail for arr-stack
   blockinfile:
     path: /etc/fail2ban/jail.local
-    marker: "# {mark} ANSIBLE MANAGED ARR-STACK JAIL"
+    marker: # {mark} ANSIBLE MANAGED ARR-STACK JAIL
     block: |
       [arr-stack]
       enabled = true
@@ -38,4 +38,4 @@
   systemd:
     name: fail2ban
     state: started
-    enabled: yes
+    enabled: true

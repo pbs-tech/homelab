@@ -13,7 +13,7 @@
   vars:
     skip_proxmox_api_calls: true
 
-- name: Test Phase 3 - Monitoring Services  
+- name: Test Phase 3 - Monitoring Services
   import_playbook: ../../playbooks/monitoring.yml
   vars:
     skip_proxmox_api_calls: true
@@ -29,14 +29,14 @@
     k3s_token: "molecule-test-token"
     k3s_cluster_name: "molecule-cluster"
     test_ssh_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC... molecule-test-key"
-    
+
   pre_tasks:
     - name: Create SSH key directory
       file:
         path: /tmp
         state: directory
         mode: '0755'
-        
+
     - name: Create mock SSH private key
       copy:
         content: |
@@ -45,13 +45,13 @@
           -----END OPENSSH PRIVATE KEY-----
         dest: "{{ security_config.ssh_key_path }}"
         mode: '0600'
-        
+
     - name: Create mock SSH public key
       copy:
         content: "{{ test_ssh_key }}"
         dest: "{{ security_config.ssh_key_path }}.pub"
         mode: '0644'
-        
+
     # Mock K3s binary for testing
     - name: Create mock K3s binary
       copy:
@@ -75,13 +75,13 @@
           esac
         dest: /usr/local/bin/k3s
         mode: '0755'
-        
+
   tasks:
     - name: Test common setup
       include_role:
         name: homelab.common.common_setup
       tags: [common_setup]
-        
+
     - name: Mock K3s server setup
       systemd:
         name: k3s-mock
@@ -89,7 +89,7 @@
         daemon_reload: true
         state: started
       ignore_errors: true  # Service won't actually exist
-      
+
     - name: Test security hardening
       include_role:
         name: homelab.common.security_hardening

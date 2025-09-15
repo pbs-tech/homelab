@@ -4,22 +4,41 @@ version: 1.0.0
 readme: README.md
 authors:
   - "Homelab Administrator"
-description: Ansible collection for deploying LXC containers in Proxmox with service configurations
+description: >
+  Comprehensive Ansible collection for deploying and managing LXC containers
+  in Proxmox VE with integrated monitoring, networking, and security services.
+  Includes Traefik reverse proxy, Prometheus monitoring, DNS security, and
+  media management applications.
 license:
-  - MIT
+    - MIT
 tags:
   - proxmox
   - lxc
   - containers
   - homelab
   - k3s
+  - monitoring
+  - networking
+  - security
+  - automation
+  - media
+  - dns
+  - vpn
 dependencies:
   homelab.common: "*"
   community.general: ">=7.0.0"
   community.proxmox: ">=1.3.0"
   ansible.posix: ">=1.5.0"
-repository: ""
-documentation: ""
-homepage: ""
-issues: ""
-build_ignore: []
+repository: "https://github.com/your-org/homelab-ansible"
+documentation: "https://github.com/your-org/homelab-ansible/tree/main/ansible_collections/homelab/proxmox_lxc"
+homepage: "https://github.com/your-org/homelab-ansible"
+issues: "https://github.com/your-org/homelab-ansible/issues"
+build_ignore:
+  - "*.tar.gz"
+  - "molecule/"
+  - "tests/"
+  - "**/__pycache__"
+  - "**/*.pyc"
+  - ".ansible/"
+  - ".cache/"
+  - ".pytest_cache/"

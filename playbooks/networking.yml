@@ -11,26 +11,26 @@
     - name: Ensure networking containers exist
       include_role:
         name: homelab.common.container_base
-      when: 
+      when:
         - inventory_hostname.endswith('-lxc')
         - container_id is defined
 
   roles:
     - role: homelab.common.common_setup
       tags: [common_setup]
-    
+
     - role: homelab.proxmox_lxc.unbound
       when: inventory_hostname.startswith('unbound')
       tags: [dns, unbound]
-    
-    - role: homelab.proxmox_lxc.adguard  
+
+    - role: homelab.proxmox_lxc.adguard
       when: inventory_hostname.startswith('adguard')
       tags: [dns, adguard]
-    
+
     - role: homelab.proxmox_lxc.wireguard
       when: inventory_hostname.startswith('wireguard')
       tags: [vpn, wireguard]
-    
+
     - role: homelab.proxmox_lxc.openwrt
       when: inventory_hostname.startswith('openwrt')
       tags: [network, openwrt]
@@ -47,7 +47,7 @@
   post_tasks:
     - name: Verify networking services
       uri:
-        url: "http://{{ ansible_host }}:{{ service_port | default(80) }}"
+        url: http://{{ ansible_host }}:{{ service_port | default(80) }}
         method: GET
         timeout: 30
         status_code: [200, 301, 302, 404]

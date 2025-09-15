@@ -4,18 +4,18 @@
   gather_facts: false
   tasks:
     - name: Verify all required variables are defined
-      assert:
+      ansible.builtin.assert:
         that:
           - homelab_domain is defined
           - homelab_network is defined
           - container_defaults is defined
           - security_config is defined
           - proxmox_config is defined
-        fail_msg: "Required configuration variables are missing"
-        success_msg: "All required configuration variables are present"
+        fail_msg: Required configuration variables are missing
+        success_msg: All required configuration variables are present
 
     - name: Verify container_base role variables
-      assert:
+      ansible.builtin.assert:
         that:
           - container_resources is defined
           - container_resources.cores == container_defaults.cores
@@ -24,32 +24,32 @@
           - lxc_config.unprivileged == container_defaults.unprivileged
           - container_network is defined
           - container_startup_order is defined
-        fail_msg: "Container base role variables not properly configured"
-        success_msg: "Container base role variables configured correctly"
+        fail_msg: Container base role variables not properly configured
+        success_msg: Container base role variables configured correctly
 
     - name: Verify node selection logic
-      assert:
+      ansible.builtin.assert:
         that:
-          - container_node == "pve-mac"  # For prometheus-lxc (monitoring service)
-        fail_msg: "Container node selection logic is incorrect"
-        success_msg: "Container node selection working correctly"
+          - container_node == "pve-mac" # For prometheus-lxc (monitoring service)
+        fail_msg: Container node selection logic is incorrect
+        success_msg: Container node selection working correctly
 
     - name: Verify startup order assignment
-      assert:
+      ansible.builtin.assert:
         that:
           - container_startup_order.monitoring is defined
           - container_startup_order.monitoring == 2
-        fail_msg: "Container startup order not properly configured"
-        success_msg: "Container startup order configured correctly"
+        fail_msg: Container startup order not properly configured
+        success_msg: Container startup order configured correctly
 
     - name: Check common setup results
-      stat:
+      ansible.builtin.stat:
         path: /etc/ssh/sshd_config
       register: sshd_config
-      
+
     - name: Verify SSH configuration exists
-      assert:
+      ansible.builtin.assert:
         that:
           - sshd_config.stat.exists
-        fail_msg: "SSH configuration not applied"
-        success_msg: "SSH configuration applied successfully"
+        fail_msg: SSH configuration not applied
+        success_msg: SSH configuration applied successfully

@@ -10,29 +10,29 @@
   # Override with just one template for testing
 
     lxc_templates:
-      - name: "ubuntu-22.04-standard"
-        url: "<http://download.proxmox.com/images/system/ubuntu-22.04-standard_22.04-1_amd64.tar.zst>"
-        filename: "ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
-        storage: "local"
+      - name: ubuntu-22.04-standard
+        url: http://download.proxmox.com/images/system/ubuntu-22.04-standard_22.04-1_amd64.tar.zst
+        filename: ubuntu-22.04-standard_22.04-1_amd64.tar.zst
+        storage: local
         force_download: false
   roles:
-  - homelab.proxmox_lxc.lxc_template
+    - homelab.proxmox_lxc.lxc_template
 
   post_tasks:
-  - name: Verify template was downloaded
+    - name: Verify template was downloaded
       stat:
-        path: "/var/lib/vz/template/cache/ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
+        path: /var/lib/vz/template/cache/ubuntu-22.04-standard_22.04-1_amd64.tar.zst
       register: template_check
 
-  - name: Show template status
+    - name: Show template status
       debug:
         msg: "Ubuntu 22.04 template downloaded successfully: {{ template_check.stat.exists }}"
 
-  - name: List available templates
+    - name: List available templates
       shell: pveam list local | grep -E "\.tar\.(xz|zst|gz)$" || echo "No templates found"
       register: available_templates
       changed_when: false
 
-  - name: Show available templates
+    - name: Show available templates
       debug:
         msg: "Available templates: {{ available_templates.stdout_lines }}"

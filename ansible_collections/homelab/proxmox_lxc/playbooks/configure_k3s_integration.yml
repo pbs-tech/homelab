@@ -5,19 +5,25 @@
   tasks:
     - name: Copy K3s kubeconfig from bastion
       copy:
-        src: "{{ k3s_kubeconfig_path }}"
+        src: {{ k3s_kubeconfig_path }}
         dest: /etc/traefik/kubeconfig
         owner: traefik
         group: traefik
-        mode: '0600'
-      delegate_to: "{{ groups['bastion'][0] }}"
+        mode: 0600
+      delegate_to: {{ groups['bastion'][0] }}
 
     - name: Extract K3s CA certificate
       shell: |
+        set -o pipefail
         kubectl config view --raw -o jsonpath='{.clusters[0].cluster.certificate-authority-data}' | base64 -d > /etc/traefik/k3s-ca.crt
       environment:
         KUBECONFIG: /etc/traefik/kubeconfig
+      become: true
       become_user: traefik
+      changed_when: true
+      args:
+        executable: /bin/bash
+      creates: /etc/traefik/k3s-ca.crt
 
     - name: Create K3s service account for Traefik
       kubernetes.core.k8s:
@@ -28,7 +34,7 @@
           metadata:
             name: traefik
             namespace: kube-system
-      delegate_to: "{{ groups['bastion'][0] }}"
+      delegate_to: {{ groups['bastion'][0] }}
 
     - name: Create ClusterRole for Traefik
       kubernetes.core.k8s:
@@ -40,15 +46,15 @@
             name: traefik-ingress-controller
           rules:
             - apiGroups: [""]
-              resources: ["services", "endpoints", "secrets"]
-              verbs: ["get", "list", "watch"]
-            - apiGroups: ["extensions", "networking.k8s.io"]
-              resources: ["ingresses", "ingressclasses"]
-              verbs: ["get", "list", "watch"]
-            - apiGroups: ["extensions", "networking.k8s.io"]
+              resources: [services, endpoints, "secrets"]
+              verbs: [get, list, "watch"]
+            - apiGroups: [extensions, networking.k8s.io]
+              resources: [ingresses, ingressclasses]
+              verbs: [get, list, "watch"]
+            - apiGroups: [extensions, networking.k8s.io]
               resources: ["ingresses/status"]
               verbs: ["update"]
-      delegate_to: "{{ groups['bastion'][0] }}"
+      delegate_to: {{ groups['bastion'][0] }}
 
     - name: Create ClusterRoleBinding for Traefik
       kubernetes.core.k8s:
@@ -66,7 +72,7 @@
             - kind: ServiceAccount
               name: traefik
               namespace: kube-system
-      delegate_to: "{{ groups['bastion'][0] }}"
+      delegate_to: {{ groups['bastion'][0] }}
 
     - name: Get service account token
       kubernetes.core.k8s_info:
@@ -76,14 +82,14 @@
         label_selectors:
           - "kubernetes.io/service-account.name=traefik"
       register: traefik_secret
-      delegate_to: "{{ groups['bastion'][0] }}"
+      delegate_to: {{ groups['bastion'][0] }}
 
     - name: Update Traefik configuration with service token
       lineinfile:
         path: /etc/traefik/traefik.yml
-        regexp: '^\s*token:'
-        line: "    token: {{ traefik_secret.resources[0].data.token | b64decode }}"
-        insertafter: 'endpoints:'
+        regexp: ^\s*token:
+        line:     token: {{ traefik_secret.resources[0].data.token | b64decode }}
+        insertafter: endpoints:
       notify: restart traefik
 
   handlers:

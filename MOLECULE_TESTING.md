@@ -265,10 +265,13 @@ journalctl -u service-name -f
 
 ### Safety Guidelines
 
-- **Never run destructive tests on production infrastructure**
-- **Use dedicated test IP ranges** (192.168.0.250+)
-- **Always verify cleanup** after real infrastructure tests
-- **Monitor resource usage** during tests
+### Never run destructive tests on production infrastructure
+
+### Use dedicated test IP ranges (192.168.0.250+)
+
+### Always verify cleanup after real infrastructure tests
+
+### Monitor resource usage during tests
 
 ## Next Steps
 

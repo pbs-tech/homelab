@@ -59,18 +59,18 @@
         fail:
         msg: |
           SECURITY PREREQUISITE FAILURE:
-          
+
           Before deploying K3s cluster, you must first deploy the security infrastructure:
-          
+
           Phase 1: Create bastion host
             ansible-playbook security-deploy.yml --tags "phase1,bastion"
-          
+
           Phase 2: Deploy security services (run FROM bastion: ssh pbs@192.168.0.110)
             ansible-playbook phase2-security.yml
-          
+
           Current status:
           - Bastion (192.168.0.110:22): {{ 'OK' if bastion_check.state is defined and bastion_check.state == 'started' else 'FAILED' }}
-          - Unbound DNS (192.168.0.202:53): {{ 'OK' if unbound_check.state is defined and unbound_check.state == 'started' else 'FAILED' }}  
+          - Unbound DNS (192.168.0.202:53): {{ 'OK' if unbound_check.state is defined and unbound_check.state == 'started' else 'FAILED' }}
           - AdGuard (192.168.0.204:80): {{ 'OK' if adguard_check.state is defined and adguard_check.state == 'started' else 'FAILED' }}
           - WireGuard (192.168.0.203:51820): {{ 'OK' if wireguard_check.state is defined and wireguard_check.state == 'started' else 'FAILED' }}
         when: >
@@ -90,7 +90,7 @@
   become: true
   roles:
     - role: security_hardening
-  tags: ['security', 'hardening']
+  tags: [security, hardening]
   when: security_hardening_enabled | default(true)
 
 - name: Cluster prep
@@ -121,7 +121,7 @@
   tasks:
     - name: Verify security services are running
       systemd:
-        name: "{{ item }}"
+        name: {{ item }}
         state: started
       loop:
         - ufw
@@ -129,13 +129,13 @@
         - avahi-daemon
         - rsyslog
       register: security_services_check
-      
+
     - name: Check .local domain resolution
-      command: "nslookup {{ inventory_hostname }}.local"
+      command: nslookup {{ inventory_hostname }}.local
       register: local_domain_check
       failed_when: false
       changed_when: false
-      
+
     - name: Display security status summary
       debug:
         msg: |
@@ -145,4 +145,4 @@
           - Avahi (.local domains): {{ 'Running' if security_services_check.results[2].state == 'started' else 'Failed' }}
           - Rsyslog: {{ 'Running' if security_services_check.results[3].state == 'started' else 'Failed' }}
           - .local domain resolution: {{ 'Working' if local_domain_check.rc == 0 else 'Failed' }}
-  tags: ['security', 'verify']
+  tags: [security, verify]

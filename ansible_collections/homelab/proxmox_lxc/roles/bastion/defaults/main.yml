@@ -6,7 +6,7 @@ bastion_container:
   ip: 192.168.0.110/24
   gateway: 192.168.0.1
   nameservers: 192.168.0.202
-  template: "local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
+  template: local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst
   cores: 2
   memory: 2048
   disk_size: 20G
@@ -21,14 +21,14 @@ bastion_security:
   fail2ban_enabled: true
   firewall_enabled: true
   allowed_ports:
-    - 22    # SSH
-    - 53    # DNS (for local resolution)
+    - 22 # SSH
+    - 53 # DNS (for local resolution)
   fail2ban_bantime: 3600
   fail2ban_maxretry: 3
 
 # Ansible/automation tools
 bastion_packages:
-  - ansible
+    - ansible
   - ansible-core
   - python3-pip
   - git
@@ -45,6 +45,6 @@ bastion_packages:
 
 # Python packages for Ansible collections
 bastion_pip_packages:
-  - kubernetes
+    - kubernetes
   - proxmoxer
   - requests

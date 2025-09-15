@@ -9,7 +9,7 @@ driver:
   name: delegated
   options:
     managed: false
-    login_cmd_template: 'ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa {instance}'
+    login_cmd_template: ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa {instance}
     ansible_connection_options:
       ansible_ssh_private_key_file: ~/.ssh/id_rsa
 
@@ -19,7 +19,7 @@ platforms:
     groups:
       - k3s_servers
       - raspberry_pi_test
-  - name: k3s-test-2  
+  - name: k3s-test-2
     groups:
       - k3s_agents
       - raspberry_pi_test
@@ -40,39 +40,39 @@ provisioner:
         k3s_role: server
         k3s_server_init: true
       k3s-test-2:
-        ansible_host: "192.168.0.114"  # k3s-4 IP  
+        ansible_host: "192.168.0.114"  # k3s-4 IP
         ansible_user: pbs
         k3s_role: agent
     group_vars:
       all:
         # K3s configuration for testing
-        k3s_version: "v1.28.2+k3s1"
-        k3s_server: "https://192.168.0.111:6443"
-        k3s_token: "molecule-test-token-{{ ansible_date_time.epoch }}"
-        k3s_kubeconfig_mode: "644"
+        k3s_version: v1.28.2+k3s1
+        k3s_server: https://192.168.0.111:6443
+        k3s_token: molecule-test-token-{{ ansible_date_time.epoch }}
+        k3s_kubeconfig_mode: 644
         k3s_become: true
-        
+
         # Networking
-        k3s_flannel_backend: "host-gw"
-        k3s_cluster_cidr: "10.42.0.0/16"
-        k3s_service_cidr: "10.43.0.0/16"
-        
+        k3s_flannel_backend: host-gw
+        k3s_cluster_cidr: 10.42.0.0/16
+        k3s_service_cidr: 10.43.0.0/16
+
         # Security settings for testing
         k3s_etcd_datastore: true
         k3s_disable:
           - traefik  # We'll test with external Traefik
           - local-storage
-          
+
       raspberry_pi_test:
         # Raspberry Pi specific optimizations
-        k3s_server_manifest_files_dir: "/var/lib/rancher/k3s/server/manifests"
+        k3s_server_manifest_files_dir: /var/lib/rancher/k3s/server/manifests
 
 verifier:
   name: ansible
 
 scenario:
   test_sequence:
-    - dependency  
+    - dependency
     - prepare
     - converge
     - verify

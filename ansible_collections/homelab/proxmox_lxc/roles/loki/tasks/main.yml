@@ -1,8 +1,8 @@
 ---
 - name: Update system packages
   apt:
-    update_cache: yes
-    upgrade: yes
+    update_cache: true
+    upgrade: true
 
 - name: Install required packages
   apt:
@@ -14,25 +14,25 @@
 
 - name: Create loki user
   user:
-    name: "{{ loki_user }}"
-    system: yes
+    name: {{ loki_user }}
+    system: true
     shell: /bin/false
-    home: "{{ loki_data_dir }}"
-    create_home: no
-    group: "{{ loki_group }}"
+    home: {{ loki_data_dir }}
+    create_home: false
+    group: {{ loki_group }}
 
 - name: Create loki group
   group:
-    name: "{{ loki_group }}"
-    system: yes
+    name: {{ loki_group }}
+    system: true
 
 - name: Create loki directories
   file:
-    path: "{{ item }}"
+    path: {{ item }}
     state: directory
-    owner: "{{ loki_user }}"
-    group: "{{ loki_group }}"
-    mode: '0755'
+    owner: {{ loki_user }}
+    group: {{ loki_group }}
+    mode: 0755
   loop:
     - "{{ loki_config_dir }}"
     - "{{ loki_data_dir }}"
@@ -42,44 +42,44 @@
 
 - name: Download Loki binary
   get_url:
-    url: "https://github.com/grafana/loki/releases/download/v{{ loki_version }}/loki-linux-amd64.zip"
+    url: https://github.com/grafana/loki/releases/download/v{{ loki_version }}/loki-linux-amd64.zip
     dest: /tmp/loki.zip
-    mode: '0644'
+    mode: 0644
   register: loki_download
 
 - name: Extract Loki binary
   unarchive:
     src: /tmp/loki.zip
     dest: /tmp
-    remote_src: yes
+    remote_src: true
   when: loki_download.changed
 
 - name: Install Loki binary
   copy:
     src: /tmp/loki-linux-amd64
-    dest: "{{ loki_bin_dir }}/loki"
+    dest: {{ loki_bin_dir }}/loki
     owner: root
     group: root
-    mode: '0755'
-    remote_src: yes
+    mode: 0755
+    remote_src: true
   when: loki_download.changed
   notify: restart loki
 
 - name: Create Loki configuration file
   template:
     src: loki.yml.j2
-    dest: "{{ loki_config_dir }}/loki.yml"
-    owner: "{{ loki_user }}"
-    group: "{{ loki_group }}"
-    mode: '0644'
-    backup: yes
+    dest: {{ loki_config_dir }}/loki.yml
+    owner: {{ loki_user }}
+    group: {{ loki_group }}
+    mode: 0644
+    backup: true
   notify: restart loki
 
 - name: Create Loki systemd service
   template:
     src: loki.service.j2
     dest: /etc/systemd/system/loki.service
-    mode: '0644'
+    mode: 0644
   notify:
     - reload systemd
     - restart loki
@@ -87,26 +87,26 @@
 - name: Enable and start Loki
   systemd:
     name: loki
-    enabled: yes
+    enabled: true
     state: started
-    daemon_reload: yes
+    daemon_reload: true
 
 - name: Wait for Loki to start
   wait_for:
-    host: "{{ loki_listen_address }}"
-    port: "{{ loki_listen_port }}"
+    host: {{ loki_listen_address }}
+    port: {{ loki_listen_port }}
     delay: 5
     timeout: 30
 
 - name: Check Loki readiness
   uri:
-    url: "http://{{ ansible_default_ipv4.address }}:{{ loki_port }}/ready"
+    url: http://{{ ansible_default_ipv4.address }}:{{ loki_port }}/ready
     method: GET
-    return_content: yes
+    return_content: true
   register: loki_health
   retries: 5
   delay: 5
 
 - name: Display Loki status
   debug:
-    msg: "Loki is ready and running on port {{ loki_port }}"
+    msg: Loki is ready and running on port {{ loki_port }}

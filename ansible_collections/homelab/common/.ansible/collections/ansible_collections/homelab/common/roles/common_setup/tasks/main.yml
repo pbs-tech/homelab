@@ -1,0 +1,72 @@
+---
+# Common setup tasks for all infrastructure components
+
+- name: Update package cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  when: ansible_os_family == "Debian"
+
+- name: Install common packages
+  ansible.builtin.package:
+    name: "{{ common_packages[ansible_distribution | lower] | default(common_packages.ubuntu) }}"
+    state: present
+
+- name: Set timezone
+  community.general.timezone:
+    name: "{{ timezone }}"
+  notify: restart rsyslog
+
+- name: Create common users
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    shell: "{{ item.shell | default('/bin/bash') }}"
+    groups: "{{ item.groups | default([]) }}"
+    append: true
+    create_home: true
+  loop: "{{ common_users }}"
+  when: common_users | length > 0
+
+- name: Configure SSH authorized keys
+  ansible.posix.authorized_key:
+    user: "{{ item.name }}"
+    key: "{{ lookup('file', security_config.ssh_key_path + '.pub') }}"
+    state: present
+  loop: "{{ common_users }}"
+  when: common_users | length > 0
+
+- name: Configure SSH daemon
+  ansible.builtin.template:
+    src: sshd_config.j2
+    dest: /etc/ssh/sshd_config
+    backup: true
+    mode: "0600"
+    owner: root
+    group: root
+    validate: sshd -t -f %s
+  notify: restart ssh
+
+- name: Ensure SSH is enabled and started
+  ansible.builtin.service:
+    name: ssh
+    enabled: true
+    state: started
+
+- name: Configure rsyslog
+  ansible.builtin.template:
+    src: rsyslog.conf.j2
+    dest: /etc/rsyslog.conf
+    backup: true
+    mode: "0644"
+    owner: root
+    group: root
+  notify: restart rsyslog
+
+- name: Create log rotation configuration
+  ansible.builtin.template:
+    src: logrotate.conf.j2
+    dest: "/etc/logrotate.d/{{ inventory_hostname }}"
+    mode: "0644"
+    owner: root
+    group: root
+  when: security_config.log_retention_days is defined

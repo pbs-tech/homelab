@@ -1,9 +1,9 @@
 ---
-- name: reload systemd
+- name: Reload systemd
   systemd:
-    daemon_reload: yes
+    daemon_reload: true
 
-- name: restart traefik
+- name: Restart traefik
   systemd:
     name: traefik
     state: restarted

@@ -1,0 +1,38 @@
+# Ansible Vault encrypted file for Proxmox API tokens and secrets
+# Encrypt this file with: ansible-vault encrypt vault.yml
+
+# Proxmox API Token Configuration
+# Generate tokens with: pveum user token add root@pam homelab-automation --privsep=0
+# Scope tokens with minimal required privileges
+vault_proxmox_api_tokens:
+  pve_mac:
+    token_id: "root@pam!homelab-automation"
+    token_secret: "your_pve_mac_api_token_secret_here"
+  pve_nas:
+    token_id: "root@pam!homelab-automation"
+    token_secret: "your_pve_nas_api_token_secret_here"
+
+# Legacy password support (deprecated - for migration only)
+# Remove these after API token migration is complete
+vault_proxmox_passwords:
+  pve_mac: "your_legacy_pve_mac_password_here"
+  pve_nas: "your_legacy_pve_nas_password_here"
+
+# SSL Configuration
+vault_ssl_email: "admin@homelab.local"
+
+# Service Configuration
+vault_grafana_admin_password: "secure_grafana_password_change_me"
+vault_openwrt_root_password_hash: "$2y$10$your_bcrypt_password_hash_here"
+
+# Media Services API Keys
+vault_sonarr_api_key: "your_sonarr_api_key_here"
+vault_radarr_api_key: "your_radarr_api_key_here"
+vault_prowlarr_api_key: "your_prowlarr_api_key_here"
+
+# VPN Configuration
+vault_wireguard_psk: "your_wireguard_psk_here"
+
+# Database Passwords (if needed)
+vault_postgres_password: "secure_postgres_password"
+vault_mysql_password: "secure_mysql_password"

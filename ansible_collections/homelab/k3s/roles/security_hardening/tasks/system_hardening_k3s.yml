@@ -1,8 +1,8 @@
 ---
 - name: Configure K3s-compatible sysctl settings
-  sysctl:
-    name: "{{ item.name }}"
-    value: "{{ item.value }}"
+  ansible.posix.sysctl:
+    name: {{ item.name }}
+    value: {{ item.value }}
     state: present
     reload: yes
   loop:
@@ -18,11 +18,11 @@
     - { name: 'net.ipv4.icmp_echo_ignore_broadcasts', value: '1' }
     - { name: 'net.ipv4.icmp_ignore_bogus_error_responses', value: '1' }
     - { name: 'net.ipv4.tcp_syncookies', value: '1' }
-    
+
     # Kernel security
     - { name: 'kernel.dmesg_restrict', value: '1' }
     - { name: 'kernel.kptr_restrict', value: '1' }  # Less restrictive for K3s
-    
+
     # K3s requires IP forwarding - don't disable
     # net.ipv4.ip_forward and net.ipv6.conf.all.forwarding managed by K3s
 
@@ -37,10 +37,10 @@
 
 - name: Set proper permissions on sensitive files
   file:
-    path: "{{ item.path }}"
-    mode: "{{ item.mode }}"
-    owner: "{{ item.owner | default('root') }}"
-    group: "{{ item.group | default('root') }}"
+    path: {{ item.path }}
+    mode: {{ item.mode }}
+    owner: {{ item.owner | default('root') }}
+    group: {{ item.group | default('root') }}
   loop:
     - { path: '/etc/passwd', mode: '0644' }
     - { path: '/etc/group', mode: '0644' }
@@ -62,15 +62,15 @@
   block:
     - name: Ensure K3s directories exist with proper permissions
       file:
-        path: "{{ item.path }}"
+        path: {{ item.path }}
         state: directory
-        mode: "{{ item.mode }}"
+        mode: {{ item.mode }}
         owner: root
         group: root
       loop:
         - { path: '/etc/rancher/k3s', mode: '0755' }
         - { path: '/var/lib/rancher/k3s', mode: '0755' }
-        
+
     - name: Configure K3s audit logging
       copy:
         content: |
@@ -79,18 +79,18 @@
           rules:
           - level: RequestResponse
             resources:
-            - group: ""
+            - group:
               resources: ["*"]
           - level: Metadata
             resources:
-            - group: "apps"
+            - group: apps
               resources: ["*"]
           - level: Request
             resources:
-            - group: "rbac.authorization.k8s.io"
+            - group: rbac.authorization.k8s.io
               resources: ["*"]
         dest: /etc/rancher/k3s/audit-policy.yaml
-        mode: '0600'
+        mode: 0600
         owner: root
         group: root
       when: inventory_hostname in groups['server']
