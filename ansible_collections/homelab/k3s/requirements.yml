@@ -1,6 +1,6 @@
 ---
 collections:
-    - name: homelab.common
+  - name: homelab.common
     source: ../common
   - name: community.general
     version: >=7.0.0
