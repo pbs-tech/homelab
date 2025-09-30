@@ -16,8 +16,9 @@
     - name: Verify collections are available
       assert:
         that:
-          - lookup('ansible.builtin.env', 'ANSIBLE_COLLECTIONS_PATH') is defined or lookup('file', '../ansible_collections/homelab/common/galaxy.yml',
-            errors='ignore') != ""
+          - >-
+            lookup('ansible.builtin.env', 'ANSIBLE_COLLECTIONS_PATH') is defined or
+            lookup('file', '../ansible_collections/homelab/common/galaxy.yml', errors='ignore') != ""
         fail_msg: homelab.common collection not found
         success_msg: Collections check passed
 

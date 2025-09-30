@@ -20,7 +20,7 @@
     container_swap: "{{ container_resources.swap }}"
     container_disk_size: "{{ container_resources.disk_size }}"
     container_netif:
-      net0: "name=eth0,bridge={{ container_network.bridge }},ip={{ ansible_host }}/24,gw={{ homelab_network.gateway_ip }},firewall={{ container_network.firewall | int }}"
+      net0: name=eth0,bridge={{ container_network.bridge }},ip={{ ansible_host }}/24,gw={{ homelab_network.gateway_ip }},firewall={{ container_network.firewall | int }}
     container_unprivileged: "{{ lxc_config.unprivileged }}"
     container_onboot: "{{ lxc_config.onboot }}"
     container_state: present
@@ -119,7 +119,7 @@
     node: "{{ proxmox_node }}"
 
     # Startup configuration
-    startup: "order={{ container_startup_order[group_names[0]] | default(10) }}"
+    startup: order={{ container_startup_order[group_names[0]] | default(10) }}
     state: present
     update: true
 

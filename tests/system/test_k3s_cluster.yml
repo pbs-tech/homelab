@@ -20,10 +20,10 @@
 
     - name: Check connectivity to test nodes
       wait_for:
-        host: {{ hostvars[item]['ansible_host'] }}
+        host: "{{ hostvars[item]['ansible_host'] }}"
         port: 22
         timeout: 10
-      loop: {{ groups['k3s_test_servers'] + groups['k3s_test_agents'] }}
+      loop: "{{ groups['k3s_test_servers'] + groups['k3s_test_agents'] }}"
       delegate_to: localhost
 
 - name: Test K3s server deployment
@@ -54,7 +54,7 @@
 
     - name: Stop existing K3s services
       systemd:
-        name: {{ item }}
+        name: "{{ item }}"
         state: stopped
       loop:
         - k3s
@@ -75,7 +75,7 @@
     - name: Wait for K3s API server to be ready
       wait_for:
         port: 6443
-        host: {{ ansible_default_ipv4.address }}
+        host: "{{ ansible_default_ipv4.address }}"
         timeout: 120
 
     - name: Verify K3s server status
@@ -95,8 +95,8 @@
   become: true
   gather_facts: true
   vars:
-    k3s_server: https://{{ hostvars[groups['k3s_test_servers'][0]]['ansible_default_ipv4']['address'] }}:6443
-    k3s_token: {{ hostvars[groups['k3s_test_servers'][0]]['k3s_token'] }}
+    k3s_server: "https://{{ hostvars[groups['k3s_test_servers'][0]]['ansible_default_ipv4']['address'] }}:6443"
+    k3s_token: "{{ hostvars[groups['k3s_test_servers'][0]]['k3s_token'] }}"
   roles:
     - role: homelab.common.common_setup
       tags: [common_setup]

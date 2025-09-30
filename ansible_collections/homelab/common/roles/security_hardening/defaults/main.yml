@@ -25,10 +25,10 @@ pi_security_hardening:
     maxretry: 3
     findtime: 600
     ignoreip:
-      - "127.0.0.1/8"
-      - "192.168.0.0/24"
-      - "10.42.0.0/16" # K3s cluster CIDR
-      - "10.43.0.0/16" # K3s service CIDR
+      - 127.0.0.1/8
+      - 192.168.0.0/24
+      - 10.42.0.0/16  # K3s cluster CIDR
+      - 10.43.0.0/16  # K3s service CIDR
 
   # Automatic updates (more conservative for K3s nodes)
   unattended_upgrades:
@@ -38,8 +38,8 @@ pi_security_hardening:
     mail_on_error: false
     # Pi-specific: avoid kernel updates that could break K3s
     package_blacklist:
-      - "linux-*"
-      - "raspberry-kernel-*"
+      - linux-*
+      - raspberry-kernel-*
 
   # Pi-specific system hardening
   pi_system:

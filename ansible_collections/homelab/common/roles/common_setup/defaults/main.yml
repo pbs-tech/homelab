@@ -42,7 +42,7 @@ ssh_config:
   authorized_keys_file: /home/%u/.ssh/authorized_keys
 
 # Timezone configuration
-timezone: {{ homelab_timezone | default('UTC') }}
+timezone: "{{ homelab_timezone | default('UTC') }}"
 
 # Logging configuration
 rsyslog_config:

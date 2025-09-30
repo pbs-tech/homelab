@@ -7,7 +7,7 @@
   gather_facts: false
   vars:
     rollback_log_dir: /var/log/homelab/rollback
-    rollback_timestamp: {{ ansible_date_time.epoch }}
+    rollback_timestamp: "{{ ansible_date_time.epoch }}"
   tasks:
     - name: Validate rollback parameters
       assert:
@@ -19,64 +19,70 @@
 
     - name: Create rollback log directory
       file:
-        path: {{ rollback_log_dir }}
+        path: "{{ rollback_log_dir }}"
         state: directory
         mode: '0755'
         recurse: true
 
     - name: Generate rollback session ID
       set_fact:
-        rollback_session_id: "rollback-{{ rollback_timestamp }}"
-        rollback_log_file: "{{ rollback_log_dir }}/{{ rollback_timestamp }}-{{ rollback_target }}.log"
+        rollback_session_id: rollback-{{ rollback_timestamp }}
+        rollback_log_file: >
+          {{ rollback_log_dir }}/{{ rollback_timestamp }}-{{ rollback_target }}.log
 
     - name: Log rollback initiation
       lineinfile:
-        path: {{ rollback_log_file }}
-        line: [{{ ansible_date_time.iso8601 }}] Rollback initiated - Target: {{ rollback_target }}, Session: {{ rollback_session_id }}
+        path: "{{ rollback_log_file }}"
+        line: >
+          [{{ ansible_date_time.iso8601 }}] Rollback initiated - Target: {{ rollback_target }},
+          Session: {{ rollback_session_id }}
         create: true
         mode: '0644'
 
     - name: Pre-rollback system state capture
       shell: |
-        echo "=== Pre-rollback System State ===" >> {{ rollback_log_file }}
-        echo "Timestamp: {{ ansible_date_time.iso8601 }}" >> {{ rollback_log_file }}
-        echo "Target: {{ rollback_target }}" >> {{ rollback_log_file }}
-        echo "Session: {{ rollback_session_id }}" >> {{ rollback_log_file }}
-        echo "" >> {{ rollback_log_file }}
+        set -o pipefail
+        echo "=== Pre-rollback System State ===" >> "{{ rollback_log_file }}"
+        echo "Timestamp: {{ ansible_date_time.iso8601 }}" >> "{{ rollback_log_file }}"
+        echo "Target: {{ rollback_target }}" >> "{{ rollback_log_file }}"
+        echo "Session: {{ rollback_session_id }}" >> "{{ rollback_log_file }}"
+        echo "" >> "{{ rollback_log_file }}"
 
         # Capture service states
-        echo "Active services:" >> {{ rollback_log_file }}
-        systemctl list-units --state=active --type=service | grep -E "(prometheus|grafana|traefik|k3s)" >> {{ rollback_log_file }} || true
-        echo "" >> {{ rollback_log_file }}
+        echo "Active services:" >> "{{ rollback_log_file }}"
+        systemctl list-units --state=active --type=service | \
+          grep -E "(prometheus|grafana|traefik|k3s)" >> "{{ rollback_log_file }}" || true
+        echo "" >> "{{ rollback_log_file }}"
 
         # Capture network state
-        echo "Network interfaces:" >> {{ rollback_log_file }}
-        ip addr show >> {{ rollback_log_file }} || true
-        echo "" >> {{ rollback_log_file }}
+        echo "Network interfaces:" >> "{{ rollback_log_file }}"
+        ip addr show >> "{{ rollback_log_file }}" || true
+        echo "" >> "{{ rollback_log_file }}"
+      changed_when: false  # This is just logging, doesn't change system state
 
 - name: Execute rollback procedures
   hosts: all
   gather_facts: true
-  serial: {{ rollback_serial | default('25%') }}
+  serial: "{{ rollback_serial | default('25%') }}"
   vars:
     rollback_phases:
       phase1: [foundation, bastion]
-      phase2: [networking, dns, "vpn"]
-      phase3: [monitoring, prometheus, "grafana"]
-      phase4: [applications, homeassistant, "media"]
+      phase2: [networking, dns, vpn]
+      phase3: [monitoring, prometheus, grafana]
+      phase4: [applications, homeassistant, media]
       phase5: [k3s, cluster]
-      full: ["all"]
+      full: [all]
   tasks:
     - name: Set rollback scope
       set_fact:
-        services_to_rollback: {{ rollback_phases[rollback_target] }}
+        services_to_rollback: "{{ rollback_phases[rollback_target] }}"
 
     - name: Stop services before rollback
       systemd:
-        name: {{ item }}
+        name: "{{ item }}"
         state: stopped
-      loop: {{ services_to_stop | default([]) }}
-      ignore_errors: true
+      loop: "{{ services_to_stop | default([]) }}"
+      failed_when: false  # Allow services that are already stopped
       when: inventory_hostname in groups[item] or item in group_names
 
     - name: Create service backup before rollback
@@ -98,7 +104,8 @@
         fi
 
         echo "Configuration backup completed for {{ inventory_hostname }}"
-      when: rollback_target in [phase3, full] or 'monitoring' in services_to_rollback
+      changed_when: true  # Always creates backups
+      when: rollback_target in ['phase3', 'full'] or 'monitoring' in services_to_rollback
 
     - name: Restore from backup
       shell: |
@@ -115,13 +122,15 @@
         else
           echo "No backup timestamp specified, using configuration management rollback"
         fi
+      register: restore_result
+      changed_when: restore_result.stdout is search("Restore completed")
       when: backup_timestamp is defined
 
     - name: Rollback using Ansible (configuration management approach)
       block:
         - name: Apply previous known-good configuration
           include_tasks: ../ansible_collections/homelab/common/tasks/rollback_{{ item }}.yml
-          loop: {{ services_to_rollback }}
+          loop: "{{ services_to_rollback }}"
           when: not backup_timestamp is defined
 
         - name: Verify service configurations
@@ -141,28 +150,29 @@
                 echo "No specific validation for {{ item }}"
                 ;;
             esac
-          loop: {{ services_to_rollback }}
+          loop: "{{ services_to_rollback }}"
           register: config_validation
-          ignore_errors: true
+          changed_when: false  # Configuration validation doesn't change system state
+          failed_when: false  # Validation failures should not stop rollback
 
     - name: Restart services after rollback
       systemd:
-        name: {{ item }}
+        name: "{{ item }}"
         state: restarted
         daemon_reload: true
-      loop: {{ services_to_restart | default([]) }}
+      loop: "{{ services_to_restart | default([]) }}"
       when: inventory_hostname in groups[item] or item in group_names
 
     - name: Wait for service health checks
       uri:
-        url: {{ item.url }}
+        url: "{{ item.url }}"
         method: GET
         return_content: true
         status_code: [200, 401]  # Some services return 401 for auth
       register: health_check
       retries: 5
       delay: 10
-      loop: {{ service_health_checks | default([]) }}
+      loop: "{{ service_health_checks | default([]) }}"
       when: item.service in services_to_rollback
 
 - name: Post-rollback validation
@@ -172,30 +182,34 @@
     - name: Gather rollback results
       set_fact:
         rollback_summary:
-          session_id: {{ rollback_session_id }}
-          target: {{ rollback_target }}
-          timestamp: {{ ansible_date_time.iso8601 }}
-          hosts_processed: {{ ansible_play_hosts | length }}
-          status: {{ 'success' if ansible_failed_result is not defined else 'partial_failure' }}
+          session_id: "{{ rollback_session_id }}"
+          target: "{{ rollback_target }}"
+          timestamp: "{{ ansible_date_time.iso8601 }}"
+          hosts_processed: "{{ ansible_play_hosts | length }}"
+          status: >
+            {{ 'success' if ansible_failed_result is not defined else 'partial_failure' }}
 
     - name: Log rollback completion
       lineinfile:
-        path: {{ rollback_log_file }}
-        line: [{{ ansible_date_time.iso8601 }}] Rollback completed - Status: {{ rollback_summary.status }}, Hosts: {{ rollback_summary.hosts_processed }}
+        path: "{{ rollback_log_file }}"
+        line: >
+          [{{ ansible_date_time.iso8601 }}] Rollback completed - Status:
+          {{ rollback_summary.status }}, Hosts: {{ rollback_summary.hosts_processed }}
 
     - name: Run post-rollback tests
       shell: |
-        echo "=== Post-rollback Validation ===" >> {{ rollback_log_file }}
+        echo "=== Post-rollback Validation ===" >> "{{ rollback_log_file }}"
 
         # Basic connectivity tests
-        ansible all -m ping -i inventory/hosts.yml >> {{ rollback_log_file }} 2>&1 || true
+        ansible all -m ping -i inventory/hosts.yml >> "{{ rollback_log_file }}" 2>&1 || true
 
         # Service availability tests
-        ansible-playbook tests/test_suite.yml -e "test_types=['unit']" --tags quick >> {{ rollback_log_file }} 2>&1 || true
+        ansible-playbook tests/test_suite.yml -e "test_types=['unit']" \
+          --tags quick >> "{{ rollback_log_file }}" 2>&1 || true
 
-        echo "" >> {{ rollback_log_file }}
-        echo "=== Rollback Session Complete ===" >> {{ rollback_log_file }}
-      ignore_errors: true
+        echo "" >> "{{ rollback_log_file }}"
+        echo "=== Rollback Session Complete ===" >> "{{ rollback_log_file }}"
+      failed_when: false  # Tests should not fail the rollback process
 
     - name: Display rollback summary
       debug:
@@ -218,18 +232,18 @@
     - name: Generate rollback report
       template:
         src: rollback_report.html.j2
-        dest: {{ rollback_log_dir }}/{{ rollback_session_id }}-report.html
+        dest: "{{ rollback_log_dir }}/{{ rollback_session_id }}-report.html"
         mode: '0644'
       vars:
-        rollback_data: {{ rollback_summary }}
+        rollback_data: "{{ rollback_summary }}"
 
     - name: Notify rollback completion
       uri:
-        url: {{ notification_webhook_url }}
+        url: "{{ notification_webhook_url }}"
         method: POST
         body_format: json
         body:
           text: Rollback {{ rollback_summary.status }} - {{ rollback_summary.session_id }}
-          details: {{ rollback_summary }}
+          details: "{{ rollback_summary }}"
       when: notification_webhook_url is defined
-      ignore_errors: true
+      failed_when: false  # Notification failure should not fail rollback

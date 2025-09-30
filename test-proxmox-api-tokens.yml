@@ -8,7 +8,7 @@
   gather_facts: false
   vars:
     test_container_vmid: 999
-    test_container_name: "api-test-container"
+    test_container_name: api-test-container
     test_timeout: 60
 
   tasks:
@@ -39,7 +39,9 @@
           ansible.builtin.debug:
             msg: |
               Node: {{ item.item }}
-              API Test: {{ 'SUCCESS' if (item.failed is defined and not item.failed) or item.msg is search('does not exist') else 'FAILED' }}
+              API Test: >-
+                {{ 'SUCCESS' if (item.failed is defined and not item.failed)
+                   or item.msg is search('does not exist') else 'FAILED' }}
               Auth Method: API Token
               Host: {{ proxmox_config[item.item].host }}
               Token ID: {{ proxmox_config[item.item].api_token_id | regex_replace('!.*', '!***') }}
@@ -61,17 +63,17 @@
             vmid: "{{ test_container_vmid }}"
             node: "{{ proxmox_config[proxmox_nodes[0]].node }}"
             hostname: "{{ test_container_name }}"
-            ostemplate: "local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
+            ostemplate: local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst
 
             # Minimal resource allocation
             cores: 1
             memory: 256
             swap: 256
-            disk: "local:2"
+            disk: local:2
 
             # Network configuration
             netif:
-              net0: "name=eth0,bridge=vmbr0,ip=dhcp"
+              net0: name=eth0,bridge=vmbr0,ip=dhcp
 
             # Security settings
             unprivileged: true
@@ -140,7 +142,7 @@
             node: "{{ proxmox_config[proxmox_nodes[0]].node }}"
             state: absent
             force: true
-          ignore_errors: true
+          failed_when: false  # Cleanup should not fail the test
 
     - name: Generate API token test summary
       ansible.builtin.debug:

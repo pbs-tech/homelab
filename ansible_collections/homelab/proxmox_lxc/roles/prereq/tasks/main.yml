@@ -68,8 +68,8 @@
         - "'Status: active' in ufw_status['stdout']"
       community.general.ufw:
         rule: allow
-        src: {{ item }}
-      loop: {{ (cluster_cidr + ',' + service_cidr) | split(',') }}
+        src: "{{ item }}"
+      loop: "{{ (cluster_cidr + ',' + service_cidr) | split(',') }}"
 
 - name: Allow Firewalld Exceptions
   when:
@@ -78,7 +78,7 @@
   block:
     - name: If firewalld enabled, open api port
       ansible.posix.firewalld:
-        port: {{ api_port }}/tcp
+        port: "{{ api_port }}/tcp"
         zone: internal
         state: enabled
         permanent: true

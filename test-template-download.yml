@@ -29,7 +29,9 @@
         msg: "Ubuntu 22.04 template downloaded successfully: {{ template_check.stat.exists }}"
 
     - name: List available templates
-      shell: pveam list local | grep -E "\.tar\.(xz|zst|gz)$" || echo "No templates found"
+      shell: |
+        set -o pipefail
+        pveam list local | grep -E "\.tar\.(xz|zst|gz)$" || echo "No templates found"
       register: available_templates
       changed_when: false
 

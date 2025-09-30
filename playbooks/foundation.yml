@@ -23,7 +23,7 @@
   post_tasks:
     - name: Verify bastion accessibility
       wait_for:
-        host: {{ ansible_host }}
+        host: "{{ ansible_host }}"
         port: 22
         timeout: 30
       delegate_to: localhost

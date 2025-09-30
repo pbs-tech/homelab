@@ -42,8 +42,8 @@ all:
     homelab_network:
       gateway_ip: 192.168.0.1
       dns_servers:
-        - "192.168.0.202"
-        - "8.8.8.8"
+        - 192.168.0.202
+        - 8.8.8.8
       cluster_cidr: 10.42.0.0/16
       service_cidr: 10.43.0.0/16
 

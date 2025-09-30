@@ -7,7 +7,7 @@
   connection: local
   gather_facts: false
   vars:
-    ansible_python_interpreter: {{ ansible_playbook_python }}
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
   tasks:
     - name: Test role defaults loading
       include_role:
@@ -29,7 +29,7 @@
   connection: local
   gather_facts: false
   vars:
-    ansible_python_interpreter: {{ ansible_playbook_python }}
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
     # Mock required variables
     container_id: 999
     inventory_hostname: test-lxc
@@ -58,7 +58,7 @@
   connection: local
   gather_facts: false
   vars:
-    ansible_python_interpreter: {{ ansible_playbook_python }}
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
   tasks:
     - name: Test security_hardening role loading
       include_role:
