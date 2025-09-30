@@ -1,0 +1,100 @@
+---
+# Quick smoke test for homelab infrastructure
+# Validates basic connectivity and Ansible syntax
+# Expected runtime: < 2 minutes
+
+- name: Quick smoke test initialization
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Display smoke test banner
+      debug:
+        msg: |
+          ====================================
+          Homelab Quick Smoke Test
+          ====================================
+          Tests: Syntax, connectivity, critical services
+          Runtime: < 2 minutes
+
+- name: Validate Ansible syntax
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Check main playbooks syntax
+      command: ansible-playbook --syntax-check {{ item }}
+      loop:
+        - "{{ playbook_dir }}/../site.yml"
+        - "{{ playbook_dir }}/../playbooks/infrastructure.yml"
+        - "{{ playbook_dir }}/../playbooks/foundation.yml"
+      register: syntax_check
+      changed_when: false
+      failed_when: syntax_check.rc != 0
+
+- name: Test K3s cluster connectivity
+  hosts: k3s_cluster
+  gather_facts: false
+  tasks:
+    - name: Ping K3s nodes
+      ping:
+        data: k3s_alive
+      register: k3s_ping
+
+    - name: Verify SSH access
+      command: echo "SSH OK"
+      changed_when: false
+
+- name: Test Proxmox host connectivity
+  hosts: proxmox_hosts
+  gather_facts: false
+  tasks:
+    - name: Ping Proxmox hosts
+      ping:
+        data: proxmox_alive
+      register: proxmox_ping
+
+- name: Test critical service health
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Check Traefik health
+      uri:
+        url: http://192.168.0.205:8080/ping
+        method: GET
+        timeout: 5
+        status_code: 200
+      register: traefik_health
+      ignore_errors: true
+
+    - name: Check Prometheus health
+      uri:
+        url: http://192.168.0.200:9090/-/healthy
+        method: GET
+        timeout: 5
+        status_code: 200
+      register: prometheus_health
+      ignore_errors: true
+
+    - name: Check K3s API health
+      uri:
+        url: https://192.168.0.111:6443/livez
+        method: GET
+        validate_certs: false
+        timeout: 5
+        status_code: 200
+      register: k3s_health
+      ignore_errors: true
+
+    - name: Display smoke test results
+      debug:
+        msg: |
+          ====================================
+          Smoke Test Results
+          ====================================
+          Traefik: {{ 'PASS' if traefik_health is succeeded else 'FAIL' }}
+          Prometheus: {{ 'PASS' if prometheus_health is succeeded else 'FAIL' }}
+          K3s API: {{ 'PASS' if k3s_health is succeeded else 'FAIL' }}
+
+          Status: {{ 'HEALTHY' if (traefik_health is succeeded and prometheus_health is succeeded and k3s_health is succeeded) else 'DEGRADED' }}

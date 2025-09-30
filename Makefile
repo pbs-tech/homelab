@@ -56,17 +56,41 @@ lint-fix: ## Attempt to auto-fix linting issues where possible
 	yamllint . --format parsable | head -20 || true
 	@echo "$(YELLOW)Note: Some issues may need manual fixing$(NC)"
 
-test: ## Run molecule tests
-	@echo "$(YELLOW)Running molecule tests...$(NC)"
-	@if [ -d "molecule" ]; then \
-		molecule test; \
-	else \
-		echo "$(YELLOW)No molecule tests found, skipping...$(NC)"; \
-	fi
+# ============================================
+# Testing Targets
+# ============================================
 
-test-security: ## Run security hardening tests
-	@echo "$(YELLOW)Running security hardening tests...$(NC)"
-	ansible-playbook test-security-hardening.yml --check
+test: ## Run all validation tests
+	@echo "$(YELLOW)Running full validation test suite...$(NC)"
+	@echo "$(YELLOW)Test 1/4: Quick smoke test$(NC)"
+	@ansible-playbook tests/quick-smoke-test.yml
+	@echo "$(YELLOW)Test 2/4: Infrastructure validation$(NC)"
+	@ansible-playbook tests/validate-infrastructure.yml
+	@echo "$(YELLOW)Test 3/4: Security validation$(NC)"
+	@ansible-playbook tests/validate-security.yml
+	@echo "$(YELLOW)Test 4/4: Service validation$(NC)"
+	@ansible-playbook tests/validate-services.yml
+	@echo "$(GREEN)All validation tests completed!$(NC)"
+
+test-quick: ## Run quick smoke tests (< 2 min)
+	@echo "$(YELLOW)Running quick smoke tests...$(NC)"
+	@ansible-playbook tests/quick-smoke-test.yml
+
+test-infrastructure: ## Validate infrastructure health
+	@echo "$(YELLOW)Validating infrastructure health...$(NC)"
+	@ansible-playbook tests/validate-infrastructure.yml
+
+test-security: ## Validate security configuration
+	@echo "$(YELLOW)Running security validation tests...$(NC)"
+	@ansible-playbook tests/validate-security.yml
+
+test-services: ## Validate service functionality
+	@echo "$(YELLOW)Running service validation tests...$(NC)"
+	@ansible-playbook tests/validate-services.yml
+
+test-api: ## Validate Proxmox API authentication
+	@echo "$(YELLOW)Testing Proxmox API token authentication...$(NC)"
+	@ansible-playbook test-proxmox-api-tokens.yml
 
 deploy: lint ## Deploy infrastructure (with linting check first)
 	@echo "$(YELLOW)Deploying infrastructure...$(NC)"
@@ -106,7 +130,7 @@ security-scan: ## Run security scans
 docs: ## Generate documentation
 	@echo "$(YELLOW)Generating documentation...$(NC)"
 	@echo "$(YELLOW)Documentation is maintained in markdown files$(NC)"
-	@echo "See: README.md, CLAUDE.md, and collection-specific docs"
+	@echo "See: README.md, CLAUDE.md, TESTING.md, and collection-specific docs"
 	@echo ""
 	@echo "$(YELLOW)Available documentation:$(NC)"
 	@find . -name "*.md" -not -path "./.git/*" | sed 's/^/  - /'

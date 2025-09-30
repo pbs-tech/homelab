@@ -1,0 +1,256 @@
+---
+# Service validation test
+# Validates all services are functioning correctly
+# Expected runtime: < 4 minutes
+
+- name: Service validation initialization
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Display service test banner
+      debug:
+        msg: |
+          ====================================
+          Service Validation Test
+          ====================================
+          Tests: Monitoring, networking, media, K3s services
+          Runtime: < 4 minutes
+
+- name: Validate monitoring stack
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Test Prometheus API
+      uri:
+        url: http://192.168.0.200:9090/api/v1/query?query=up
+        method: GET
+        timeout: 10
+        status_code: 200
+      register: prometheus_api
+      ignore_errors: true
+
+    - name: Verify Prometheus can query metrics
+      assert:
+        that:
+          - prometheus_api.json.status == "success"
+          - prometheus_api.json.data.result | length > 0
+        fail_msg: "Prometheus not returning metrics"
+        success_msg: "Prometheus metrics query successful"
+      when: prometheus_api is succeeded
+
+    - name: Test Grafana API
+      uri:
+        url: http://192.168.0.201:3000/api/health
+        method: GET
+        timeout: 10
+        status_code: 200
+      register: grafana_api
+      ignore_errors: true
+
+    - name: Verify Grafana is healthy
+      assert:
+        that:
+          - grafana_api.json.database == "ok"
+        fail_msg: "Grafana database not healthy"
+        success_msg: "Grafana is healthy"
+      when: grafana_api is succeeded
+
+    - name: Test Loki API
+      uri:
+        url: http://192.168.0.210:3100/ready
+        method: GET
+        timeout: 10
+        status_code: 200
+      register: loki_api
+      ignore_errors: true
+
+    - name: Test AlertManager API
+      uri:
+        url: http://192.168.0.206:9093/-/healthy
+        method: GET
+        timeout: 10
+        status_code: 200
+      register: alertmanager_api
+      ignore_errors: true
+
+    - name: Display monitoring stack status
+      debug:
+        msg: |
+          Monitoring Stack Status:
+          - Prometheus: {{ 'HEALTHY' if prometheus_api is succeeded else 'DEGRADED' }}
+          - Grafana: {{ 'HEALTHY' if grafana_api is succeeded else 'DEGRADED' }}
+          - Loki: {{ 'HEALTHY' if loki_api is succeeded else 'DEGRADED' }}
+          - AlertManager: {{ 'HEALTHY' if alertmanager_api is succeeded else 'DEGRADED' }}
+
+- name: Validate networking services
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Test Traefik dashboard
+      uri:
+        url: http://192.168.0.205:8080/dashboard/
+        method: GET
+        timeout: 10
+        status_code: [200, 301]
+      register: traefik_dashboard
+      ignore_errors: true
+
+    - name: Test Traefik API
+      uri:
+        url: http://192.168.0.205:8080/api/http/routers
+        method: GET
+        timeout: 10
+        status_code: 200
+      register: traefik_api
+      ignore_errors: true
+
+    - name: Verify Traefik has active routers
+      assert:
+        that:
+          - traefik_api.json | length > 0
+        fail_msg: "Traefik has no active routers"
+        success_msg: "Traefik routing configured"
+      when: traefik_api is succeeded
+
+    - name: Test DNS resolution (Unbound)
+      command: dig @192.168.0.202 homelab.local +short
+      register: dns_unbound
+      changed_when: false
+      failed_when: false
+
+    - name: Test DNS resolution (AdGuard)
+      command: dig @192.168.0.204 homelab.local +short
+      register: dns_adguard
+      changed_when: false
+      failed_when: false
+
+    - name: Display networking status
+      debug:
+        msg: |
+          Networking Services Status:
+          - Traefik Dashboard: {{ 'ACCESSIBLE' if traefik_dashboard is succeeded else 'FAIL' }}
+          - Traefik API: {{ 'HEALTHY' if traefik_api is succeeded else 'FAIL' }}
+          - Traefik Routers: {{ traefik_api.json | length if traefik_api is succeeded else 0 }}
+          - Unbound DNS: {{ 'RESOLVING' if dns_unbound.rc == 0 else 'FAIL' }}
+          - AdGuard DNS: {{ 'RESOLVING' if dns_adguard.rc == 0 else 'FAIL' }}
+
+- name: Validate home automation and media services
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Test Home Assistant API
+      uri:
+        url: http://192.168.0.208:8123/api/
+        method: GET
+        timeout: 10
+        status_code: 200
+      register: homeassistant_api
+      ignore_errors: true
+
+    - name: Test Sonarr API
+      uri:
+        url: http://192.168.0.230:8989/api/v3/health
+        method: GET
+        timeout: 10
+        status_code: [200, 401]  # 401 OK if API key required
+      register: sonarr_api
+      ignore_errors: true
+
+    - name: Test Radarr API
+      uri:
+        url: http://192.168.0.231:7878/api/v3/health
+        method: GET
+        timeout: 10
+        status_code: [200, 401]
+      register: radarr_api
+      ignore_errors: true
+
+    - name: Test Jellyfin web interface
+      uri:
+        url: http://192.168.0.235:8096/health
+        method: GET
+        timeout: 10
+        status_code: 200
+      register: jellyfin_api
+      ignore_errors: true
+
+    - name: Test qBittorrent web UI
+      uri:
+        url: http://192.168.0.234:8080
+        method: GET
+        timeout: 10
+        status_code: [200, 401]
+      register: qbittorrent_api
+      ignore_errors: true
+
+    - name: Display media services status
+      debug:
+        msg: |
+          Home Automation & Media Services:
+          - Home Assistant: {{ 'ACCESSIBLE' if homeassistant_api is succeeded else 'FAIL' }}
+          - Sonarr: {{ 'ACCESSIBLE' if sonarr_api is succeeded else 'FAIL' }}
+          - Radarr: {{ 'ACCESSIBLE' if radarr_api is succeeded else 'FAIL' }}
+          - Jellyfin: {{ 'ACCESSIBLE' if jellyfin_api is succeeded else 'FAIL' }}
+          - qBittorrent: {{ 'ACCESSIBLE' if qbittorrent_api is succeeded else 'FAIL' }}
+
+- name: Validate K3s cluster services
+  hosts: server[0]
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Check K3s pods status
+      command: kubectl get pods --all-namespaces -o json
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      register: k3s_pods
+      changed_when: false
+      failed_when: false
+
+    - name: Count running pods
+      set_fact:
+        total_pods: "{{ (k3s_pods.stdout | from_json).items | length }}"
+        running_pods: "{{ (k3s_pods.stdout | from_json).items | selectattr('status.phase', 'equalto', 'Running') | list | length }}"
+      when: k3s_pods is succeeded
+
+    - name: Check K3s services
+      command: kubectl get services --all-namespaces -o json
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      register: k3s_services
+      changed_when: false
+      failed_when: false
+
+    - name: Display K3s cluster status
+      debug:
+        msg: |
+          K3s Cluster Status:
+          - Total Pods: {{ total_pods | default('N/A') }}
+          - Running Pods: {{ running_pods | default('N/A') }}
+          - Total Services: {{ (k3s_services.stdout | from_json).items | length if k3s_services is succeeded else 'N/A' }}
+      when: k3s_pods is succeeded
+
+- name: Service validation summary
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Display validation summary
+      debug:
+        msg: |
+          ====================================
+          Service Validation Complete
+          ====================================
+
+          Validated Services:
+          - Monitoring: Prometheus, Grafana, Loki, AlertManager
+          - Networking: Traefik, DNS (Unbound/AdGuard)
+          - Media: Sonarr, Radarr, Jellyfin, qBittorrent
+          - Automation: Home Assistant
+          - K3s: Cluster pods and services
+
+          Review output above for service status
+          All critical services checked

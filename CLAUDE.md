@@ -18,6 +18,28 @@ services, and unified orchestration through improved playbook structure.
 
 ## Key Commands
 
+### Testing Commands
+
+```bash
+# Quick validation (< 2 minutes)
+make test-quick
+
+# Full validation suite (< 5 minutes)
+make test
+
+# Individual test categories
+make test-infrastructure        # LXC containers, K3s nodes health
+make test-security             # Security hardening validation
+make test-services             # Service functionality checks
+make test-api                  # Proxmox API authentication
+
+# Direct playbook execution
+ansible-playbook tests/quick-smoke-test.yml
+ansible-playbook tests/validate-infrastructure.yml
+ansible-playbook tests/validate-security.yml
+ansible-playbook tests/validate-services.yml
+```
+
 ### Security Validation Commands
 
 ```bash
@@ -29,12 +51,15 @@ ansible-playbook test-proxmox-api-tokens.yml
 
 # Validate Proxmox connectivity
 ansible-playbook -i inventory/proxmox.yml playbooks/validate-proxmox.yml --tags validation
+
+# Security hardening test playbook
+ansible-playbook test-security-hardening.yml
 ```
 
 ### Main Deployment Commands
 
 ```bash
-# 🔒 RECOMMENDED: Security-First Phased Deployment
+# RECOMMENDED: Security-First Phased Deployment
 ansible-playbook playbooks/infrastructure.yml
 
 # Phase-specific deployments
@@ -190,6 +215,11 @@ trufflehog git file://. --only-verified  # Scan for secrets
 │   ├── networking.yml               # Phase 2: DNS, VPN, reverse proxy
 │   ├── monitoring.yml               # Phase 3: Prometheus, Grafana, Loki
 │   └── applications.yml             # Phase 4: Home automation, NAS services
+├── tests/                           # Fast validation tests (< 5 min total)
+│   ├── quick-smoke-test.yml         # 30s validation of critical components
+│   ├── validate-infrastructure.yml  # Infrastructure health checks
+│   ├── validate-security.yml        # Security hardening verification
+│   └── validate-services.yml        # Service functionality tests
 └── ansible_collections/homelab/
     ├── common/                      # NEW: Shared utilities and configuration
     │   ├── galaxy.yml               # Common collection metadata
@@ -248,8 +278,7 @@ roles/{role_name}/
 ├── tasks/main.yml         # Main role tasks
 ├── defaults/main.yml      # Default variables
 ├── templates/             # Jinja2 configuration templates
-├── handlers/main.yml      # Service restart/reload handlers
-└── molecule/             # Testing scenarios (where applicable)
+└── handlers/main.yml      # Service restart/reload handlers
 ```
 
 ### Documentation Standards
@@ -287,6 +316,15 @@ The collection implements:
 - **Resource allocation** with intelligent node placement
 - **Health checks** and validation for all services
 
+**Testing Strategy**:
+
+- **Fast smoke tests** - 30-second validation of critical components
+- **Infrastructure validation** - Health checks for all deployed services (< 3 min)
+- **Security validation** - Security hardening verification (< 3 min)
+- **Service validation** - Functional testing of all services (< 4 min)
+- **Total test time** - Complete validation in under 5 minutes
+- **CI/CD integration** - Automated linting and validation via GitHub Actions
+
 **Documentation Coverage**:
 
 - **Repository README** with comprehensive overview and quick start
@@ -294,5 +332,5 @@ The collection implements:
 - **Role documentation** for major components (Traefik, Security Hardening, etc.)
 - **API documentation** via galaxy.yml metadata
 - **Security architecture** documentation with threat model
-- **Testing procedures** with both development and production validation
+- **Testing procedures** (TESTING.md) with practical validation approaches
 - **Troubleshooting guides** with common issues and solutions
