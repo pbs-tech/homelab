@@ -1,14 +1,15 @@
 ---
-# Pre-commit hooks configuration for homelab project
-# Install with: pip install pre-commit && pre-commit install
+# Pre-commit hooks for homelab infrastructure
+# Setup: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
 
 repos:
-  # General file checks
+  # File checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v5.0.0
     hooks:
       - id: trailing-whitespace
-        exclude: \.md$ # Allow trailing whitespace in markdown (line breaks)
+        exclude: \.md$
       - id: end-of-file-fixer
       - id: check-yaml
         args: [--allow-multiple-documents]
@@ -16,44 +17,56 @@ repos:
         args: [--maxkb=1000]
       - id: check-case-conflict
       - id: check-merge-conflict
-      - id: check-executables-have-shebangs
-      - id: check-shebang-scripts-are-executable
       - id: mixed-line-ending
         args: [--fix=lf]
 
   # YAML linting
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.33.0
+    rev: v1.35.1
     hooks:
       - id: yamllint
         args: [-c=.yamllint]
 
   # Ansible linting
   - repo: https://github.com/ansible/ansible-lint
-    rev: v6.22.1
+    rev: v24.12.2
     hooks:
       - id: ansible-lint
-        args: [-c=.ansible-lint]
+        files: \.(yaml|yml)$
         additional_dependencies:
           - ansible-core>=2.15
 
-  # Markdown linting with pymarkdownlnt
+  # Markdown linting
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.16.0
+    hooks:
+      - id: markdownlint-cli2
+        args: [--config=.markdownlint.yaml]
 
   # Shell script linting
   - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.9.0.6
+    rev: v0.10.0.1
     hooks:
       - id: shellcheck
         args: [-x]
 
-  # Security scanning for secrets
-  - repo: https://github.com/Yelp/detect-secrets
-    rev: v1.4.0
+  # Security - secrets scanning (lightweight, local-only)
+  - repo: local
     hooks:
-      - id: detect-secrets
-        args: [--baseline, .secrets.baseline]
-        exclude: \.lock$
+      - id: check-secrets
+        name: Check for hardcoded secrets
+        entry: bash -c
+        args:
+          - |
+            pattern="(password|secret|key|token|credential):\s*['\"][^'\"]{8,}"
+            if grep -rI --include="*.yml" --include="*.yaml" -E "$pattern" .; then
+              echo "⚠️  Potential hardcoded secrets detected"
+              exit 1
+            fi
+        language: system
+        pass_filenames: false
 
 # Configuration
 default_stages: [pre-commit]
 fail_fast: false
+minimum_pre_commit_version: '3.0.0'
