@@ -99,6 +99,6 @@ jobs:
 
       - name: Build and validate
         run: |
-          cd ansible_collections/homelab.${{ matrix.collection }}
+        cd ansible_collections/homelab/${{ matrix.collection }}
           ansible-galaxy collection build
           python -m galaxy_importer.main *.tar.gz
