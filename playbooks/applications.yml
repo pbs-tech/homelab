@@ -55,3 +55,4 @@
       delegate_to: localhost
       when: service_port is defined
       ignore_errors: true
+      register: ignore_errors_register

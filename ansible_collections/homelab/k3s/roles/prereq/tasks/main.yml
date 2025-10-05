@@ -9,13 +9,13 @@
   when: ansible_distribution in ['Ubuntu']
   ansible.builtin.apt:
     name: policycoreutils # Used by install script to restore SELinux context
-    update_cache: {{ airgap_dir is not defined }}
+    update_cache: "{{ airgap_dir is not defined }}"
 
 - name: Install Dependent RHEL 10 Package
   when: ansible_distribution in ['RedHat'] and ansible_distribution_major_version == "10"
   ansible.builtin.dnf:
     name: kernel-modules-extra # Load br_netfilter module
-    update_cache: {{ airgap_dir is not defined }}
+    update_cache: "{{ airgap_dir is not defined }}"
 
 - name: Enable IPv4 forwarding
   ansible.posix.sysctl:
@@ -51,7 +51,7 @@
         - "'Status: active' in ufw_status['stdout']"
       community.general.ufw:
         rule: allow
-        port: {{ api_port }}
+        port: "{{ api_port }}"
         proto: tcp
 
     - name: If ufw enabled, open etcd ports
@@ -68,8 +68,8 @@
         - "'Status: active' in ufw_status['stdout']"
       community.general.ufw:
         rule: allow
-        src: {{ item }}
-      loop: {{ (cluster_cidr + ',' + service_cidr) | split(',') }}
+        src: "{{ item }}"
+      loop: "{{ (cluster_cidr + ', ' + service_cidr) | split(', ') }}"
 
 - name: Allow Firewalld Exceptions
   when:
@@ -78,7 +78,7 @@
   block:
     - name: If firewalld enabled, open api port
       ansible.posix.firewalld:
-        port: {{ api_port }}/tcp
+        port: "{{ api_port }}/tcp"
         zone: internal
         state: enabled
         permanent: true
@@ -95,7 +95,7 @@
 
     - name: If firewalld enabled, open inter-node ports
       ansible.posix.firewalld:
-        port: {{ item }}
+        port: "{{ item }}"
         zone: internal
         state: enabled
         permanent: true
@@ -109,7 +109,7 @@
 
     - name: If firewalld enabled, allow node CIDRs
       ansible.posix.firewalld:
-        source: {{ item }}
+        source: "{{ item }}"
         zone: internal
         state: enabled
         permanent: true
@@ -126,12 +126,12 @@
 
     - name: If firewalld enabled, allow default CIDRs
       ansible.posix.firewalld:
-        source: {{ item }}
+        source: "{{ item }}"
         zone: trusted
         state: enabled
         permanent: true
         immediate: true
-      loop: {{ (cluster_cidr + ',' + service_cidr) | split(',') }}
+      loop: "{{ (cluster_cidr + ',' + service_cidr) | split(',') }}"
 
 - name: Add br_netfilter to /etc/modules-load.d/
   ansible.builtin.copy:
@@ -148,7 +148,7 @@
 
 - name: Set bridge-nf-call-iptables (just to be sure)
   ansible.posix.sysctl:
-    name: {{ item }}
+    name: "{{ item }}"
     value: 1
     state: present
     reload: true
@@ -221,12 +221,12 @@
     - name: Make rancher directory
       ansible.builtin.file:
         path: /var/lib/rancher
-        mode: 0755
+        mode: "0755"
         state: directory
     - name: Create symlink
       ansible.builtin.file:
         dest: /var/lib/rancher/k3s
-        src: {{ k3s_server_location }}
+        src: "{{ k3s_server_location }}"
         force: true
         state: link
 
@@ -236,14 +236,14 @@
     - name: Make manifests directory
       ansible.builtin.file:
         path: /var/lib/rancher/k3s/server/manifests
-        mode: 0700
+        mode: "0700"
         state: directory
     - name: Copy manifests
       ansible.builtin.copy:
-        src: {{ item }}
+        src: "{{ item }}"
         dest: /var/lib/rancher/k3s/server/manifests
-        mode: 0600
-      loop: {{ extra_manifests }}
+        mode: "0600"
+      loop: "{{ extra_manifests }}"
 
 - name: Setup optional private registry configuration
   when: registries_config_yaml is defined
@@ -251,10 +251,10 @@
     - name: Make k3s config directory
       ansible.builtin.file:
         path: /etc/rancher/k3s
-        mode: 0755
+        mode: "0755"
         state: directory
     - name: Copy config values
       ansible.builtin.copy:
-        content: {{ registries_config_yaml }}
+        content: "{{ registries_config_yaml }}"
         dest: /etc/rancher/k3s/registries.yaml
-        mode: 0644
+        mode: "0644"

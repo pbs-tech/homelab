@@ -1,0 +1,53 @@
+---
+traefik_version: 3.0.4
+traefik_dashboard_enabled: true
+traefik_dashboard_port: 8080
+traefik_http_port: 80
+traefik_https_port: 443
+
+# SSL/TLS settings
+traefik_ssl_email: admin@homelab.local
+traefik_ssl_resolver: letsencrypt
+
+# Domain for homelab services
+homelab_domain: homelab.local
+
+# Service endpoints
+services:
+  prometheus:
+    ip: 192.168.0.200
+    port: 9090
+    domain: prometheus.{{ homelab_domain }}
+
+  grafana:
+    ip: 192.168.0.201
+    port: 3000
+    domain: grafana.{{ homelab_domain }}
+
+  adguard:
+    ip: 192.168.0.204
+    port: 80
+    domain: adguard.{{ homelab_domain }}
+
+  alertmanager:
+    ip: 192.168.0.206
+    port: 9093
+    domain: alertmanager.{{ homelab_domain }}
+
+  homeassistant:
+    ip: 192.168.0.208
+    port: 8123
+    domain: ha.{{ homelab_domain }}
+
+  openwrt:
+    ip: 192.168.0.209
+    port: 80
+    domain: router.{{ homelab_domain }}
+
+  loki:
+    ip: 192.168.0.210
+    port: 3100
+    domain: loki.{{ homelab_domain }}
+
+# K3s cluster endpoint
+k3s_api_endpoint: 192.168.0.111:6443

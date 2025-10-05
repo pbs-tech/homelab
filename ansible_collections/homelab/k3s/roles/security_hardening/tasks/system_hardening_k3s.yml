@@ -1,10 +1,10 @@
 ---
 - name: Configure K3s-compatible sysctl settings
   ansible.posix.sysctl:
-    name: {{ item.name }}
-    value: {{ item.value }}
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
     state: present
-    reload: yes
+    reload: true
   loop:
     # Network security (K3s compatible)
     - { name: 'net.ipv4.conf.all.send_redirects', value: '0' }
@@ -27,20 +27,20 @@
     # net.ipv4.ip_forward and net.ipv6.conf.all.forwarding managed by K3s
 
 - name: Remove unnecessary packages (K3s compatible)
-  apt:
+  ansible.builtin.apt:
     name:
       - telnet
       - rsh-client
       - rsh-redone-client
     state: absent
-    autoremove: yes
+    autoremove: true
 
 - name: Set proper permissions on sensitive files
-  file:
-    path: {{ item.path }}
-    mode: {{ item.mode }}
-    owner: {{ item.owner | default('root') }}
-    group: {{ item.group | default('root') }}
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    mode: "{{ item.mode }}"
+    owner: "{{ item.owner | default('root') }}"
+    group: "{{ item.group | default('root') }}"
   loop:
     - { path: '/etc/passwd', mode: '0644' }
     - { path: '/etc/group', mode: '0644' }
@@ -48,23 +48,23 @@
     - { path: '/etc/gshadow', mode: '0600' }
 
 - name: Configure process accounting
-  apt:
+  ansible.builtin.apt:
     name: acct
     state: present
 
 - name: Enable process accounting
-  systemd:
+  ansible.builtin.systemd:
     name: acct
     state: started
-    enabled: yes
+    enabled: true
 
 - name: Configure K3s-specific security settings
   block:
     - name: Ensure K3s directories exist with proper permissions
-      file:
-        path: {{ item.path }}
+      ansible.builtin.file:
+        path: "{{ item.path }}"
         state: directory
-        mode: {{ item.mode }}
+        mode: "{{ item.mode }}"
         owner: root
         group: root
       loop:
@@ -72,7 +72,7 @@
         - { path: '/var/lib/rancher/k3s', mode: '0755' }
 
     - name: Configure K3s audit logging
-      copy:
+      ansible.builtin.copy:
         content: |
           apiVersion: audit.k8s.io/v1
           kind: Policy
@@ -90,7 +90,7 @@
             - group: rbac.authorization.k8s.io
               resources: ["*"]
         dest: /etc/rancher/k3s/audit-policy.yaml
-        mode: 0600
+        mode: "0600"
         owner: root
         group: root
       when: inventory_hostname in groups['server']

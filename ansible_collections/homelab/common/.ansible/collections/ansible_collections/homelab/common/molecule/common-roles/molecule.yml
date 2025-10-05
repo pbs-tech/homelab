@@ -11,14 +11,14 @@ platforms:
   - name: container-base-test
     image: geerlingguy/docker-ubuntu2204-ansible:latest
     pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    command: /lib/systemd/systemd
-    capabilities:
-      - SYS_ADMIN
-    groups:
-      - lxc_containers
+      privileged: true
+      volumes:
+        - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      command: /lib/systemd/systemd
+      capabilities:
+        - SYS_ADMIN
+      groups:
+        - lxc_containers
       - monitoring
 
 provisioner:
@@ -33,36 +33,36 @@ provisioner:
       container-base-test:
         ansible_user: root
         ansible_connection: podman
-        ansible_host: "127.0.0.1"
+        ansible_host: 127.0.0.1
         container_id: 100
-        inventory_hostname: "prometheus-lxc"
+        inventory_hostname: prometheus-lxc
         # Mock Proxmox configuration
-        proxmox_password: "molecule-test-password"
+        proxmox_password: molecule-test-password
     group_vars:
       all:
         # Import common configuration
-        homelab_domain: "molecule.test"
+        homelab_domain: molecule.test
         homelab_network:
-          gateway_ip: "172.17.0.1"
+          gateway_ip: 172.17.0.1
           dns_servers: ["8.8.8.8"]
-          cluster_cidr: "10.42.0.0/16"
-          service_cidr: "10.43.0.0/16"
+          cluster_cidr: 10.42.0.0/16
+          service_cidr: 10.43.0.0/16
 
         # Mock Proxmox config
         proxmox_config:
           pve_mac:
-            host: "127.0.0.1"
-            user: "root@pam"
-            node: "pve-mac"
+            host: 127.0.0.1
+            user: root@pam
+            node: pve-mac
           pve_nas:
-            host: "127.0.0.1"
-            user: "root@pam"
-            node: "pve-nas"
+            host: 127.0.0.1
+            user: root@pam
+            node: pve-nas
 
         # Container defaults
         container_defaults:
-          template: "ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
-          disk_size: "4"
+          template: ubuntu-22.04-standard_22.04-1_amd64.tar.zst
+          disk_size: 4
           cores: 1
           memory: 512
           swap: 0
@@ -71,7 +71,7 @@ provisioner:
 
         security_config:
           hardening_enabled: true
-          ssh_key_path: "/tmp/molecule_key"
+          ssh_key_path: /tmp/molecule_key
 
 verifier:
   name: ansible

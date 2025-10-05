@@ -1,0 +1,136 @@
+---
+- name: Deploy monitoring stack
+  hosts: monitoring
+  become: true
+  gather_facts: true
+  serial: 1
+
+  tasks:
+    - name: Test common setup role
+      include_role:
+        name: homelab.common.common_setup
+      tags: [common_setup]
+
+    - name: Generate SSH keypair for testing
+      openssh_keypair:
+        path: /root/.ssh/id_rsa
+        type: rsa
+        size: 2048
+        force: false
+
+    - name: Deploy Prometheus
+      include_role:
+        name: homelab.proxmox_lxc.prometheus
+      vars:
+        prometheus_storage_retention: 2h
+        prometheus_web_listen_address: 0.0.0.0:9090
+        prometheus_scrape_configs:
+          - job_name: prometheus
+            static_configs:
+              - targets: ['localhost:9090']
+          - job_name: loki
+            static_configs:
+              - targets: ['localhost:3100']
+      tags: [prometheus]
+
+    - name: Deploy Loki
+      include_role:
+        name: homelab.proxmox_lxc.loki
+      vars:
+        loki_retention_period: 6h
+        loki_listen_address: 0.0.0.0
+      tags: [loki]
+
+    - name: Wait for Loki to be ready
+      wait_for:
+        port: 3100
+        delay: 10
+        timeout: 60
+
+    - name: Deploy Promtail
+      include_role:
+        name: homelab.proxmox_lxc.promtail
+      vars:
+        loki_endpoint: http://127.0.0.1:3100
+        promtail_service_name: monitoring-stack-test
+      tags: [promtail]
+
+    - name: Deploy Grafana
+      include_role:
+        name: homelab.proxmox_lxc.grafana
+      vars:
+        grafana_admin_password: molecule123
+        grafana_datasources:
+          - name: Prometheus
+            type: prometheus
+            access: proxy
+            url: http://127.0.0.1:9090
+            is_default: true
+            basic_auth: false
+            editable: true
+          - name: Loki
+            type: loki
+            access: proxy
+            url: http://127.0.0.1:3100
+            is_default: false
+            basic_auth: false
+            editable: true
+      tags: [grafana]
+
+- name: Deploy networking stack
+  hosts: networking
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Test common setup role
+      include_role:
+        name: homelab.common.common_setup
+      tags: [common_setup]
+
+    - name: Generate SSH keypair for testing
+      openssh_keypair:
+        path: /root/.ssh/id_rsa
+        type: rsa
+        size: 2048
+        force: false
+
+    - name: Deploy Traefik
+      include_role:
+        name: homelab.proxmox_lxc.traefik
+      vars:
+        traefik_version: 3.0.4
+        traefik_dashboard_enabled: true
+        traefik_dashboard_port: 8080
+        services:
+          prometheus:
+            ip: 172.17.0.2
+            port: 9090
+            domain: prometheus.molecule.test
+          grafana:
+            ip: 172.17.0.2
+            port: 3000
+            domain: grafana.molecule.test
+          loki:
+            ip: 172.17.0.2
+            port: 3100
+            domain: loki.molecule.test
+      tags: [traefik]
+
+    - name: Deploy Unbound DNS
+      include_role:
+        name: homelab.proxmox_lxc.unbound
+      vars:
+        unbound_listen_addresses:
+          - "0.0.0.0"
+        unbound_access_control:
+          - "127.0.0.0/8 allow"
+          - "172.16.0.0/12 allow"
+        unbound_local_zones:
+          - name: molecule.test.
+            type: static
+            records:
+              - "prometheus.molecule.test. A 172.17.0.3"
+              - "grafana.molecule.test. A 172.17.0.3"
+              - "loki.molecule.test. A 172.17.0.3"
+      tags: [unbound]

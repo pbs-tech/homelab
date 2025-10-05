@@ -32,13 +32,16 @@
       assert:
         that:
           - "'Status: active' in ufw_status.stdout"
-        fail_msg: "UFW is not active on {{ inventory_hostname }}"
-        success_msg: "UFW is active on {{ inventory_hostname }}"
+        fail_msg: UFW is not active on {{ inventory_hostname }}
+        success_msg: UFW is active on {{ inventory_hostname }}
       when: ufw_status is succeeded
 
     - name: Check SSH hardening settings
       shell: |
+        set -o pipefail
         grep -E "^(PermitRootLogin no|PasswordAuthentication no)" /etc/ssh/sshd_config | wc -l
+      args:
+        executable: /bin/bash
       register: ssh_hardening
       changed_when: false
 
@@ -46,22 +49,23 @@
       assert:
         that:
           - ssh_hardening.stdout | int >= 2
-        fail_msg: "SSH not properly hardened on {{ inventory_hostname }}"
-        success_msg: "SSH hardened on {{ inventory_hostname }}"
+        fail_msg: SSH not properly hardened on {{ inventory_hostname }}
+        success_msg: SSH hardened on {{ inventory_hostname }}
 
     - name: Check fail2ban status
-      command: systemctl is-active fail2ban
+      ansible.builtin.systemd_service:
+        name: fail2ban
       register: fail2ban_status
-      changed_when: false
+      check_mode: true
       failed_when: false
 
     - name: Verify fail2ban is running
       assert:
         that:
-          - fail2ban_status.stdout == "active"
-        fail_msg: "fail2ban not running on {{ inventory_hostname }}"
-        success_msg: "fail2ban running on {{ inventory_hostname }}"
-      when: fail2ban_status is succeeded
+          - fail2ban_status.status.ActiveState == "active"
+        fail_msg: fail2ban not running on {{ inventory_hostname }}
+        success_msg: fail2ban running on {{ inventory_hostname }}
+      when: fail2ban_status.status is defined
 
     - name: Check SSH jail is active
       command: fail2ban-client status sshd
@@ -73,24 +77,25 @@
       assert:
         that:
           - "'active' in ssh_jail.stdout.lower()"
-        fail_msg: "SSH jail not active on {{ inventory_hostname }}"
-        success_msg: "SSH jail active on {{ inventory_hostname }}"
+        fail_msg: SSH jail not active on {{ inventory_hostname }}
+        success_msg: SSH jail active on {{ inventory_hostname }}
       when: ssh_jail is succeeded
 
     - name: Check unattended-upgrades service
-      command: systemctl is-enabled unattended-upgrades
+      ansible.builtin.systemd_service:
+        name: unattended-upgrades
       register: unattended_upgrades
-      changed_when: false
+      check_mode: true
       failed_when: false
 
     - name: Generate node security report
       set_fact:
         security_status:
           ufw: "{{ 'PASS' if 'Status: active' in ufw_status.stdout else 'FAIL' }}"
-          ssh_hardening: "{{ 'PASS' if ssh_hardening.stdout|int >= 2 else 'FAIL' }}"
-          fail2ban: "{{ 'PASS' if fail2ban_status.stdout == 'active' else 'FAIL' }}"
+          ssh_hardening: "{{ 'PASS' if ssh_hardening.stdout | int >= 2 else 'FAIL' }}"
+          fail2ban: "{{ 'PASS' if (fail2ban_status.status is defined and fail2ban_status.status.ActiveState == 'active') else 'FAIL' }}"
           ssh_jail: "{{ 'PASS' if 'active' in ssh_jail.stdout.lower() else 'FAIL' }}"
-          auto_updates: "{{ 'PASS' if unattended_upgrades.stdout == 'enabled' else 'WARN' }}"
+          auto_updates: "{{ 'PASS' if (unattended_upgrades.status is defined and unattended_upgrades.status.UnitFileState == 'enabled') else 'WARN' }}"
 
     - name: Display node security status
       debug:

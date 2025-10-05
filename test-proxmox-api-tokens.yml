@@ -142,7 +142,7 @@
             node: "{{ proxmox_config[proxmox_nodes[0]].node }}"
             state: absent
             force: true
-          failed_when: false  # Cleanup should not fail the test
+          failed_when: false # Cleanup should not fail the test
 
     - name: Generate API token test summary
       ansible.builtin.debug:

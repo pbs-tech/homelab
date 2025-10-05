@@ -1,0 +1,8 @@
+---
+# Home Assistant default variables
+homeassistant_version: "latest"
+homeassistant_port: 8123
+homeassistant_config_dir: /var/lib/homeassistant/config
+homeassistant_data_dir: /var/lib/homeassistant
+homeassistant_user: homeassistant
+homeassistant_group: homeassistant

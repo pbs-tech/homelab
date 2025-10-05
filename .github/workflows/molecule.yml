@@ -3,11 +3,11 @@ name: Molecule
 
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches: [main, develop]
   pull_request:
-    branches: [ "main" ]
+    branches: [main]
   schedule:
-    - cron: '0 2 * * 0'  # Weekly on Sunday at 2 AM
+    - cron: 0 2 * * 0  # Weekly on Sunday at 2 AM
   workflow_dispatch:  # Allow manual triggering
 
 concurrency:
@@ -181,10 +181,16 @@ jobs:
           echo "Full-Stack Test: $fullstack_result"
           echo "Production Tests: $production_result"
 
-          if [[ "$molecule_result" == "failure" || "$fullstack_result" == "failure" || "$production_result" == "failure" ]]; then
+          # Check for failures
+          if [[ "$molecule_result" == "failure" || \
+                "$fullstack_result" == "failure" || \
+                "$production_result" == "failure" ]]; then
             echo "❌ Some tests failed"
             exit 1
-          elif [[ "$molecule_result" == "success" && "$fullstack_result" == "success" && "$production_result" == "success" ]]; then
+          # Check for all success
+          elif [[ "$molecule_result" == "success" && \
+                  "$fullstack_result" == "success" && \
+                  "$production_result" == "success" ]]; then
             echo "✅ All tests passed"
           else
             echo "⚠️ Tests completed with mixed results"

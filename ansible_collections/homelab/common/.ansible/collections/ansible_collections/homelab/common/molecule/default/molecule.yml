@@ -11,14 +11,14 @@ platforms:
   - name: ubuntu-common
     image: geerlingguy/docker-ubuntu2204-ansible:latest
     pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    command: /lib/systemd/systemd
-    capabilities:
-      - SYS_ADMIN
-    groups:
-      - common_test
+      privileged: true
+      volumes:
+        - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      command: /lib/systemd/systemd
+      capabilities:
+        - SYS_ADMIN
+      groups:
+        - common_test
 
 provisioner:
   name: ansible
@@ -33,17 +33,17 @@ provisioner:
         ansible_user: root
         ansible_connection: podman
         # Mock infrastructure configuration for testing
-        homelab_domain: "molecule.test"
+        homelab_domain: molecule.test
         homelab_network:
-          gateway_ip: "172.17.0.1"
-          dns_servers: ["8.8.8.8", "1.1.1.1"]
+          gateway_ip: 172.17.0.1
+          dns_servers: [8.8.8.8, 1.1.1.1]
         security_config:
           hardening_enabled: true
-          ssh_key_path: "/tmp/molecule_key"
+          ssh_key_path: /tmp/molecule_key
           log_retention_days: 1
         container_defaults:
-          template: "ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
-          disk_size: "4"
+          template: ubuntu-22.04-standard_22.04-1_amd64.tar.zst
+          disk_size: 4
           cores: 1
           memory: 512
           swap: 0

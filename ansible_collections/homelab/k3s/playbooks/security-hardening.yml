@@ -18,7 +18,7 @@
 
     - name: Check current security services status
       systemd:
-        name: {{ item }}
+        name: "{{ item }}"
       register: current_security_status
       failed_when: false
       loop:
@@ -30,16 +30,22 @@
       debug:
         msg: |
           Current Security Status:
-          - UFW: {{ 'Active' if current_security_status.results[0].status is defined and current_security_status.results[0].status.ActiveState == 'active' else 'Inactive' }}
-          - Fail2ban: {{ 'Active' if current_security_status.results[1].status is defined and current_security_status.results[1].status.ActiveState == 'active' else 'Inactive' }}
-          - Avahi: {{ 'Active' if current_security_status.results[2].status is defined and current_security_status.results[2].status.ActiveState == 'active' else 'Inactive' }}
+          - UFW: >-
+            {{ 'Active' if current_security_status.results[0].status is defined and
+            current_security_status.results[0].status.ActiveState == 'active' else 'Inactive' }}
+          - Fail2ban: >-
+            {{ 'Active' if current_security_status.results[1].status is defined and
+            current_security_status.results[1].status.ActiveState == 'active' else 'Inactive' }}
+          - Avahi: >-
+            {{ 'Active' if current_security_status.results[2].status is defined and
+            current_security_status.results[2].status.ActiveState == 'active' else 'Inactive' }}
 
 - name: Apply comprehensive security hardening
   hosts: k3s_cluster
   gather_facts: true
   become: true
   roles:
-    - role: security_hardening
+    - role: homelab.k3s.security_hardening
   tags: [hardening]
 
 - name: Configure K3s-specific security settings
@@ -70,7 +76,7 @@
             - group: apps
               resources: ["*"]
         dest: /etc/rancher/k3s/audit-policy.yaml
-        mode: 0600
+        mode: "0600"
         owner: root
         group: root
       when: not audit_policy_check.stat.exists
@@ -78,18 +84,19 @@
     - name: Configure K3s server systemd security
       lineinfile:
         path: /etc/systemd/system/k3s.service
-        regexp: ^ExecStart=
+        regexp: "^ExecStart="
+        # yamllint disable-line rule:line-length
         line: ExecStart=/usr/local/bin/k3s server --audit-log-path=/var/lib/rancher/k3s/server/logs/audit.log --audit-policy-file=/etc/rancher/k3s/audit-policy.yaml
-        backup: yes
+        backup: true
       notify: restart k3s
       when: ansible_facts.services['k3s.service'] is defined
 
   handlers:
-    - name: restart k3s
+    - name: Restart k3s
       systemd:
         name: k3s
         state: restarted
-        daemon_reload: yes
+        daemon_reload: true
 
 - name: Post-hardening verification and testing
   hosts: k3s_cluster
@@ -102,7 +109,7 @@
 
     - name: Verify all security services are running
       systemd:
-        name: {{ item }}
+        name: "{{ item }}"
       register: security_verification
       loop:
         - ufw
@@ -117,7 +124,7 @@
       changed_when: false
 
     - name: Test .local domain resolution
-      command: avahi-resolve -n {{ inventory_hostname }}.local
+      command: "avahi-resolve -n {{ inventory_hostname }}.local"
       register: local_domain_test
       failed_when: false
       changed_when: false
@@ -167,7 +174,7 @@
           By: {{ ansible_user }}
           Pi detected: {{ raspberry_pi | default(false) }}
         dest: /var/log/security-hardening-completed
-        mode: 0644
+        mode: "0644"
         owner: root
         group: root
 
@@ -177,7 +184,7 @@
   tasks:
     - name: Display next steps
       debug:
-        msg: |
+        msg: |2
 
           ========================================
           SECURITY HARDENING COMPLETED

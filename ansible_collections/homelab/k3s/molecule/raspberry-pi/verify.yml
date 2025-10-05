@@ -45,6 +45,8 @@
 
     - name: Deploy test workload
       shell: |
+        # yamllint disable-line rule:line-length
+        # yamllint disable-line rule:line-length
         k3s kubectl create namespace molecule-test-{{ molecule_test_id | default(ansible_date_time.epoch) }} --dry-run=client -o yaml | k3s kubectl apply -f -
         k3s kubectl run test-pod-{{ molecule_test_id | default(ansible_date_time.epoch) }} \
           --namespace=molecule-test-{{ molecule_test_id | default(ansible_date_time.epoch) }} \
@@ -54,10 +56,12 @@
       register: test_deployment
 
     - name: Wait for test pod to be ready
+      # yamllint disable-line rule:line-length
       shell: k3s kubectl wait --for=condition=Ready pod/test-pod-{{ molecule_test_id | default(ansible_date_time.epoch) }} --namespace=molecule-test-{{ molecule_test_id | default(ansible_date_time.epoch) }} --timeout=120s
       register: pod_ready
 
     - name: Verify pod is running
+      # yamllint disable-line rule:line-length
       shell: k3s kubectl get pod test-pod-{{ molecule_test_id | default(ansible_date_time.epoch) }} --namespace=molecule-test-{{ molecule_test_id | default(ansible_date_time.epoch) }} -o jsonpath='{.status.phase}'
       register: pod_status
 
@@ -65,7 +69,7 @@
       assert:
         that:
           - pod_status.stdout == "Running"
-        fail_msg: Test pod is not running: {{ pod_status.stdout }}
+            fail_msg: Test pod is not running: {{ pod_status.stdout }}
 
     - name: Test network connectivity between nodes
       shell: k3s kubectl get nodes -o jsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}'
@@ -73,7 +77,7 @@
 
     - name: Ping test between cluster nodes
       shell: ping -c 3 {{ item }}
-      loop: {{ node_ips.stdout.split() }}
+      loop: {{ node_ips.stdout.split(') }}"
       register: ping_results
 
     - name: Verify network connectivity

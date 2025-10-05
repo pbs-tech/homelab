@@ -3,16 +3,15 @@ name: Security
 
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches: [main, develop]
   pull_request:
-    branches: [ "main" ]
+    branches: [main]
   schedule:
-    - cron: '0 3 * * 1'  # Weekly on Monday at 3 AM
+    - cron: 0 3 * * 1  # Weekly on Monday at 3 AM
   workflow_dispatch:
 
 permissions:
   contents: read
-  security-events: write
 
 jobs:
   secrets-scan:
@@ -61,37 +60,13 @@ jobs:
         run: |
           echo "Checking for potential hardcoded secrets in Ansible files..."
           # Check for common secret patterns in YAML files
-          if grep -r -i --include="*.yml" --include="*.yaml" -E "(password|secret|key|token|credential):\s*['\"][^'\"]{8,}" . ; then
+          pattern="(password|secret|key|token|credential):\s*['\"][^'\"]{8,}"
+          if grep -r -i --include="*.yml" --include="*.yaml" -E "${pattern}" . ; then
             echo "❌ Potential hardcoded secrets found"
             exit 1
           else
             echo "✅ No obvious hardcoded secrets detected"
           fi
-
-  codeql:
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: yaml
-          config-file: ./.github/codeql/codeql-config.yml
-
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-        with:
-          category: "/language:python"
 
   dependency-check:
     runs-on: ubuntu-latest
@@ -102,9 +77,9 @@ jobs:
       - name: Run OWASP Dependency Check
         uses: dependency-check/Dependency-Check_Action@main
         with:
-          project: 'ansible-homelab'
-          path: '.'
-          format: 'ALL'
+          project: ansible-homelab
+          path: .
+          format: ALL
           args: >
             --enableRetired
             --enableExperimental

@@ -21,7 +21,7 @@
 - name: Configure K3s-specific jails
   ansible.builtin.blockinfile:
     path: /etc/fail2ban/jail.local
-    marker: "# {mark} ANSIBLE MANAGED K3S JAILS"
+    marker: # {mark} ANSIBLE MANAGED K3S JAILS
     block: |
       [k3s-api]
       enabled = {{ 'true' if inventory_hostname in groups['server'] else 'false' }}

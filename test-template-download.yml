@@ -1,10 +1,9 @@
 ---
-
 # Test playbook for LXC template download functionality
 
 - name: Test LXC template download
   hosts: proxmox_hosts
-  become: yes
+  become: true
   vars:
 
   # Override with just one template for testing

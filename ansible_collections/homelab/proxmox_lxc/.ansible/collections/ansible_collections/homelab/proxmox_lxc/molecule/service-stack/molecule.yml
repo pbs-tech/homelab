@@ -1,0 +1,96 @@
+---
+dependency:
+  name: galaxy
+  options:
+    requirements-file: ../../requirements.yml
+    requirements-file: ../../../common/requirements.yml
+
+driver:
+  name: podman
+
+platforms:
+  # Monitoring Stack Testing
+  - name: monitoring-stack
+    image: geerlingguy/docker-ubuntu2204-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    # cgroupns_mode not needed for podman
+    command: /lib/systemd/systemd
+    capabilities:
+      - SYS_ADMIN
+    published_ports:
+      - "9090:9090"  # Prometheus
+      - "3000:3000"  # Grafana
+      - "3100:3100"  # Loki
+    groups:
+      - monitoring
+
+  # Networking Stack Testing
+  - name: networking-stack
+    image: geerlingguy/docker-ubuntu2204-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    # cgroupns_mode not needed for podman
+    command: /lib/systemd/systemd
+    capabilities:
+      - SYS_ADMIN
+    published_ports:
+      - "8080:8080"  # Traefik
+      - "53:53/udp"  # DNS
+    groups:
+      - networking
+
+provisioner:
+  name: ansible
+  config_options:
+    defaults:
+      callbacks_enabled: profile_tasks,timer,yaml
+      stdout_callback: yaml
+      host_key_checking: false
+  inventory:
+    host_vars:
+      monitoring-stack:
+        ansible_user: root
+        ansible_connection: podman
+        ansible_default_ipv4:
+          address: 172.17.0.2
+        # Service-specific configs
+        prometheus_storage_retention: 2h
+        loki_retention_period: 6h
+        grafana_admin_password: molecule123
+
+      networking-stack:
+        ansible_user: root
+        ansible_connection: podman
+        ansible_default_ipv4:
+          address: 172.17.0.3
+        # Networking configs
+        traefik_version: 3.0.4
+        traefik_dashboard_enabled: true
+    group_vars:
+      all:
+        homelab_domain: molecule.test
+        ssl_email: test@molecule.test
+        container_ssh_key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC... molecule-key
+
+verifier:
+  name: ansible
+
+scenario:
+  test_sequence:
+    - dependency
+    - lint
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    - idempotence
+    - verify
+    - cleanup
+    - destroy

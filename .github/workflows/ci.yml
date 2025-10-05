@@ -61,7 +61,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
+          cache: pip
 
       - name: Install yamllint
         run: pip install yamllint
@@ -80,13 +80,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
+          cache: pip
 
       - name: Cache Ansible collections
         uses: actions/cache@v4
         with:
           path: ~/.ansible/collections
-          key: ansible-collections-${{ hashFiles('**/requirements.yml') }}
+          key: ansible-collections-${{ hashFiles('**/requirements.yml'') }}"
           restore-keys: ansible-collections-
 
       - name: Install Ansible and ansible-lint
@@ -126,7 +126,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
+          cache: pip
 
       - name: Install pymarkdownlnt
         run: pip install pymarkdownlnt
@@ -166,7 +166,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
+          cache: pip
 
       - name: Install tools
         run: pip install ansible-core${{ env.ANSIBLE_CORE_VERSION }} galaxy-importer

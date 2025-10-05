@@ -1,13 +1,14 @@
 ---
 - name: Pre-deployment security checks for K3s
   hosts: localhost
-  gather_facts: no
+  gather_facts: false
   tasks:
     - name: Check for security bypass flag
       stat:
         path: /tmp/bypass_security_checks
       register: bypass_flag
       delegate_to: localhost
+      when: bypass_flag.stat.exists
 
     - name: Display security bypass warning for K3s
       debug:
@@ -18,101 +19,101 @@
       when: bypass_flag.stat.exists
 
     - name: Run K3s security checks unless bypassed
-      block:
-      - name: Check if bastion host is accessible
-        wait_for:
-        host: 192.168.0.110
-        port: 22
-        timeout: 10
-      delegate_to: localhost
-      failed_when: false
-      register: bastion_check
-
-      - name: Check if DNS security stack is deployed
-        wait_for:
-        host: 192.168.0.202
-        port: 53
-        timeout: 10
-      delegate_to: localhost
-      failed_when: false
-      register: unbound_check
-
-      - name: Check if AdGuard is deployed
-        wait_for:
-        host: 192.168.0.204
-        port: 80
-        timeout: 10
-      delegate_to: localhost
-      failed_when: false
-      register: adguard_check
-
-      - name: Check if WireGuard is deployed
-        wait_for:
-        host: 192.168.0.203
-        port: 51820
-        timeout: 10
-      delegate_to: localhost
-      failed_when: false
-      register: wireguard_check
-
-      - name: Fail if security prerequisites are not met
-        fail:
-        msg: |
-          SECURITY PREREQUISITE FAILURE:
-
-          Before deploying K3s cluster, you must first deploy the security infrastructure:
-
-          Phase 1: Create bastion host
-            ansible-playbook security-deploy.yml --tags "phase1,bastion"
-
-          Phase 2: Deploy security services (run FROM bastion: ssh pbs@192.168.0.110)
-            ansible-playbook phase2-security.yml
-
-          Current status:
-          - Bastion (192.168.0.110:22): {{ 'OK' if bastion_check.state is defined and bastion_check.state == 'started' else 'FAILED' }}
-          - Unbound DNS (192.168.0.202:53): {{ 'OK' if unbound_check.state is defined and unbound_check.state == 'started' else 'FAILED' }}
-          - AdGuard (192.168.0.204:80): {{ 'OK' if adguard_check.state is defined and adguard_check.state == 'started' else 'FAILED' }}
-          - WireGuard (192.168.0.203:51820): {{ 'OK' if wireguard_check.state is defined and wireguard_check.state == 'started' else 'FAILED' }}
-        when: >
-          bastion_check.state is not defined or bastion_check.state != 'started' or
-          unbound_check.state is not defined or unbound_check.state != 'started' or
-          adguard_check.state is not defined or adguard_check.state != 'started' or
-          wireguard_check.state is not defined or wireguard_check.state != 'started'
       when: not bypass_flag.stat.exists
-        bastion_check.state is not defined or bastion_check.state != 'started' or
-        unbound_check.state is not defined or unbound_check.state != 'started' or
-        adguard_check.state is not defined or adguard_check.state != 'started' or
-        wireguard_check.state is not defined or wireguard_check.state != 'started'
+      block:
+        - name: Check if bastion host is accessible
+          wait_for:
+            host: 192.168.0.110
+            port: 22
+            timeout: 10
+          delegate_to: localhost
+          failed_when: false
+          register: bastion_check
+
+        - name: Check if DNS security stack is deployed
+          wait_for:
+            host: 192.168.0.202
+            port: 53
+            timeout: 10
+          delegate_to: localhost
+          failed_when: false
+          register: unbound_check
+
+        - name: Check if AdGuard is deployed
+          wait_for:
+            host: 192.168.0.204
+            port: 80
+            timeout: 10
+          delegate_to: localhost
+          failed_when: false
+          register: adguard_check
+
+        - name: Check if WireGuard is deployed
+          wait_for:
+            host: 192.168.0.203
+            port: 51820
+            timeout: 10
+          delegate_to: localhost
+          failed_when: false
+          register: wireguard_check
+
+        - name: Fail if security prerequisites are not met
+          fail:
+            msg: |
+              SECURITY PREREQUISITE FAILURE:
+
+              Before deploying K3s cluster, you must first deploy the security infrastructure:
+
+              Phase 1: Create bastion host
+                ansible-playbook security-deploy.yml --tags "phase1,bastion"
+
+              Phase 2: Deploy security services (run FROM bastion: ssh pbs@192.168.0.110)
+                ansible-playbook phase2-security.yml
+
+              Current status:
+              - Bastion (192.168.0.110:22): >-
+                {{ 'OK' if bastion_check.state is defined and bastion_check.state == 'started' else 'FAILED' }}
+              - Unbound DNS (192.168.0.202:53): >-
+                {{ 'OK' if unbound_check.state is defined and unbound_check.state == 'started' else 'FAILED' }}
+              - AdGuard (192.168.0.204:80): >-
+                {{ 'OK' if adguard_check.state is defined and adguard_check.state == 'started' else 'FAILED' }}
+              - WireGuard (192.168.0.203:51820): >-
+                {{ 'OK' if wireguard_check.state is defined and wireguard_check.state == 'started' else 'FAILED' }}
+          when: >
+            bastion_check.state is not defined or bastion_check.state != 'started' or
+            unbound_check.state is not defined or unbound_check.state != 'started' or
+            adguard_check.state is not defined or adguard_check.state != 'started' or
+            wireguard_check.state is not defined or wireguard_check.state != 'started'
 
 - name: Apply security hardening to K3s nodes
   hosts: k3s_cluster
   gather_facts: true
   become: true
   roles:
-    - role: security_hardening
+    - role: homelab.k3s.security_hardening
+      when: security_hardening_enabled | default(true)
   tags: [security, hardening]
-  when: security_hardening_enabled | default(true)
 
 - name: Cluster prep
   hosts: k3s_cluster
   gather_facts: true
   become: true
   roles:
-    - role: prereq
-    - role: airgap
-    - role: raspberrypi
+    - role: homelab.k3s.prereq
+    - role: homelab.k3s.airgap
+    - role: homelab.k3s.raspberrypi
 
 - name: Setup K3S server
   hosts: server
   become: true
   roles:
-    - role: k3s_server
+    - role: homelab.k3s.k3s_server
 
 - name: Setup K3S agent
   hosts: agent
   become: true
   roles:
-    - role: k3s_agent
+    - role: homelab.k3s.k3s_agent
 
 - name: Post-deployment security verification
   hosts: k3s_cluster
@@ -121,7 +122,7 @@
   tasks:
     - name: Verify security services are running
       systemd:
-        name: {{ item }}
+        name: "{{ item }}"
         state: started
       loop:
         - ufw
@@ -140,9 +141,13 @@
       debug:
         msg: |
           Security Status for {{ inventory_hostname }}:
-          - UFW Firewall: {{ 'Running' if security_services_check.results[0].state == 'started' else 'Failed' }}
-          - Fail2ban: {{ 'Running' if security_services_check.results[1].state == 'started' else 'Failed' }}
-          - Avahi (.local domains): {{ 'Running' if security_services_check.results[2].state == 'started' else 'Failed' }}
-          - Rsyslog: {{ 'Running' if security_services_check.results[3].state == 'started' else 'Failed' }}
+          - UFW Firewall: >-
+            {{ 'Running' if security_services_check.results[0].state == 'started' else 'Failed' }}
+          - Fail2ban: >-
+            {{ 'Running' if security_services_check.results[1].state == 'started' else 'Failed' }}
+          - Avahi (.local domains): >-
+            {{ 'Running' if security_services_check.results[2].state == 'started' else 'Failed' }}
+          - Rsyslog: >-
+            {{ 'Running' if security_services_check.results[3].state == 'started' else 'Failed' }}
           - .local domain resolution: {{ 'Working' if local_domain_check.rc == 0 else 'Failed' }}
   tags: [security, verify]

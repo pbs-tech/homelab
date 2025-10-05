@@ -36,9 +36,9 @@ common_users: []
 # SSH configuration
 ssh_config:
   port: 22
-  permit_root_login: no
-  password_authentication: no
-  pubkey_authentication: yes
+  permit_root_login: false
+  password_authentication: false
+  pubkey_authentication: true
   authorized_keys_file: /home/%u/.ssh/authorized_keys
 
 # Timezone configuration
@@ -47,7 +47,7 @@ timezone: "{{ homelab_timezone | default('UTC') }}"
 # Logging configuration
 rsyslog_config:
   max_message_size: 64k
-  preserve_fqdn: on
+  preserve_fqdn: true
   remote_logging: false
 
 # Security settings

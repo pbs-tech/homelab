@@ -25,4 +25,4 @@
 
 - name: Display Pi detection result
   debug:
-    msg: Raspberry Pi detected: {{ raspberry_pi | default(false) }}
+    msg: "Raspberry Pi detected: {{ raspberry_pi | default(false) }}"

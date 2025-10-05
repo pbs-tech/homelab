@@ -1,0 +1,64 @@
+global:
+  scrape_interval: {{ prometheus_scrape_interval }}
+  evaluation_interval: {{ prometheus_evaluation_interval }}
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - "{{ alertmanager_ip | default('192.168.0.206') }}:9093"
+
+rule_files:
+  - "/etc/prometheus/rules/*.yml"
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:{{ prometheus_port }}']
+
+  - job_name: 'k3s-nodes'
+    static_configs:
+      - targets:
+{% for node in k3s_nodes %}
+        - '{{ node.ip }}:9100'  # node-exporter
+{% endfor %}
+
+  - job_name: 'k3s-api-server'
+    kubernetes_sd_configs:
+      - role: endpoints
+        kubeconfig_file: /etc/prometheus/kubeconfig
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: kubernetes;https
+
+  - job_name: 'k3s-pods'
+    kubernetes_sd_configs:
+      - role: pod
+        kubeconfig_file: /etc/prometheus/kubeconfig
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+
+  - job_name: 'proxmox-pve'
+    static_configs:
+      - targets:
+        - "{{ pve_exporter_ip | default('192.168.0.207') }}:9221"
+
+  - job_name: 'homelab-services'
+    static_configs:
+      - targets:
+        - "{{ grafana_ip | default('192.168.0.201') }}:3000"
+        - "{{ adguard_ip | default('192.168.0.204') }}:80"
+        - "{{ traefik_ip | default('192.168.0.205') }}:8080"
+        - "{{ homeassistant_ip | default('192.168.0.208') }}:8123"

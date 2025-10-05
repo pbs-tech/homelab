@@ -1,13 +1,12 @@
 ---
-
 # Security-focused deployment orchestration
 
 # This playbook coordinates deployment phases for maximum security
 
 - name: Phase 1 - Create secured bastion host
   hosts: proxmox_hosts
-  gather_facts: yes
-  become: yes
+  gather_facts: true
+  become: true
   roles:
     - homelab.proxmox_lxc.bastion
   tags: [phase1, bastion]
@@ -20,9 +19,9 @@
 
 - name: Phase 2 - Deploy DNS security infrastructure
   hosts: lxc_containers
-  gather_facts: yes
-  become: yes
-  serial: 1  # Deploy one at a time for stability
+  gather_facts: true
+  become: true
+  serial: 1 # Deploy one at a time for stability
   roles:
     - role: homelab.proxmox_lxc.lxc_container
       when: inventory_hostname in groups['networking']
@@ -34,8 +33,8 @@
 
 - name: Phase 3 - Deploy VPN and reverse proxy
   hosts: lxc_containers
-  gather_facts: yes
-  become: yes
+  gather_facts: true
+  become: true
   roles:
     - role: homelab.proxmox_lxc.wireguard
       when: inventory_hostname == 'wireguard-lxc'

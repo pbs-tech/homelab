@@ -1,0 +1,26 @@
+# Example vault file - copy to vault.yml and encrypt with ansible-vault
+# ansible-vault encrypt vault.yml
+
+# Grafana Configuration
+vault_grafana_admin_password: "your_secure_grafana_password_here"
+
+# OpenWrt Configuration
+vault_openwrt_root_password_hash: "$2y$10$your_bcrypt_password_hash_here"
+
+# SSL Configuration
+vault_ssl_email: "your-email@domain.com"
+
+# Media Services API Keys
+vault_sonarr_api_key: "your_sonarr_api_key_here"
+vault_radarr_api_key: "your_radarr_api_key_here"
+vault_prowlarr_api_key: "your_prowlarr_api_key_here"
+
+# Database Passwords (if needed)
+# vault_postgres_password: "your_postgres_password"
+# vault_mysql_password: "your_mysql_password"
+
+# VPN Configuration (if using WireGuard with secrets)
+# vault_wireguard_psk: "your_wireguard_psk_here"
+
+# Additional service passwords as needed
+# vault_service_password: "your_service_password_here"

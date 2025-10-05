@@ -62,7 +62,7 @@
   template:
     src: k3s_security_monitor.sh.j2
     dest: /usr/local/bin/k3s_security_monitor.sh
-    mode: 0755
+    mode: "0755"
     owner: root
     group: root
 

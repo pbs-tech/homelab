@@ -4,14 +4,17 @@
     - name: Configure Pi boot config for security
       lineinfile:
         path: /boot/config.txt
-        regexp: {{ item.regexp }}
-        line: {{ item.line }}
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
         state: present
         backup: true
       loop:
-        - { regexp: "^gpu_mem=", line: "gpu_mem={{ pi_security_hardening.pi_system.gpu_split }}" }
-        - { regexp: "^camera_auto_detect=", line: "camera_auto_detect=0" }
-        - { regexp: "^display_auto_detect=", line: "display_auto_detect=0" }
+        - regexp: "^gpu_mem="
+          line: "gpu_mem={{ pi_security_hardening.pi_system.gpu_split }}"
+        - regexp: "^camera_auto_detect="
+          line: "camera_auto_detect=0"
+        - regexp: "^display_auto_detect="
+          line: "display_auto_detect=0"
       notify: reboot pi
       when: pi_security_hardening.pi_system.optimize_memory
 
@@ -28,7 +31,7 @@
           template:
             src: avahi-daemon.conf.j2
             dest: /etc/avahi/avahi-daemon.conf
-            mode: 0644
+            mode: "0644"
             owner: root
             group: root
           notify: restart avahi-daemon
@@ -36,8 +39,8 @@
         - name: Create .local hostname service file
           template:
             src: hostname.service.j2
-            dest: /etc/avahi/services/{{ inventory_hostname }}.service
-            mode: 0644
+            dest: "/etc/avahi/services/{{ inventory_hostname }}.service"
+            mode: "0644"
             owner: root
             group: root
           notify: restart avahi-daemon
@@ -50,7 +53,7 @@
 
     - name: Disable unnecessary Pi services (excluding avahi)
       systemd:
-        name: {{ item }}
+        name: "{{ item }}"
         enabled: false
         state: stopped
       loop:
@@ -65,23 +68,29 @@
       lineinfile:
         path: /boot/cmdline.txt
         regexp: cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory
-        line: {{ ansible_facts.cmdline | default('') }} cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory
+        line: >-
+          {{ ansible_facts.cmdline | default('') }}
+          cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory
         state: present
         backup: true
       notify: reboot pi
-      when: 'cgroup_enable=memory' not in ansible_facts.cmdline | default('')
+      when: "'cgroup_enable=memory' not in ansible_facts.cmdline | default('')"
 
     - name: Set Pi-specific sysctl values
       ansible.posix.sysctl:
-        name: {{ item.name }}
-        value: {{ item.value }}
+        name: "{{ item.name }}"
+        value: "{{ item.value }}"
         state: present
         reload: true
       loop:
-        - { name: "vm.swappiness", value: "10" } # Reduce swap usage
-        - { name: "vm.vfs_cache_pressure", value: "50" } # Optimize caching
-        - { name: "vm.dirty_background_ratio", value: "5" } # SD card friendly
-        - { name: "vm.dirty_ratio", value: "10" } # SD card friendly
+        - name: "vm.swappiness"
+          value: "10" # Reduce swap usage
+        - name: "vm.vfs_cache_pressure"
+          value: "50" # Optimize caching
+        - name: "vm.dirty_background_ratio"
+          value: "5" # SD card friendly
+        - name: "vm.dirty_ratio"
+          value: "10" # SD card friendly
 
     - name: Configure log2ram for SD card longevity
       block:
@@ -91,12 +100,14 @@
           register: log2ram_check
 
         - name: Install log2ram if not present
+          when: not log2ram_check.stat.exists
+
           block:
             - name: Download log2ram
               get_url:
                 url: https://github.com/azlux/log2ram/archive/master.tar.gz
                 dest: /tmp/log2ram.tar.gz
-                mode: 0644
+                mode: "0644"
 
             - name: Extract log2ram
               unarchive:
@@ -107,16 +118,16 @@
             - name: Install log2ram
               command: /tmp/log2ram-master/install.sh
               changed_when: true
-          when: not log2ram_check.stat.exists
-
     - name: Optimize tmpfs usage for Pi
       ansible.posix.mount:
-        path: {{ item.path }}
+        path: "{{ item.path }}"
         src: tmpfs
         fstype: tmpfs
-        opts: {{ item.opts }}
+        opts: "{{ item.opts }}"
         state: mounted
       loop:
-        - { path: "/tmp", opts: "defaults,noatime,nosuid,size=100M" }
-        - { path: "/var/tmp", opts: "defaults,noatime,nosuid,size=50M" }
+        - path: "/tmp"
+          opts: "defaults,noatime,nosuid,size=100M"
+        - path: "/var/tmp"
+          opts: "defaults,noatime,nosuid,size=50M"
       when: pi_security_hardening.pi_system.optimize_memory

@@ -1,0 +1,14 @@
+---
+- name: Reload systemd
+  systemd:
+    daemon_reload: true
+
+- name: Restart openwrt
+  systemd:
+    name: openwrt
+    state: restarted
+
+- name: Restart rsyslog
+  systemd:
+    name: rsyslog
+    state: restarted

@@ -1,3 +1,4 @@
+---
 namespace: homelab
 name: proxmox_lxc
 version: 1.0.0
@@ -10,7 +11,7 @@ description: >
   Includes Traefik reverse proxy, Prometheus monitoring, DNS security, and
   media management applications.
 license:
-    - MIT
+  - MIT
 tags:
   - proxmox
   - lxc

@@ -17,16 +17,16 @@ exclude_paths:
 # Use exclude_paths to control what gets linted
 
 skip_list:
-  - yaml[line-length]  # Handled by yamllint
-  - role-name[path]    # Allow collection-style role names
-  - galaxy[no-changelog]  # Collections may not have changelog
-  - fqcn[action-core]  # Allow core modules without FQCN in collections
-  - var-naming[no-role-prefix]  # Allow variables without role prefix in vars files
+  - yaml[line-length] # Handled by yamllint
+  - role-name[path] # Allow collection-style role names
+  - galaxy[no-changelog] # Collections may not have changelog
+  - fqcn[action-core] # Allow core modules without FQCN in collections
+  - var-naming[no-role-prefix] # Allow variables without role prefix in vars files
 
 warn_list:
-  - experimental  # Allow experimental rules as warnings
-  - yaml[octal-values]  # Warn about octal values
-  - risky-file-permissions  # Warn about risky file permissions
+  - experimental # Allow experimental rules as warnings
+  - yaml[octal-values] # Warn about octal values
+  - risky-file-permissions # Warn about risky file permissions
 
 use_default_rules: true
 

@@ -23,26 +23,28 @@
   gather_facts: false
   vars:
     pve_mac_containers:
-      - { vmid: 200, name: prometheus, ip: "192.168.0.200", port: 9090 }
-      - { vmid: 201, name: grafana, ip: "192.168.0.201", port: 3000 }
-      - { vmid: 202, name: unbound, ip: "192.168.0.202", port: 53 }
-      - { vmid: 203, name: wireguard, ip: "192.168.0.203", port: 51820 }
-      - { vmid: 204, name: adguard, ip: "192.168.0.204", port: 3000 }
-      - { vmid: 205, name: traefik, ip: "192.168.0.205", port: 8080 }
-      - { vmid: 206, name: alertmanager, ip: "192.168.0.206", port: 9093 }
-      - { vmid: 207, name: pve-exporter, ip: "192.168.0.207", port: 9221 }
-      - { vmid: 208, name: homeassistant, ip: "192.168.0.208", port: 8123 }
-      - { vmid: 209, name: openwrt, ip: "192.168.0.209", port: 80 }
-      - { vmid: 210, name: loki, ip: "192.168.0.210", port: 3100 }
+      - { vmid: 200, name: prometheus, ip: 192.168.0.200, port: 9090 }
+      - { vmid: 201, name: grafana, ip: 192.168.0.201, port: 3000 }
+      - { vmid: 202, name: unbound, ip: 192.168.0.202, port: 53 }
+      - { vmid: 203, name: wireguard, ip: 192.168.0.203, port: 51820 }
+      - { vmid: 204, name: adguard, ip: 192.168.0.204, port: 3000 }
+      - { vmid: 205, name: traefik, ip: 192.168.0.205, port: 8080 }
+      - { vmid: 206, name: alertmanager, ip: 192.168.0.206, port: 9093 }
+      - { vmid: 207, name: pve-exporter, ip: 192.168.0.207, port: 9221 }
+      - { vmid: 208, name: homeassistant, ip: 192.168.0.208, port: 8123 }
+      - { vmid: 209, name: openwrt, ip: 192.168.0.209, port: 80 }
+      - { vmid: 210, name: loki, ip: 192.168.0.210, port: 3100 }
     proxmox_host: "{{ proxmox_config.pve_mac.host }}"
     proxmox_user: "{{ proxmox_config.pve_mac.user }}"
   tasks:
     - name: Check LXC container status
       uri:
-        url: "https://{{ proxmox_host }}:8006/api2/json/nodes/{{ proxmox_config.pve_mac.node }}/lxc/{{ item.vmid }}/status/current"
+        # yamllint disable-line rule:line-length
+        url: https://{{ proxmox_host }}:8006/api2/json/nodes/{{ proxmox_config.pve_mac.node }}/lxc/{{ item.vmid }}/status/current
         method: GET
         headers:
-          Authorization: "PVEAPIToken={{ proxmox_config.pve_mac.api_token_id }}={{ proxmox_config.pve_mac.api_token_secret }}"
+          # yamllint disable-line rule:line-length
+          Authorization: PVEAPIToken={{ proxmox_config.pve_mac.api_token_id }}={{ proxmox_config.pve_mac.api_token_secret }}
         validate_certs: false
         timeout: 10
       loop: "{{ pve_mac_containers }}"
@@ -53,11 +55,11 @@
       assert:
         that:
           - item.json.data.status == "running"
-        fail_msg: "Container {{ item.item.name }} ({{ item.item.vmid }}) is not running"
-        success_msg: "Container {{ item.item.name }} is running"
+        fail_msg: Container {{ item.item.name }} ({{ item.item.vmid }}) is not running
+        success_msg: Container {{ item.item.name }} is running
       loop: "{{ container_status.results }}"
       when: item is succeeded
-      ignore_errors: true
+      failed_when: false  # Allow validation to continue if containers are not running
 
     - name: Check service ports are listening
       wait_for:
@@ -75,21 +77,23 @@
   gather_facts: false
   vars:
     pve_nas_containers:
-      - { vmid: 230, name: sonarr, ip: "192.168.0.230", port: 8989 }
-      - { vmid: 231, name: radarr, ip: "192.168.0.231", port: 7878 }
-      - { vmid: 232, name: bazarr, ip: "192.168.0.232", port: 6767 }
-      - { vmid: 233, name: prowlarr, ip: "192.168.0.233", port: 9696 }
-      - { vmid: 234, name: qbittorrent, ip: "192.168.0.234", port: 8080 }
-      - { vmid: 235, name: jellyfin, ip: "192.168.0.235", port: 8096 }
-      - { vmid: 240, name: pve-exporter-nas, ip: "192.168.0.240", port: 9221 }
+      - { vmid: 230, name: sonarr, ip: 192.168.0.230, port: 8989 }
+      - { vmid: 231, name: radarr, ip: 192.168.0.231, port: 7878 }
+      - { vmid: 232, name: bazarr, ip: 192.168.0.232, port: 6767 }
+      - { vmid: 233, name: prowlarr, ip: 192.168.0.233, port: 9696 }
+      - { vmid: 234, name: qbittorrent, ip: 192.168.0.234, port: 8080 }
+      - { vmid: 235, name: jellyfin, ip: 192.168.0.235, port: 8096 }
+      - { vmid: 240, name: pve-exporter-nas, ip: 192.168.0.240, port: 9221 }
     proxmox_host: "{{ proxmox_config.pve_nas.host }}"
   tasks:
     - name: Check NAS container status
       uri:
-        url: "https://{{ proxmox_host }}:8006/api2/json/nodes/{{ proxmox_config.pve_nas.node }}/lxc/{{ item.vmid }}/status/current"
+        # yamllint disable-line rule:line-length
+        url: https://{{ proxmox_host }}:8006/api2/json/nodes/{{ proxmox_config.pve_nas.node }}/lxc/{{ item.vmid }}/status/current
         method: GET
         headers:
-          Authorization: "PVEAPIToken={{ proxmox_config.pve_nas.api_token_id }}={{ proxmox_config.pve_nas.api_token_secret }}"
+          # yamllint disable-line rule:line-length
+          Authorization: PVEAPIToken={{ proxmox_config.pve_nas.api_token_id }}={{ proxmox_config.pve_nas.api_token_secret }}
         validate_certs: false
         timeout: 10
       loop: "{{ pve_nas_containers }}"
@@ -121,8 +125,8 @@
       assert:
         that:
           - k3s_service.status.ActiveState == "active"
-        fail_msg: "K3s service not running on {{ inventory_hostname }}"
-        success_msg: "K3s service running on {{ inventory_hostname }}"
+        fail_msg: K3s service not running on {{ inventory_hostname }}
+        success_msg: K3s service running on {{ inventory_hostname }}
 
 - name: Validate K3s cluster health
   hosts: server[0]
@@ -141,8 +145,8 @@
       assert:
         that:
           - (k3s_nodes.stdout | from_json).items | length >= 4
-        fail_msg: "Expected at least 4 K3s nodes"
-        success_msg: "K3s cluster has correct node count"
+        fail_msg: Expected at least 4 K3s nodes
+        success_msg: K3s cluster has correct node count
       when: k3s_nodes is succeeded
 
 - name: Infrastructure validation summary

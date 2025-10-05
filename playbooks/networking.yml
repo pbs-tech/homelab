@@ -4,7 +4,7 @@
 
 - name: Deploy DNS infrastructure
   hosts: networking
-  serial: 1  # Deploy DNS services one at a time to avoid conflicts
+  serial: 1 # Deploy DNS services one at a time to avoid conflicts
   become: true
   gather_facts: true
   pre_tasks:
@@ -47,7 +47,7 @@
   post_tasks:
     - name: Verify networking services
       uri:
-        url: http://{{ ansible_host }}:{{ service_port | default(80) }}
+        url: http://{{ ansible_host }}:{{ service_port | default(80) }}"
         method: GET
         timeout: 30
         status_code: [200, 301, 302, 404]

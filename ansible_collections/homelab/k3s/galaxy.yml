@@ -11,11 +11,11 @@ description: >
   Raspberry Pi nodes with integrated security hardening, monitoring, and
   Traefik ingress controller integration.
 license:
-    - Apache-2.0
+  - Apache-2.0
 tags:
   - k3s
   - kubernetes
-  - raspberry-pi
+  - raspberrypi
   - homelab
   - cluster
   - security

@@ -65,7 +65,7 @@
 
 - name: Setup K3s security monitoring cron job
   ansible.builtin.cron:
-    name: "K3s security monitoring"
+    name: K3s security monitoring
     minute: "*/30" # Less frequent than LXC containers
-    job: "/usr/local/bin/k3s_security_monitor.sh"
+    job: /usr/local/bin/k3s_security_monitor.sh
     user: root

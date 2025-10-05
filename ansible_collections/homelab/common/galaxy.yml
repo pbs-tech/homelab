@@ -31,11 +31,11 @@ documentation: https://github.com/your-org/homelab-ansible/tree/main/ansible_col
 homepage: https://github.com/your-org/homelab-ansible
 issues: https://github.com/your-org/homelab-ansible/issues
 build_ignore:
-  - '*.tar.gz'
+  - "*.tar.gz"
   - molecule/
   - tests/
-  - '**/__pycache__'
-  - '**/*.pyc'
+  - "**/__pycache__"
+  - "**/*.pyc"
   - .ansible/
   - .cache/
   - .pytest_cache/

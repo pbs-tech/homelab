@@ -97,4 +97,7 @@
           Prometheus: {{ 'PASS' if prometheus_health is succeeded else 'FAIL' }}
           K3s API: {{ 'PASS' if k3s_health is succeeded else 'FAIL' }}
 
+          # yamllint disable-line rule:line-length
+          # yamllint disable-line rule:line-length
+          # yamllint disable-line rule:line-length
           Status: {{ 'HEALTHY' if (traefik_health is succeeded and prometheus_health is succeeded and k3s_health is succeeded) else 'DEGRADED' }}

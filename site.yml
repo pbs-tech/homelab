@@ -1,5 +1,4 @@
 ---
-
 # Main orchestration playbook for homelab infrastructure
 
 # This provides backwards compatibility while recommending the new structure

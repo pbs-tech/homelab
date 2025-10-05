@@ -34,21 +34,13 @@
           Run with: ansible-playbook test-security-hardening.yml
 
     - name: Syntax check - K3s security role
-      include_role:
+      ansible.builtin.include_role:
         name: homelab.k3s.security_hardening
-      check_mode: yes
-      vars:
-        ansible_connection: local
-      delegate_to: localhost
       tags: [syntax-check]
 
     - name: Syntax check - Proxmox LXC security role
-      include_role:
+      ansible.builtin.include_role:
         name: homelab.proxmox_lxc.security_hardening
-      check_mode: yes
-      delegate_to: localhost
-      vars:
-        ansible_connection: local
       tags: [syntax-check]
 
 - name: Validate K3s Pi security configurations
@@ -70,7 +62,9 @@
 
         - name: Test required ports are allowed
           shell: |
-            ufw status | grep -E "(22|6443|10250|8472|51820)" || echo "Missing required ports"
+            set -o pipefail && ufw status | grep -E "(22|6443|10250|8472|51820)" || echo "Missing required ports"
+          args:
+            executable: /bin/bash
           register: port_check
           changed_when: false
 
@@ -83,7 +77,9 @@
 
         - name: Check SSH security settings
           shell: |
-            grep -E "(PermitRootLogin no|PasswordAuthentication no|Port 22)" /etc/ssh/sshd_config | wc -l
+            set -o pipefail && grep -E "(PermitRootLogin no|PasswordAuthentication no|Port 22)" /etc/ssh/sshd_config | wc -l
+          args:
+            executable: /bin/bash
           register: ssh_security_check
           changed_when: false
 

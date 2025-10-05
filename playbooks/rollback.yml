@@ -21,7 +21,7 @@
       file:
         path: "{{ rollback_log_dir }}"
         state: directory
-        mode: '0755'
+        mode: "0755"
         recurse: true
 
     - name: Generate rollback session ID
@@ -37,7 +37,7 @@
           [{{ ansible_date_time.iso8601 }}] Rollback initiated - Target: {{ rollback_target }},
           Session: {{ rollback_session_id }}
         create: true
-        mode: '0644'
+        mode: "0644"
 
     - name: Pre-rollback system state capture
       shell: |
@@ -58,7 +58,7 @@
         echo "Network interfaces:" >> "{{ rollback_log_file }}"
         ip addr show >> "{{ rollback_log_file }}" || true
         echo "" >> "{{ rollback_log_file }}"
-      changed_when: false  # This is just logging, doesn't change system state
+      changed_when: false # This is just logging, doesn't change system state
 
 - name: Execute rollback procedures
   hosts: all
@@ -82,7 +82,7 @@
         name: "{{ item }}"
         state: stopped
       loop: "{{ services_to_stop | default([]) }}"
-      failed_when: false  # Allow services that are already stopped
+      failed_when: false # Allow services that are already stopped
       when: inventory_hostname in groups[item] or item in group_names
 
     - name: Create service backup before rollback
@@ -104,7 +104,7 @@
         fi
 
         echo "Configuration backup completed for {{ inventory_hostname }}"
-      changed_when: true  # Always creates backups
+      changed_when: true # Always creates backups
       when: rollback_target in ['phase3', 'full'] or 'monitoring' in services_to_rollback
 
     - name: Restore from backup
@@ -135,6 +135,7 @@
 
         - name: Verify service configurations
           shell: |
+            set -o pipefail
             # Validate configuration files
             case "{{ item }}" in
               "prometheus")
@@ -150,10 +151,12 @@
                 echo "No specific validation for {{ item }}"
                 ;;
             esac
+          args:
+            executable: /bin/bash
           loop: "{{ services_to_rollback }}"
           register: config_validation
-          changed_when: false  # Configuration validation doesn't change system state
-          failed_when: false  # Validation failures should not stop rollback
+          changed_when: false # Configuration validation doesn't change system state
+          failed_when: false # Validation failures should not stop rollback
 
     - name: Restart services after rollback
       systemd:
@@ -168,7 +171,7 @@
         url: "{{ item.url }}"
         method: GET
         return_content: true
-        status_code: [200, 401]  # Some services return 401 for auth
+        status_code: [200, 401] # Some services return 401 for auth
       register: health_check
       retries: 5
       delay: 10
@@ -209,6 +212,7 @@
 
         echo "" >> "{{ rollback_log_file }}"
         echo "=== Rollback Session Complete ===" >> "{{ rollback_log_file }}"
+      changed_when: false  # Post-rollback tests are read-only validation
       failed_when: false  # Tests should not fail the rollback process
 
     - name: Display rollback summary
@@ -233,7 +237,7 @@
       template:
         src: rollback_report.html.j2
         dest: "{{ rollback_log_dir }}/{{ rollback_session_id }}-report.html"
-        mode: '0644'
+        mode: "0644"
       vars:
         rollback_data: "{{ rollback_summary }}"
 
@@ -246,4 +250,4 @@
           text: Rollback {{ rollback_summary.status }} - {{ rollback_summary.session_id }}
           details: "{{ rollback_summary }}"
       when: notification_webhook_url is defined
-      failed_when: false  # Notification failure should not fail rollback
+      failed_when: false # Notification failure should not fail rollback

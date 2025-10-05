@@ -1,0 +1,117 @@
+---
+# Proxmox API validation and connectivity testing tasks
+# These tasks validate API token configuration and test connectivity
+
+- name: Validate Proxmox API token configuration
+  ansible.builtin.assert:
+    that:
+      - proxmox_host is defined and proxmox_host != ""
+      - proxmox_node is defined and proxmox_node != ""
+      - (proxmox_api_token_id is defined and proxmox_api_token_id != "" and
+         proxmox_api_token_secret is defined and proxmox_api_token_secret != "") or
+        (proxmox_user is defined and proxmox_user != "" and
+         proxmox_password is defined and proxmox_password != "")
+    fail_msg: |
+      Proxmox API authentication not properly configured.
+      Either API token (api_token_id + api_token_secret) or
+      username/password (user + password) must be provided.
+      Current configuration:
+        - proxmox_host: {{ proxmox_host | default('undefined'') }}"
+        - proxmox_node: {{ proxmox_node | default('undefined'') }}"
+        - proxmox_api_token_id: >-
+          {{ 'defined' if proxmox_api_token_id is defined and
+          proxmox_api_token_id != '' else 'undefined' }}
+        - proxmox_api_token_secret: >-
+          {{ 'defined' if proxmox_api_token_secret is defined and
+          proxmox_api_token_secret != '' else 'undefined' }}
+        - proxmox_user: {{ proxmox_user | default('undefined'') }}"
+        - proxmox_password: >-
+          {{ 'defined' if proxmox_password is defined and
+          proxmox_password != '' else 'undefined' }}
+    success_msg: Proxmox API authentication configuration validated successfully
+  tags:
+    - proxmox
+    - validation
+    - api
+
+- name: Test Proxmox API connectivity with token authentication
+  community.general.proxmox:
+    api_host: "{{ proxmox_host }}"
+    api_token_id: "{{ proxmox_api_token_id }}"
+    api_token_secret: "{{ proxmox_api_token_secret }}"
+    validate_certs: "{{ proxmox_api.validate_certs | default(true) }}"
+    timeout: "{{ proxmox_api.connection_timeout | default(30) }}"
+    vmid: 999999  # Use a high VMID that likely doesn't exist
+    node: "{{ proxmox_node }}"
+    state: query
+  register: proxmox_token_test
+  failed_when: false
+  changed_when: false
+  when:
+    - proxmox_api_token_id is defined and proxmox_api_token_id != ""
+    - proxmox_api_token_secret is defined and proxmox_api_token_secret != ""
+  tags:
+    - proxmox
+    - validation
+    - api
+    - connectivity
+
+- name: Test Proxmox API connectivity with username/password authentication
+  community.general.proxmox:
+    api_host: "{{ proxmox_host }}"
+    api_user: "{{ proxmox_user }}"
+    api_password: "{{ proxmox_password }}"
+    validate_certs: "{{ proxmox_api.validate_certs | default(true) }}"
+    timeout: "{{ proxmox_api.connection_timeout | default(30) }}"
+    vmid: 999999  # Use a high VMID that likely doesn't exist
+    node: "{{ proxmox_node }}"
+    state: query
+  register: proxmox_password_test
+  failed_when: false
+  changed_when: false
+  when:
+    - proxmox_api_token_id is not defined or proxmox_api_token_id == ""
+    - proxmox_user is defined and proxmox_user != ""
+    - proxmox_password is defined and proxmox_password != ""
+  tags:
+    - proxmox
+    - validation
+    - api
+    - connectivity
+
+- name: Validate API connectivity test results
+  ansible.builtin.assert:
+    that:
+      - (proxmox_token_test.skipped is defined) or
+        (proxmox_token_test.failed is defined and not proxmox_token_test.failed) or
+        (proxmox_password_test.failed is defined and not proxmox_password_test.failed)
+    fail_msg: |
+      Proxmox API connectivity test failed.
+      Token test result: {{ proxmox_token_test | default('skipped'') }}"
+      Password test result: {{ proxmox_password_test | default('skipped'') }}"
+      Please verify your API credentials and network connectivity.
+    success_msg: Proxmox API connectivity validated successfully
+  when:
+    - proxmox_token_test is defined or proxmox_password_test is defined
+  tags:
+    - proxmox
+    - validation
+    - api
+    - connectivity
+
+- name: Display authentication method in use
+  ansible.builtin.debug:
+    msg: |
+      Proxmox API authentication method: >-
+        {{ 'Token-based' if (proxmox_api_token_id is defined and
+        proxmox_api_token_id != '') else 'Username/Password' }}
+      Host: {{ proxmox_host }}
+      Node: {{ proxmox_node }}
+      User: {{ proxmox_user | default('N/A'') }}"
+      Token ID: >-
+        {{ proxmox_api_token_id | default('N/A') |
+        regex_replace('(.{4}).*', '\\1****'') }}"
+  tags:
+    - proxmox
+    - validation
+    - api
