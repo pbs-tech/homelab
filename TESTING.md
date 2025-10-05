@@ -184,31 +184,31 @@ The GitHub Actions workflow (`.github/workflows/ci.yml`) provides automated vali
 ### Pre-Production Validation
 
 1. **Lint all code**:
-   
+
    ```bash
    make lint
    ```
 
 2. **Run infrastructure validation**:
-   
+
    ```bash
    make test-infrastructure
    ```
 
 3. **Run security validation**:
-   
+
    ```bash
    make test-security
    ```
 
 4. **Run service validation**:
-   
+
    ```bash
    make test-services
    ```
 
 5. **Deploy with confidence**:
-   
+
    ```bash
    make deploy
    ```
