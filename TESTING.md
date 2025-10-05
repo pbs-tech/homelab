@@ -27,6 +27,7 @@ All tests complete in under 5 minutes total, making them practical for frequent 
 - Critical service health (Traefik, Prometheus, K3s API)
 
 **Usage:**
+
 ```bash
 make test-quick
 # OR
@@ -47,6 +48,7 @@ ansible-playbook tests/quick-smoke-test.yml
 - K3s pod count and status
 
 **Usage:**
+
 ```bash
 make test-infrastructure
 # OR
@@ -67,6 +69,7 @@ ansible-playbook tests/validate-infrastructure.yml
 - SSL certificate accessibility
 
 **Usage:**
+
 ```bash
 make test-security
 # OR
@@ -86,6 +89,7 @@ ansible-playbook tests/validate-security.yml
 - **K3s Services**: Pod status, service count
 
 **Usage:**
+
 ```bash
 make test-services
 # OR
@@ -154,6 +158,7 @@ The GitHub Actions workflow (`.github/workflows/ci.yml`) provides automated vali
 1. **Make changes** to roles, playbooks, or configuration
 
 2. **Run linting** before testing:
+
    ```bash
    make lint
    # OR specific linters
@@ -163,11 +168,13 @@ The GitHub Actions workflow (`.github/workflows/ci.yml`) provides automated vali
    ```
 
 3. **Run quick smoke test** for rapid feedback:
+
    ```bash
    make test-quick
    ```
 
 4. **Run full validation** before committing:
+
    ```bash
    make test
    ```
@@ -177,26 +184,31 @@ The GitHub Actions workflow (`.github/workflows/ci.yml`) provides automated vali
 ### Pre-Production Validation
 
 1. **Lint all code**:
+   
    ```bash
    make lint
    ```
 
 2. **Run infrastructure validation**:
+   
    ```bash
    make test-infrastructure
    ```
 
 3. **Run security validation**:
+   
    ```bash
    make test-security
    ```
 
 4. **Run service validation**:
+   
    ```bash
    make test-services
    ```
 
 5. **Deploy with confidence**:
+   
    ```bash
    make deploy
    ```
