@@ -53,7 +53,7 @@ jobs:
           done
 
       - name: Ansible lint
-        run: ansible-lint --format github --nocolor
+        run: ansible-lint --format quiet --nocolor
 
       - name: Ansible syntax check
         run: |
