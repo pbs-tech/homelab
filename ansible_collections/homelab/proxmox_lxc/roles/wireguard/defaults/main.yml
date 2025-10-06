@@ -41,3 +41,16 @@ wireguard_firewall_rules:
 # Logging and monitoring
 wireguard_enable_logging: true
 wireguard_log_level: info
+
+# Firewall configuration
+wireguard_enable_firewall: true
+
+# DNS servers for clients
+wireguard_dns_servers:
+  - "192.168.0.202"  # AdGuard/Unbound DNS
+
+# Public endpoint (replace with your actual public IP or domain)
+wireguard_public_endpoint: "vpn.homelab.example.com"
+
+# QR code generation for mobile clients
+wireguard_generate_qrcodes: false
