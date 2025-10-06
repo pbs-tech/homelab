@@ -1,0 +1,33 @@
+---
+galaxy_info:
+  role_name: prometheus
+  namespace: homelab.proxmox_lxc
+  author: Homelab Administrator
+  description: Deploy and configure Prometheus metrics collection and monitoring system in LXC containers
+  company: Homelab
+  license: MIT
+
+  min_ansible_version: "2.13"
+
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+        - focal
+
+  galaxy_tags:
+    - prometheus
+    - monitoring
+    - metrics
+    - timeseries
+    - observability
+    - alerting
+    - homelab
+    - lxc
+    - proxmox
+
+dependencies:
+  - role: homelab.common.container_base
+    when: use_container_base | default(true)
+  - role: homelab.common.security_hardening
+    when: use_security_hardening | default(true)

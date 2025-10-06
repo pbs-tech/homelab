@@ -1,0 +1,38 @@
+---
+galaxy_info:
+  role_name: promtail
+  namespace: homelab.proxmox_lxc
+  author: Homelab Administrator
+  description: Deploy and configure Promtail log shipping agent for Grafana Loki
+  company: Homelab
+  license: MIT
+
+  min_ansible_version: "2.13"
+
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+        - focal
+    - name: Debian
+      versions:
+        - bullseye
+        - bookworm
+
+  galaxy_tags:
+    - promtail
+    - loki
+    - logging
+    - logs
+    - shipping
+    - agent
+    - observability
+    - grafana
+    - homelab
+    - monitoring
+
+dependencies:
+  - role: homelab.common.container_base
+    when: use_container_base | default(true)
+  - role: homelab.common.security_hardening
+    when: use_security_hardening | default(true)

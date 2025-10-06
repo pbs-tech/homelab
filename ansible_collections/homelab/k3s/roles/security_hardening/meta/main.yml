@@ -1,0 +1,30 @@
+---
+galaxy_info:
+  author: "Homelab Administrator"
+  description: "K3s-specific security hardening with Raspberry Pi support, extending base security hardening with cluster-focused configurations"
+  company: "Homelab"
+  license:
+    - "Apache-2.0"
+  min_ansible_version: "2.12"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+        - focal
+    - name: Debian
+      versions:
+        - bullseye
+        - bookworm
+  galaxy_tags:
+    - k3s
+    - kubernetes
+    - security
+    - hardening
+    - raspberrypi
+    - firewall
+    - ssh
+    - fail2ban
+    - monitoring
+    - compliance
+
+dependencies: []

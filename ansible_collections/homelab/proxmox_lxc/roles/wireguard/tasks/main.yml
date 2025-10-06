@@ -1,0 +1,136 @@
+---
+# WireGuard VPN server deployment and configuration
+
+- name: Install WireGuard packages
+  ansible.builtin.apt:
+    name:
+      - wireguard
+      - wireguard-tools
+      - qrencode
+      - iptables
+      - resolvconf
+    state: present
+    update_cache: true
+  tags: packages
+
+- name: Enable IPv4 forwarding
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    sysctl_set: true
+    state: present
+    reload: true
+  tags: network
+
+- name: Check if server private key exists
+  ansible.builtin.stat:
+    path: /etc/wireguard/server_privatekey
+  register: server_privatekey_stat
+  tags: config
+
+- name: Generate server private key
+  ansible.builtin.shell: |
+    set -o pipefail
+    wg genkey | tee /etc/wireguard/server_privatekey
+  args:
+    executable: /bin/bash
+    creates: /etc/wireguard/server_privatekey
+  register: server_privatekey_result
+  when: not server_privatekey_stat.stat.exists
+  tags: config
+  changed_when: server_privatekey_result.rc == 0
+
+- name: Set server private key permissions
+  ansible.builtin.file:
+    path: /etc/wireguard/server_privatekey
+    owner: root
+    group: root
+    mode: "0600"
+  tags: config
+
+- name: Read server private key
+  ansible.builtin.slurp:
+    src: /etc/wireguard/server_privatekey
+  register: server_privatekey_content
+  tags: config
+
+- name: Set server private key fact
+  ansible.builtin.set_fact:
+    wireguard_server_private_key: "{{ server_privatekey_content.content | b64decode | trim }}"
+  tags: config
+
+- name: Generate server public key
+  ansible.builtin.shell: |
+    set -o pipefail
+    echo "{{ wireguard_server_private_key }}" | wg pubkey
+  args:
+    executable: /bin/bash
+  register: server_publickey_result
+  changed_when: false
+  tags: config
+
+- name: Display server public key
+  ansible.builtin.debug:
+    msg: "WireGuard server public key: {{ server_publickey_result.stdout }}"
+  tags: config
+
+- name: Deploy WireGuard configuration
+  ansible.builtin.template:
+    src: wg0.conf.j2
+    dest: /etc/wireguard/wg0.conf
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Restart wireguard
+  tags: config
+
+- name: Enable WireGuard service
+  ansible.builtin.systemd:
+    name: wg-quick@wg0
+    enabled: true
+    state: started
+  tags: service
+
+- name: Configure firewall for WireGuard
+  community.general.ufw:
+    rule: allow
+    port: "{{ wireguard_port }}"
+    proto: udp
+    comment: "WireGuard VPN"
+  when: wireguard_enable_firewall | default(true)
+  tags: firewall
+
+- name: Allow forwarding on WireGuard interface
+  community.general.ufw:
+    rule: allow
+    route: true
+    interface: "{{ wireguard_interface }}"
+  when: wireguard_enable_firewall | default(true)
+  tags: firewall
+
+- name: Generate client QR codes
+  ansible.builtin.shell: |
+    set -o pipefail
+    cat <<EOF | qrencode -t ansiutf8
+    [Interface]
+    PrivateKey = {{ item.private_key | default('REPLACE_WITH_CLIENT_PRIVATE_KEY') }}
+    Address = {{ item.allowed_ips }}
+    DNS = {{ wireguard_dns_servers | default(['192.168.0.202']) | join(', ') }}
+
+    [Peer]
+    PublicKey = {{ server_publickey_result.stdout }}
+    PresharedKey = {{ item.preshared_key | default('REPLACE_WITH_PSK') }}
+    Endpoint = {{ wireguard_public_endpoint | default('vpn.example.com') }}:{{ wireguard_port }}
+    AllowedIPs = {{ wireguard_allowed_networks | join(', ') }}
+    PersistentKeepalive = {{ item.persistent_keepalive | default(25) }}
+    EOF
+  args:
+    executable: /bin/bash
+  loop: "{{ wireguard_clients }}"
+  when:
+    - wireguard_generate_qrcodes | default(false)
+    - item.private_key is defined
+  changed_when: false
+  tags:
+    - config
+    - qrcode

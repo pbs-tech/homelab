@@ -1,0 +1,61 @@
+---
+galaxy_info:
+  role_name: openwrt
+  namespace: homelab.proxmox_lxc
+  author: Homelab Administrator
+  description: >
+    Deploys and configures OpenWrt as a virtualized network router/firewall in an
+    LXC container using QEMU/KVM. Provides advanced routing, firewall, VPN (WireGuard,
+    OpenVPN), DHCP/DNS services, QoS, VLAN support, and comprehensive network management
+    capabilities. Includes automated UCI configuration, LuCI web interface, and
+    integration with homelab DNS and monitoring services.
+
+  license: MIT
+
+  min_ansible_version: "2.15.0"
+
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy  # 22.04 LTS
+        - focal  # 20.04 LTS
+
+  galaxy_tags:
+    - openwrt
+    - router
+    - firewall
+    - networking
+    - vpn
+    - wireguard
+    - dhcp
+    - dns
+    - qos
+    - vlan
+    - homelab
+    - lxc
+    - proxmox
+    - qemu
+    - kvm
+
+dependencies:
+  - role: homelab.common.container_base
+    vars:
+      container_name: "openwrt"
+      container_ip: "{{ openwrt_ip | default('192.168.0.209') }}"
+      container_id: "{{ openwrt_container_id | default(209) }}"
+      container_memory: "{{ openwrt_resources.memory | default(1024) }}"
+      container_cores: "{{ openwrt_resources.cores | default(2) }}"
+      container_disk: "{{ openwrt_resources.disk_size | default('20') }}"
+      container_node: "{{ openwrt_node | default('pve-mac') }}"
+      container_privileged: true  # Required for KVM access
+      container_features:
+        - "nesting=1"
+        - "keyctl=1"
+
+  - role: homelab.common.security_hardening
+    vars:
+      hardening_ssh_enabled: true
+      hardening_firewall_enabled: true
+      hardening_allowed_ports:
+        - "{{ openwrt_ssh_port | default(22) }}/tcp"  # SSH to container
+      # Note: OpenWrt VM firewall is configured separately via UCI

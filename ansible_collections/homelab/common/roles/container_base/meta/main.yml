@@ -1,0 +1,39 @@
+---
+galaxy_info:
+  author: "Homelab Administrator"
+  description: >
+    Core role for Proxmox LXC container lifecycle management, providing
+    standardized container creation, configuration, and secure API integration
+    for homelab infrastructure deployments.
+  company: Homelab
+  license:
+    - Apache-2.0
+  min_ansible_version: "2.12"
+
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal      # 20.04 LTS
+        - jammy      # 22.04 LTS
+    - name: Debian
+      versions:
+        - bullseye   # 11
+        - bookworm   # 12
+
+  galaxy_tags:
+    - homelab
+    - proxmox
+    - lxc
+    - containers
+    - infrastructure
+    - automation
+    - api
+    - virtualization
+    - orchestration
+    - deployment
+
+dependencies:
+  - role: community.general
+    version: ">=7.0.0"
+
+allow_duplicates: false
