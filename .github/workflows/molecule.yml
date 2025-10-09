@@ -26,8 +26,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  PYTHON_VERSION: '3.11'
-  ANSIBLE_VERSION: '>=2.15'
+  PYTHON_VERSION: '3.12'
+  ANSIBLE_VERSION: '>=2.17'
 
 jobs:
   molecule:
@@ -66,8 +66,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install molecule[docker] molecule-plugins[docker]
-          pip install ansible-core${{ env.ANSIBLE_VERSION }} yamllint ansible-lint docker
+          pip install "molecule>=6.0" "molecule-plugins[docker]>=23.5.0"
+          pip install "ansible-core${{ env.ANSIBLE_VERSION }}" "yamllint>=1.35" "ansible-lint>=24.0" docker
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -112,8 +112,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install molecule[docker] molecule-plugins[docker]
-          pip install ansible-core${{ env.ANSIBLE_VERSION }} yamllint ansible-lint docker
+          pip install "molecule>=6.0" "molecule-plugins[docker]>=23.5.0"
+          pip install "ansible-core${{ env.ANSIBLE_VERSION }}" "yamllint>=1.35" "ansible-lint>=24.0" docker
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3

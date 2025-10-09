@@ -23,6 +23,8 @@ platforms:
       - "3000:3000"  # Grafana
       - "9090:9090"  # Prometheus
       - "3100:3100"  # Loki
+    groups:
+      - proxmox_lxc_test
 
 provisioner:
   name: ansible
@@ -30,7 +32,6 @@ provisioner:
     defaults:
       callbacks_enabled: profile_tasks,timer,yaml
       stdout_callback: yaml
-      bin_ansible_callbacks: true
       host_key_checking: false
   inventory:
     host_vars:

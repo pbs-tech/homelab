@@ -1,6 +1,19 @@
 # K3s Collection Testing
 
+This collection uses Molecule 6.0+ for automated testing on real Raspberry Pi hardware.
+
 ## Quick Start
+
+### Prerequisites
+
+```bash
+# Install Molecule and dependencies
+pip install "molecule>=6.0" "molecule-plugins[docker]>=23.5.0"
+pip install "ansible-core>=2.17" "yamllint>=1.35" "ansible-lint>=24.0"
+
+# Install required collections
+ansible-galaxy install -r requirements.yml
+```
 
 ### Raspberry Pi Cluster Testing
 

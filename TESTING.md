@@ -129,6 +129,62 @@ ansible-playbook tests/validate-services.yml
 ansible-playbook tests/validate-services.yml -vv
 ```
 
+## Molecule Testing
+
+The project uses Molecule 6.0+ for collection-level testing and validation.
+
+### Molecule Test Scenarios
+
+**Common Collection:**
+- `default` - Tests common roles and setup
+- `common-roles` - Tests container base and security hardening roles
+
+**K3s Collection:**
+- `raspberry-pi` - Tests K3s deployment on real Raspberry Pi hardware
+
+**Proxmox LXC Collection:**
+- `default` - Docker-based unit tests for LXC roles
+- `service-stack` - Multi-service integration testing
+- `proxmox-integration` - Real Proxmox infrastructure testing
+
+**Full Stack:**
+- `full-stack` - Complete infrastructure integration test
+
+### Running Molecule Tests
+
+```bash
+# Install Molecule
+pip install "molecule>=6.0" "molecule-plugins[docker]>=23.5.0"
+
+# Test individual collections
+cd ansible_collections/homelab/common
+molecule test
+
+cd ansible_collections/homelab/k3s
+molecule test -s raspberry-pi
+
+cd ansible_collections/homelab/proxmox_lxc
+molecule test -s service-stack
+
+# Test full stack integration
+cd molecule/full-stack
+molecule test
+```
+
+### Molecule CI Pipeline
+
+The `.github/workflows/molecule.yml` workflow provides automated Molecule testing:
+
+**Test Matrix:**
+- Python 3.12
+- Ansible 2.17+
+- Molecule 6.0+
+- All collection scenarios in parallel
+
+**Requirements:**
+- Docker for containerized testing
+- Real hardware access for Raspberry Pi and Proxmox scenarios
+
 ## CI/CD Integration
 
 The GitHub Actions workflow (`.github/workflows/ci.yml`) provides automated validation:
@@ -139,6 +195,12 @@ The GitHub Actions workflow (`.github/workflows/ci.yml`) provides automated vali
 - **markdownlint** - Documentation quality
 - **secrets-scan** - TruffleHog secret detection
 - **galaxy-validation** - Collection build and validation
+
+**Environment:**
+- Python 3.12
+- Ansible 2.17+
+- yamllint 1.35+
+- ansible-lint 24.0+
 
 **Trigger Conditions:**
 - Push to main, develop, or update-actions branches

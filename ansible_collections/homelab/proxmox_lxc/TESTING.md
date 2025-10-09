@@ -1,8 +1,21 @@
 # Proxmox LXC Collection Testing
 
+This collection uses Molecule 6.0+ for multi-tier testing from Docker-based unit tests to real Proxmox infrastructure.
+
 ## Quick Start
 
-### Podman Testing (Development)
+### Prerequisites
+
+```bash
+# Install Molecule and dependencies
+pip install "molecule>=6.0" "molecule-plugins[docker]>=23.5.0"
+pip install "ansible-core>=2.17" "yamllint>=1.35" "ansible-lint>=24.0" docker
+
+# Install required collections
+ansible-galaxy install -r requirements.yml
+```
+
+### Docker Testing (Development)
 
 ```bash
 # Test basic service functionality
@@ -28,12 +41,13 @@ molecule test -s service-stack
 
 ## Available Test Scenarios
 
-### `default` - Podman-based Testing
+### `default` - Docker-based Testing
 
-- **Platform**: Podman containers
+- **Platform**: Docker containers (geerlingguy/docker-ubuntu2204-ansible)
 - **Purpose**: Fast development feedback
 - **Services Tested**: Prometheus, Grafana, Loki, Promtail
 - **Runtime**: ~5-10 minutes
+- **Requirements**: Docker, Molecule 6.0+
 
 ### `proxmox-integration` - Real LXC Testing
 
@@ -42,13 +56,15 @@ molecule test -s service-stack
 - **Container**: 192.168.0.250 (auto-created/destroyed)
 - **Services Tested**: Core monitoring stack
 - **Runtime**: ~10-15 minutes
+- **Requirements**: Proxmox access, API credentials
 
 ### `service-stack` - Multi-Service Integration
 
-- **Platform**: Podman (multi-container)
+- **Platform**: Docker (multi-container)
 - **Purpose**: Test service interactions
 - **Services Tested**: Monitoring + Networking stacks
 - **Runtime**: ~10-15 minutes
+- **Requirements**: Docker with cgroupns support
 
 ## Test Coverage
 

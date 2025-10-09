@@ -25,6 +25,7 @@ platforms:
       - "3100:3100"  # Loki
     groups:
       - monitoring
+      - service_stack_test
 
   # Networking Stack Testing
   - name: networking-stack
@@ -42,6 +43,7 @@ platforms:
       - "53:53/udp"  # DNS
     groups:
       - networking
+      - service_stack_test
 
 provisioner:
   name: ansible
@@ -82,7 +84,6 @@ verifier:
 scenario:
   test_sequence:
     - dependency
-    - lint
     - cleanup
     - destroy
     - syntax
