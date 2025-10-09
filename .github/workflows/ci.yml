@@ -4,8 +4,6 @@ permissions:
   contents: read
 
 on:
-  push:
-    branches: [main, develop, update-actions]
   pull_request:
     branches: [main, develop]
   workflow_dispatch:
