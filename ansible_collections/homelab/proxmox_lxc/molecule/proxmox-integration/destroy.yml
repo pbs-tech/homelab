@@ -9,7 +9,7 @@
 
   tasks:
     - name: Stop the test container
-      community.general.proxmox:
+      community.proxmox.proxmox:
         vmid: 250
         node: {{ proxmox_node }}
         api_user: {{ proxmox_user }}
@@ -20,7 +20,7 @@
       ignore_errors: true
 
     - name: Remove the test container
-      community.general.proxmox:
+      community.proxmox.proxmox:
         vmid: 250
         node: {{ proxmox_node }}
         api_user: {{ proxmox_user }}

@@ -19,7 +19,7 @@
     - name: Test API connectivity for each Proxmox node
       block:
         - name: Test API token authentication
-          community.general.proxmox:
+          community.proxmox.proxmox:
             # API Token Authentication (secure method)
             api_host: "{{ proxmox_config[item].host }}"
             api_token_id: "{{ proxmox_config[item].api_token_id }}"
@@ -51,7 +51,7 @@
     - name: Create test container to validate token permissions
       block:
         - name: Create temporary test container
-          community.general.proxmox:
+          community.proxmox.proxmox:
             # API Token Authentication
             api_host: "{{ proxmox_config[proxmox_nodes[0]].host }}"
             api_token_id: "{{ proxmox_config[proxmox_nodes[0]].api_token_id }}"
@@ -82,7 +82,7 @@
           register: container_create_result
 
         - name: Start test container
-          community.general.proxmox:
+          community.proxmox.proxmox:
             # API Token Authentication
             api_host: "{{ proxmox_config[proxmox_nodes[0]].host }}"
             api_token_id: "{{ proxmox_config[proxmox_nodes[0]].api_token_id }}"
@@ -100,7 +100,7 @@
             seconds: 10
 
         - name: Stop test container
-          community.general.proxmox:
+          community.proxmox.proxmox:
             # API Token Authentication
             api_host: "{{ proxmox_config[proxmox_nodes[0]].host }}"
             api_token_id: "{{ proxmox_config[proxmox_nodes[0]].api_token_id }}"
@@ -130,7 +130,7 @@
 
       always:
         - name: Clean up test container
-          community.general.proxmox:
+          community.proxmox.proxmox:
             # API Token Authentication
             api_host: "{{ proxmox_config[proxmox_nodes[0]].host }}"
             api_token_id: "{{ proxmox_config[proxmox_nodes[0]].api_token_id }}"

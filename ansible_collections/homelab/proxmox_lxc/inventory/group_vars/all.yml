@@ -1,6 +1,6 @@
 ---
 # Proxmox connection settings (using connection plugin)
-ansible_connection: community.general.proxmox
+ansible_connection: community.proxmox.proxmox
 
 # Proxmox API configuration - uses shared configuration from common collection
 # Override specific settings by defining proxmox_override in host_vars or group_vars

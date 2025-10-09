@@ -3,7 +3,7 @@
 # These tasks provide reusable patterns for Proxmox API calls
 
 - name: Create LXC container with standardized API authentication
-  community.general.proxmox:
+  community.proxmox.proxmox:
     # API connection parameters
     api_host: "{{ proxmox_host }}"
     api_token_id: "{{ proxmox_api_token_id | default(omit) }}"
@@ -55,7 +55,7 @@
     - containers
 
 - name: Manage LXC container state with standardized API authentication
-  community.general.proxmox:
+  community.proxmox.proxmox:
     # API connection parameters
     api_host: "{{ proxmox_host }}"
     api_token_id: "{{ proxmox_api_token_id | default(omit) }}"
@@ -83,7 +83,7 @@
     - state
 
 - name: Query LXC container information with standardized API authentication
-  community.general.proxmox:
+  community.proxmox.proxmox:
     # API connection parameters
     api_host: "{{ proxmox_host }}"
     api_token_id: "{{ proxmox_api_token_id | default(omit) }}"
@@ -111,7 +111,7 @@
     - query
 
 - name: Download LXC template with standardized patterns
-  community.general.proxmox_template:
+  community.proxmox.proxmox_template:
     # API connection parameters
     api_host: "{{ proxmox_host }}"
     api_token_id: "{{ proxmox_api_token_id | default(omit) }}"
@@ -141,7 +141,7 @@
     - download
 
 - name: Set container startup order and advanced configuration
-  community.general.proxmox:
+  community.proxmox.proxmox:
     # API connection parameters
     api_host: "{{ proxmox_host }}"
     api_token_id: "{{ proxmox_api_token_id | default(omit) }}"

@@ -31,7 +31,7 @@
     container_ssh_key: "{{ container_defaults.ssh_key | default(omit) }}"
 
 - name: Create LXC container using API token authentication (preferred)
-  community.general.proxmox:
+  community.proxmox.proxmox:
     # API Token authentication - secure method
     api_host: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
     api_token_id: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id }}"
@@ -74,7 +74,7 @@
     - containers
 
 - name: Start container using secure API token authentication
-  community.general.proxmox:
+  community.proxmox.proxmox:
     # Secure API token authentication (preferred)
     api_host: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
     api_token_id: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id }}"
@@ -110,7 +110,7 @@
     - connectivity
 
 - name: Set container startup order using secure API token authentication
-  community.general.proxmox:
+  community.proxmox.proxmox:
     # Secure API token authentication (preferred)
     api_host: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
     api_token_id: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id }}"

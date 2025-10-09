@@ -34,7 +34,7 @@
     - api
 
 - name: Test Proxmox API connectivity with token authentication
-  community.general.proxmox:
+  community.proxmox.proxmox:
     api_host: "{{ proxmox_host }}"
     api_token_id: "{{ proxmox_api_token_id }}"
     api_token_secret: "{{ proxmox_api_token_secret }}"
@@ -56,7 +56,7 @@
     - connectivity
 
 - name: Test Proxmox API connectivity with username/password authentication
-  community.general.proxmox:
+  community.proxmox.proxmox:
     api_host: "{{ proxmox_host }}"
     api_user: "{{ proxmox_user }}"
     api_password: "{{ proxmox_password }}"

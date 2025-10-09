@@ -9,7 +9,7 @@ driver:
   options:
     managed: false
     ansible_connection_options:
-      ansible_connection: community.general.proxmox
+      ansible_connection: community.proxmox.proxmox
 
 platforms:
   - name: molecule-test-lxc

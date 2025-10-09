@@ -9,7 +9,7 @@
 
   tasks:
     - name: Create LXC container for testing
-      community.general.proxmox:
+      community.proxmox.proxmox:
         vmid: 250
         node: {{ proxmox_node }}
         api_user: {{ proxmox_user }}
@@ -28,7 +28,7 @@
       register: container_create
 
     - name: Start the test container
-      community.general.proxmox:
+      community.proxmox.proxmox:
         vmid: 250
         node: {{ proxmox_node }}
         api_user: {{ proxmox_user }}

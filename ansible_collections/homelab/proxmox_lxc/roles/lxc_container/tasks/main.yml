@@ -13,7 +13,7 @@
     - proxmox
 
 - name: Create LXC container in Proxmox using secure API token authentication
-  community.general.proxmox:
+  community.proxmox.proxmox:
     # Secure API token authentication (preferred)
     api_host: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
     api_token_id: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id }}"
@@ -54,7 +54,7 @@
     - containers
 
 - name: Start LXC container with standardized API authentication
-  community.general.proxmox:
+  community.proxmox.proxmox:
     # API connection parameters
     api_host: "{{ proxmox_host }}"
     api_token_id: "{{ proxmox_api_token_id | default(omit) }}"

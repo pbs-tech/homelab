@@ -97,6 +97,16 @@ jobs:
       - name: Install tools
         run: pip install ansible-core${{ env.ANSIBLE_VERSION }} galaxy-importer
 
+      - name: Install external dependencies
+        run: ansible-galaxy collection install -r requirements.yml --force
+
+      - name: Install homelab.common collection (dependency)
+        if: matrix.collection != 'common'
+        run: ansible-galaxy collection install ansible_collections/homelab/common/ --force
+
+      - name: Clean build artifacts
+        run: rm -f ansible_collections/homelab/${{ matrix.collection }}/*.tar.gz
+
       - name: Build and validate
         run: |
           cd ansible_collections/homelab/${{ matrix.collection }}

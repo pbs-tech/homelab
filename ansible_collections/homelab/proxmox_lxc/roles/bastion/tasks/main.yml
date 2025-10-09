@@ -1,6 +1,6 @@
 ---
 - name: Create k3s-bastion LXC container using secure API token authentication
-  community.general.proxmox:
+  community.proxmox.proxmox:
     vmid: "{{ bastion_container.vmid }}"
     node: "{{ ansible_hostname }}"
     # Secure API token authentication (preferred)
@@ -22,7 +22,7 @@
   register: bastion_create_result
 
 - name: Start bastion container using secure API token authentication
-  community.general.proxmox:
+  community.proxmox.proxmox:
     vmid: "{{ bastion_container.vmid }}"
     node: "{{ ansible_hostname }}"
     # Secure API token authentication (preferred)

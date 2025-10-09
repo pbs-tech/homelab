@@ -522,7 +522,7 @@ curl -k -H "Authorization: PVEAPIToken=ansible@pve!homelab=<token>" \
 ```yaml
 # Add bind mounts post-creation
 - name: Add bind mount to container
-  community.general.proxmox:
+  community.proxmox.proxmox:
     api_host: "{{ proxmox_config[proxmox_node].host }}"
     api_token_id: "{{ proxmox_config[proxmox_node].api_token_id }}"
     api_token_secret: "{{ proxmox_config[proxmox_node].api_token_secret }}"
