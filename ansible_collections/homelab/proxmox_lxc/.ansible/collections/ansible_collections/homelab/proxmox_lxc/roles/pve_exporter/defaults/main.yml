@@ -1,8 +1,0 @@
----
-# Proxmox VE Exporter default variables
-pve_exporter_version: "latest"
-pve_exporter_port: 9221
-pve_exporter_config_dir: /etc/pve-exporter
-pve_exporter_data_dir: /var/lib/pve-exporter
-pve_exporter_user: pve-exporter
-pve_exporter_group: pve-exporter
