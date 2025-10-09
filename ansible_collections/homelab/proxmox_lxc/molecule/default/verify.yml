@@ -69,9 +69,13 @@
       tags: [promtail]
 
     - name: Test log ingestion pipeline
+      tags: [integration]
       block:
         - name: Generate test log entry
-          shell: echo "MOLECULE_TEST_LOG_$(date +%s): Testing log pipeline" | systemd-cat -t molecule-test
+          shell: 'set -o pipefail && echo "MOLECULE_TEST_LOG_$(date +%s): Testing log pipeline" | systemd-cat -t molecule-test'
+          changed_when: true
+          args:
+            executable: /bin/bash
 
         - name: Wait for log ingestion
           pause:
@@ -83,9 +87,9 @@
             method: GET
             body_format: form-urlencoded
             body:
-              query: {job="systemd-journal"} |= "MOLECULE_TEST_LOG"
-              start: {{ (ansible_date_time.epoch | int - 300) }}000000000
-              end: {{ ansible_date_time.epoch }}000000000
+              query: '{job="systemd-journal"} |= "MOLECULE_TEST_LOG"'
+              start: "{{ (ansible_date_time.epoch | int - 300) }}000000000"
+              end: "{{ ansible_date_time.epoch }}000000000"
           register: loki_query
           retries: 3
           delay: 5
@@ -96,4 +100,3 @@
               - loki_query.json.status == "success"
               - loki_query.json.data.result | length > 0
             fail_msg: Test log was not found in Loki
-      tags: [integration]

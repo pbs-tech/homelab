@@ -88,7 +88,7 @@
         enabled: true
         daemon_reload: true
         state: started
-      ignore_errors: true  # Service won't actually exist
+      failed_when: false  # Service won't actually exist in molecule environment
 
     - name: Test security hardening
       include_role:

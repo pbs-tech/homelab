@@ -62,4 +62,4 @@
         that:
           - timezone_check.stdout | length > 0
         fail_msg: Timezone not properly configured
-        success_msg: Timezone is configured: {{ timezone_check.stdout }}
+        success_msg: "Timezone is configured: {{ timezone_check.stdout }}"

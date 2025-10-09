@@ -31,13 +31,14 @@
     - name: Wait for K3s server startup
       wait_for:
         port: 6443
-        host: {{ ansible_default_ipv4.address }}
+        host: "{{ ansible_default_ipv4.address }}"
         delay: 30
         timeout: 300
 
     - name: Verify server node is ready
-      shell: k3s kubectl get nodes -o json
+      command: k3s kubectl get nodes -o json
       register: nodes_status
+      changed_when: false
       retries: 10
       delay: 15
       until: >

@@ -33,13 +33,13 @@
           -----BEGIN OPENSSH PRIVATE KEY-----
           # This is a mock key for testing only
           -----END OPENSSH PRIVATE KEY-----
-        dest: {{ security_config.ssh_key_path }}
+        dest: "{{ security_config.ssh_key_path }}"
         mode: 0600
 
     - name: Create mock SSH public key
       ansible.builtin.copy:
-        content: {{ test_ssh_key }}
-        dest: {{ security_config.ssh_key_path }}.pub
+        content: "{{ test_ssh_key }}"
+        dest: "{{ security_config.ssh_key_path }}.pub"
         mode: 0644
 
   tasks:
@@ -56,7 +56,7 @@
   post_tasks:
     - name: Verify common packages are installed
       ansible.builtin.package:
-        name: {{ item }}
+        name: "{{ item }}"
         state: present
       check_mode: true
       loop:
@@ -69,8 +69,8 @@
     - name: Assert packages were installed
       ansible.builtin.assert:
         that: not item.changed
-        fail_msg: Package {{ item.item }} was not installed
-      loop: {{ package_check.results }}
+        fail_msg: "Package {{ item.item }} was not installed"
+      loop: "{{ package_check.results }}"
 
     - name: Verify test user was created
       ansible.builtin.user:

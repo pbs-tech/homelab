@@ -6,7 +6,7 @@
     # Mock variables for Podman testing
     homelab_domain: test.local
     ssl_email: test@test.local
-    container_ssh_key: {{ lookup('file', '/root/.ssh/id_rsa.pub') }}"
+    container_ssh_key: "{{ lookup('file', '/root/.ssh/id_rsa.pub') }}"
 
   tasks:
     - name: Test Prometheus role (lightweight)

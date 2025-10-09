@@ -44,7 +44,7 @@ provisioner:
       all:
         homelab_domain: test.local
         ssl_email: molecule-test@test.local
-        container_ssh_key: {{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+        container_ssh_key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
         gateway_ip: 192.168.0.1
         dns_servers:
           - "192.168.0.202" # Your Unbound server

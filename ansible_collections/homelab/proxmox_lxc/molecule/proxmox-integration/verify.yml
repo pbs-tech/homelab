@@ -43,7 +43,10 @@
     - name: Test log ingestion from container to Loki
       block:
         - name: Generate test log
-          shell: echo "MOLECULE_LXC_TEST_$(date +%s): Container test log" | systemd-cat -t molecule-lxc-test
+          shell: 'set -o pipefail && echo "MOLECULE_LXC_TEST_$(date +%s): Container test log" | systemd-cat -t molecule-lxc-test'
+          changed_when: true
+          args:
+            executable: /bin/bash
 
         - name: Wait for log processing
           pause:
@@ -55,9 +58,9 @@
             method: GET
             body_format: form-urlencoded
             body:
-              query: {job="systemd-journal"} |= "MOLECULE_LXC_TEST"
-              start: {{ (ansible_date_time.epoch | int - 120) }}000000000
-              end: {{ ansible_date_time.epoch }}000000000
+              query: '{job="systemd-journal"} |= "MOLECULE_LXC_TEST"'
+              start: "{{ (ansible_date_time.epoch | int - 120) }}000000000"
+              end: "{{ ansible_date_time.epoch }}000000000"
           register: loki_logs
 
         - name: Verify log ingestion

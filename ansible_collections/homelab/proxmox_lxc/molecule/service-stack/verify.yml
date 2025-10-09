@@ -62,7 +62,10 @@
         fail_msg: Grafana datasources not configured correctly
 
     - name: Generate test logs for integration test
-      shell: echo "MOLECULE_STACK_TEST_$(date +%s): Testing monitoring stack integration" | systemd-cat -t molecule-stack-test
+      shell: 'set -o pipefail && echo "MOLECULE_STACK_TEST_$(date +%s): Testing monitoring stack integration" | systemd-cat -t molecule-stack-test'
+      changed_when: true
+      args:
+        executable: /bin/bash
 
     - name: Wait for log ingestion
       pause:
@@ -74,9 +77,9 @@
         method: GET
         body_format: form-urlencoded
         body:
-          query: {job="systemd-journal"} |= "MOLECULE_STACK_TEST"
-          start: {{ (ansible_date_time.epoch | int - 60) }}000000000
-          end: {{ ansible_date_time.epoch }}000000000
+          query: '{job="systemd-journal"} |= "MOLECULE_STACK_TEST"'
+          start: "{{ (ansible_date_time.epoch | int - 60) }}000000000"
+          end: "{{ ansible_date_time.epoch }}000000000"
       register: loki_integration_test
 
     - name: Verify log integration
@@ -99,7 +102,8 @@
       delay: 15
 
     - name: Test Unbound DNS resolution
-      shell: dig @127.0.0.1 prometheus.molecule.test A +short
+      command: dig @127.0.0.1 prometheus.molecule.test A +short
+      changed_when: false
       register: dns_resolution
       retries: 5
       delay: 5
