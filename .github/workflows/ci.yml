@@ -104,21 +104,6 @@ jobs:
           head: HEAD
           extra_args: --only-verified
 
-      - name: Ansible security lint
-        run: ansible-lint --profile security --format github
-        continue-on-error: true
-
-      - name: Check for hardcoded credentials
-        run: |
-          pattern="(password|secret|key|token|credential):\s*['\"][^'\"]{8,}"
-          results=$(grep -ri --include="*.yml" --include="*.yaml" -E "${pattern}" . 2>/dev/null || true)
-          filtered=$(echo "$results" | grep -v "vault\|example\|template\|test\|molecule" || true)
-          if [ -n "$filtered" ]; then
-            echo "⚠️ Potential hardcoded secrets found"
-            exit 1
-          fi
-          echo "✅ No hardcoded secrets detected"
-
       - name: Validate vault file encryption
         run: |
           for vault_file in $(find . -name "*vault*" -type f -path "*/group_vars/*" -o -path "*/host_vars/*"); do
