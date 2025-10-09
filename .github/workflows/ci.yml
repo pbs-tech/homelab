@@ -65,36 +65,6 @@ jobs:
           ansible-playbook --syntax-check ansible_collections/homelab/k3s/playbooks/site.yml
           ansible-playbook --syntax-check ansible_collections/homelab/proxmox_lxc/site.yml
 
-  security:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-
-      - name: Install security tools
-        run: pip install ansible-core${{ env.ANSIBLE_VERSION }} ansible-lint
-
-      - name: Cache Ansible collections
-        uses: actions/cache@v4
-        with:
-          path: ~/.ansible/collections
-          key: ansible-collections-${{ hashFiles('**/requirements.yml') }}
-          restore-keys: ansible-collections-
-
-      - name: Install Ansible collections
-        run: |
-          ansible-galaxy collection install -r requirements.yml --force
-          find ansible_collections/ -name "requirements.yml" -exec ansible-galaxy collection install -r {} --force \;
-          for collection in common k3s proxmox_lxc; do
-            ansible-galaxy collection install ansible_collections/homelab/$collection/ --force
-          done
 
       - name: TruffleHog secrets scan
         if: github.ref != 'refs/heads/main'
