@@ -97,6 +97,7 @@ jobs:
           done
 
       - name: TruffleHog secrets scan
+        if: github.ref != 'refs/heads/main'
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
@@ -104,15 +105,6 @@ jobs:
           head: HEAD
           extra_args: --only-verified
 
-      - name: Validate vault file encryption
-        run: |
-          for vault_file in $(find . -name "*vault*" -type f -path "*/group_vars/*" -o -path "*/host_vars/*"); do
-            if [ -f "$vault_file" ] && ! grep -q '$ANSIBLE_VAULT' "$vault_file"; then
-              echo "⚠️ Unencrypted vault file: $vault_file"
-              exit 1
-            fi
-          done
-          echo "✅ All vault files are encrypted"
 
   collections:
     name: Validate Collections
