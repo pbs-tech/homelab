@@ -8,7 +8,7 @@
 ansible_collections/**/homelab-*.tar.gz
 
 # Cache directories
-.ansible/
+**/.ansible/
 .cache/
 **/__pycache__/
 **/*.pyc
@@ -20,7 +20,6 @@ molecule/.cache/
 
 # Vault files
 vault.yml
-*vault*.yml
 .vault_pass
 
 # IDE and editor files
