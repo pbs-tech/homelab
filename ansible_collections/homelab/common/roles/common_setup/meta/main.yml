@@ -6,8 +6,7 @@ galaxy_info:
     configuration, user management, SSH hardening, and logging setup for both
     K3s nodes and LXC containers.
   company: Homelab
-  license:
-    - Apache-2.0
+  license: Apache-2.0
   min_ansible_version: "2.12"
 
   platforms:
@@ -32,10 +31,8 @@ galaxy_info:
     - system
     - configuration
 
-dependencies:
-  - role: ansible.posix
-    version: ">=1.5.0"
-  - role: community.general
-    version: ">=7.0.0"
+# Collection dependencies: ansible.posix (>=1.5.0), community.general (>=7.0.0)
+# These are declared in requirements.yml at the collection level
+dependencies: []
 
 allow_duplicates: false

@@ -3,8 +3,7 @@ galaxy_info:
   author: "Homelab Administrator"
   description: "Configures system prerequisites and environment settings required for K3s cluster deployment"
   company: "Homelab"
-  license:
-    - "Apache-2.0"
+  license: "Apache-2.0"
   min_ansible_version: "2.14"
   platforms:
     - name: Ubuntu
@@ -16,14 +15,6 @@ galaxy_info:
         - bullseye
         - bookworm
     - name: EL
-      versions:
-        - 8
-        - 9
-        - 10
-    - name: opensuse
-      versions:
-        - all
-    - name: Archlinux
       versions:
         - all
   galaxy_tags:

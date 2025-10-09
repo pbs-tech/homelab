@@ -3,8 +3,7 @@ galaxy_info:
   author: "Homelab Administrator"
   description: "Performs in-place upgrades of K3s installations on both server and agent nodes with minimal downtime"
   company: "Homelab"
-  license:
-    - "Apache-2.0"
+  license: "Apache-2.0"
   min_ansible_version: "2.12"
   platforms:
     - name: Ubuntu
@@ -17,8 +16,7 @@ galaxy_info:
         - bookworm
     - name: EL
       versions:
-        - 8
-        - 9
+        - all
   galaxy_tags:
     - k3s
     - kubernetes

@@ -3,8 +3,7 @@ galaxy_info:
   author: "Homelab Administrator"
   description: "Installs and configures K3s agent nodes for compute workloads"
   company: "Homelab"
-  license:
-    - "Apache-2.0"
+  license: "Apache-2.0"
   min_ansible_version: "2.14"
   platforms:
     - name: Ubuntu
@@ -17,11 +16,6 @@ galaxy_info:
         - bullseye
         - bookworm
     - name: EL
-      versions:
-        - 8
-        - 9
-        - 10
-    - name: Archlinux
       versions:
         - all
   galaxy_tags:

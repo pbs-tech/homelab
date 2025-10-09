@@ -6,8 +6,7 @@ galaxy_info:
     infrastructure, providing metrics collection, log aggregation, health
     monitoring, and performance analysis for both K3s nodes and LXC containers.
   company: Homelab
-  license:
-    - Apache-2.0
+  license: Apache-2.0
   min_ansible_version: "2.12"
 
   platforms:
@@ -34,8 +33,8 @@ galaxy_info:
     - performance
     - infrastructure
 
-dependencies:
-  - role: community.general
-    version: ">=7.0.0"
+# Collection dependencies: community.general (>=7.0.0)
+# These are declared in requirements.yml at the collection level
+dependencies: []
 
 allow_duplicates: false

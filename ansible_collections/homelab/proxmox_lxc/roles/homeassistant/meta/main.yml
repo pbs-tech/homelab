@@ -1,7 +1,7 @@
 ---
 galaxy_info:
   role_name: homeassistant
-  namespace: homelab.proxmox_lxc
+  namespace: homelab
   author: Homelab Administrator
   description: >
     Deploys and configures Home Assistant in an LXC container for comprehensive

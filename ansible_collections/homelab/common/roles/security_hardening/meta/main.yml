@@ -3,8 +3,7 @@ galaxy_info:
   author: "Homelab Administrator"
   description: "Comprehensive security hardening for K3s nodes and LXC containers with CIS compliance"
   company: "Homelab"
-  license:
-    - "Apache-2.0"
+  license: "Apache-2.0"
   min_ansible_version: "2.12"
   platforms:
     - name: Ubuntu
@@ -18,9 +17,7 @@ galaxy_info:
         - bookworm
     - name: EL
       versions:
-        - 8
-        - 9
-        - 10
+        - all
   galaxy_tags:
     - security
     - hardening
@@ -31,8 +28,6 @@ galaxy_info:
     - audit
     - fail2ban
 
-dependencies:
-  - role: ansible.posix
-    when: false  # Collection dependency, not role dependency
-  - role: community.general
-    when: false  # Collection dependency, not role dependency
+# Collection dependencies: ansible.posix, community.general
+# These are declared in requirements.yml at the collection level
+dependencies: []

@@ -1,7 +1,7 @@
 ---
 galaxy_info:
   role_name: promtail
-  namespace: homelab.proxmox_lxc
+  namespace: homelab
   author: Homelab Administrator
   description: Deploy and configure Promtail log shipping agent for Grafana Loki
   company: Homelab
