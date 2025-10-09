@@ -5,20 +5,20 @@ dependency:
     requirements-file: ../../requirements.yml
 
 driver:
-  name: podman
+  name: docker
 
 platforms:
   - name: container-base-test
     image: geerlingguy/docker-ubuntu2204-ansible:latest
     pre_build_image: true
-      privileged: true
-      volumes:
-        - /sys/fs/cgroup:/sys/fs/cgroup:rw
-      command: /lib/systemd/systemd
-      capabilities:
-        - SYS_ADMIN
-      groups:
-        - lxc_containers
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    command: /lib/systemd/systemd
+    capabilities:
+      - SYS_ADMIN
+    groups:
+      - lxc_containers
       - monitoring
 
 provisioner:
@@ -32,7 +32,7 @@ provisioner:
     host_vars:
       container-base-test:
         ansible_user: root
-        ansible_connection: podman
+        ansible_connection: docker
         ansible_host: 127.0.0.1
         container_id: 100
         inventory_hostname: prometheus-lxc

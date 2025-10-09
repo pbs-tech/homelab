@@ -6,7 +6,7 @@ dependency:
     requirements-file: ../../../common/requirements.yml
 
 driver:
-  name: podman
+  name: docker
 
 platforms:
   # Monitoring Stack Testing
@@ -16,7 +16,7 @@ platforms:
     privileged: true
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    # cgroupns_mode not needed for podman
+    cgroupns_mode: host
     command: /lib/systemd/systemd
     capabilities:
       - SYS_ADMIN
@@ -34,7 +34,7 @@ platforms:
     privileged: true
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    # cgroupns_mode not needed for podman
+    cgroupns_mode: host
     command: /lib/systemd/systemd
     capabilities:
       - SYS_ADMIN
@@ -55,7 +55,7 @@ provisioner:
     host_vars:
       monitoring-stack:
         ansible_user: root
-        ansible_connection: podman
+        ansible_connection: docker
         ansible_default_ipv4:
           address: 172.17.0.2
         # Service-specific configs
@@ -65,7 +65,7 @@ provisioner:
 
       networking-stack:
         ansible_user: root
-        ansible_connection: podman
+        ansible_connection: docker
         ansible_default_ipv4:
           address: 172.17.0.3
         # Networking configs

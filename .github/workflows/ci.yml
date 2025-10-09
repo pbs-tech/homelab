@@ -6,6 +6,8 @@ permissions:
 on:
   pull_request:
     branches: [main, develop]
+  push:
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -71,13 +73,61 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Secrets scan
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install security tools
+        run: pip install ansible-core${{ env.ANSIBLE_VERSION }} ansible-lint
+
+      - name: Cache Ansible collections
+        uses: actions/cache@v4
+        with:
+          path: ~/.ansible/collections
+          key: ansible-collections-${{ hashFiles('**/requirements.yml') }}
+          restore-keys: ansible-collections-
+
+      - name: Install Ansible collections
+        run: |
+          ansible-galaxy collection install -r requirements.yml --force
+          find ansible_collections/ -name "requirements.yml" -exec ansible-galaxy collection install -r {} --force \;
+          for collection in common k3s proxmox_lxc; do
+            ansible-galaxy collection install ansible_collections/homelab/$collection/ --force
+          done
+
+      - name: TruffleHog secrets scan
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
           base: ${{ github.event.repository.default_branch }}
           head: HEAD
           extra_args: --only-verified
+
+      - name: Ansible security lint
+        run: ansible-lint --profile security --format github
+        continue-on-error: true
+
+      - name: Check for hardcoded credentials
+        run: |
+          pattern="(password|secret|key|token|credential):\s*['\"][^'\"]{8,}"
+          results=$(grep -ri --include="*.yml" --include="*.yaml" -E "${pattern}" . 2>/dev/null || true)
+          filtered=$(echo "$results" | grep -v "vault\|example\|template\|test\|molecule" || true)
+          if [ -n "$filtered" ]; then
+            echo "⚠️ Potential hardcoded secrets found"
+            exit 1
+          fi
+          echo "✅ No hardcoded secrets detected"
+
+      - name: Validate vault file encryption
+        run: |
+          for vault_file in $(find . -name "*vault*" -type f -path "*/group_vars/*" -o -path "*/host_vars/*"); do
+            if [ -f "$vault_file" ] && ! grep -q '$ANSIBLE_VAULT' "$vault_file"; then
+              echo "⚠️ Unencrypted vault file: $vault_file"
+              exit 1
+            fi
+          done
+          echo "✅ All vault files are encrypted"
 
   collections:
     name: Validate Collections

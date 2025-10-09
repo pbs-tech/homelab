@@ -8,7 +8,7 @@ dependency:
     requirements-file: ../../requirements.yml
 
 driver:
-  name: podman
+  name: docker
 
 platforms:
   # Foundation infrastructure
@@ -92,27 +92,27 @@ provisioner:
     host_vars:
       bastion-test:
         ansible_user: root
-        ansible_connection: podman
+        ansible_connection: docker
         ansible_host: "127.0.0.1"
         container_id: 110
 
       networking-test:
         ansible_user: root
-        ansible_connection: podman
+        ansible_connection: docker
         ansible_host: "127.0.0.1"
         container_id: 205
         service_port: 8080
 
       monitoring-test:
         ansible_user: root
-        ansible_connection: podman
+        ansible_connection: docker
         ansible_host: "127.0.0.1"
         container_id: 200
         service_port: 9090
 
       k3s-mock:
         ansible_user: root
-        ansible_connection: podman
+        ansible_connection: docker
         ansible_host: "127.0.0.1"
         k3s_role: server
         k3s_server_init: true
