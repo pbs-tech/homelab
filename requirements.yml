@@ -41,6 +41,9 @@ collections:
 
   - name: community.grafana
     version: ">=2.3.0"
+
+  - name: community.docker
+    version: ">=4.7.0"
 # Optional: Include external roles if needed
 
 roles: []
