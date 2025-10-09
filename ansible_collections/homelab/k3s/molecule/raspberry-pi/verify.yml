@@ -2,7 +2,7 @@
 - name: Verify K3s cluster functionality
   hosts: k3s_servers
   become: true
-  
+
   tasks:
     - name: Check K3s server service status
       systemd:
@@ -13,7 +13,7 @@
       assert:
         that:
           - k3s_service_status.status.ActiveState == "active"
-        fail_msg: "K3s server service is not active"
+        fail_msg: K3s server service is not active
 
     - name: Get cluster info
       shell: k3s kubectl cluster-info
@@ -23,7 +23,7 @@
       assert:
         that:
           - "'Kubernetes control plane is running' in cluster_info.stdout"
-        fail_msg: "Kubernetes control plane is not accessible"
+        fail_msg: Kubernetes control plane is not accessible
 
     - name: Get all nodes
       shell: k3s kubectl get nodes -o json
@@ -31,20 +31,22 @@
 
     - name: Parse node information
       set_fact:
-        nodes_info: "{{ all_nodes.stdout | from_json }}"
+        nodes_info: {{ all_nodes.stdout | from_json }}
 
     - name: Verify all nodes are ready
       assert:
         that:
           - nodes_info.items | length >= 2
-          - nodes_info.items | selectattr('status.conditions', 'defined') | 
+          - nodes_info.items | selectattr('status.conditions', 'defined') |
             map(attribute='status.conditions') | flatten |
             selectattr('type', 'equalto', 'Ready') |
             selectattr('status', 'equalto', 'True') | list | length == nodes_info.items | length
-        fail_msg: "Not all nodes are in Ready state"
+        fail_msg: Not all nodes are in Ready state
 
     - name: Deploy test workload
       shell: |
+        # yamllint disable-line rule:line-length
+        # yamllint disable-line rule:line-length
         k3s kubectl create namespace molecule-test-{{ molecule_test_id | default(ansible_date_time.epoch) }} --dry-run=client -o yaml | k3s kubectl apply -f -
         k3s kubectl run test-pod-{{ molecule_test_id | default(ansible_date_time.epoch) }} \
           --namespace=molecule-test-{{ molecule_test_id | default(ansible_date_time.epoch) }} \
@@ -54,10 +56,12 @@
       register: test_deployment
 
     - name: Wait for test pod to be ready
+      # yamllint disable-line rule:line-length
       shell: k3s kubectl wait --for=condition=Ready pod/test-pod-{{ molecule_test_id | default(ansible_date_time.epoch) }} --namespace=molecule-test-{{ molecule_test_id | default(ansible_date_time.epoch) }} --timeout=120s
       register: pod_ready
 
     - name: Verify pod is running
+      # yamllint disable-line rule:line-length
       shell: k3s kubectl get pod test-pod-{{ molecule_test_id | default(ansible_date_time.epoch) }} --namespace=molecule-test-{{ molecule_test_id | default(ansible_date_time.epoch) }} -o jsonpath='{.status.phase}'
       register: pod_status
 
@@ -65,7 +69,7 @@
       assert:
         that:
           - pod_status.stdout == "Running"
-        fail_msg: "Test pod is not running: {{ pod_status.stdout }}"
+            fail_msg: Test pod is not running: {{ pod_status.stdout }}
 
     - name: Test network connectivity between nodes
       shell: k3s kubectl get nodes -o jsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}'
@@ -73,20 +77,20 @@
 
     - name: Ping test between cluster nodes
       shell: ping -c 3 {{ item }}
-      loop: "{{ node_ips.stdout.split() }}"
+      loop: {{ node_ips.stdout.split(') }}"
       register: ping_results
 
     - name: Verify network connectivity
       assert:
         that:
           - item.rc == 0
-        fail_msg: "Network connectivity failed to {{ item.item }}"
-      loop: "{{ ping_results.results }}"
+        fail_msg: Network connectivity failed to {{ item.item }}
+      loop: {{ ping_results.results }}
 
 - name: Verify K3s agents
   hosts: k3s_agents
   become: true
-  
+
   tasks:
     - name: Check K3s agent service status
       systemd:
@@ -97,7 +101,7 @@
       assert:
         that:
           - k3s_agent_status.status.ActiveState == "active"
-        fail_msg: "K3s agent service is not active"
+        fail_msg: K3s agent service is not active
 
     - name: Test kubectl access from agent (via server)
       shell: k3s kubectl --server=https://{{ groups['k3s_servers'][0] }}:6443 get nodes
@@ -107,7 +111,7 @@
 - name: Report cluster status
   hosts: k3s_servers[0]
   become: true
-  
+
   tasks:
     - name: Get final cluster status
       shell: k3s kubectl get nodes,pods --all-namespaces
@@ -118,5 +122,5 @@
         msg: |
           Cluster Status:
           {{ cluster_status.stdout }}
-          
+
           Molecule test completed successfully on Raspberry Pi hardware!

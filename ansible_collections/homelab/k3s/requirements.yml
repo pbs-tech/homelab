@@ -1,7 +1,6 @@
 ---
 collections:
-  - name: homelab.common
-    source: ../common
+  # homelab.common is installed locally - no remote source needed
   - name: community.general
     version: ">=7.0.0"
   - name: ansible.posix

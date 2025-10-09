@@ -1,0 +1,38 @@
+---
+galaxy_info:
+  author: "Homelab Administrator"
+  description: >
+    Foundation role for homelab infrastructure providing standardized system
+    configuration, user management, SSH hardening, and logging setup for both
+    K3s nodes and LXC containers.
+  company: Homelab
+  license: Apache-2.0
+  min_ansible_version: "2.12"
+
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal      # 20.04 LTS
+        - jammy      # 22.04 LTS
+    - name: Debian
+      versions:
+        - bullseye   # 11
+        - bookworm   # 12
+
+  galaxy_tags:
+    - homelab
+    - common
+    - setup
+    - infrastructure
+    - ssh
+    - logging
+    - users
+    - security
+    - system
+    - configuration
+
+# Collection dependencies: ansible.posix (>=1.5.0), community.general (>=7.0.0)
+# These are declared in requirements.yml at the collection level
+dependencies: []
+
+allow_duplicates: false

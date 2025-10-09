@@ -1,0 +1,20 @@
+---
+# AdGuard Home handlers
+
+- name: Restart adguard
+  ansible.builtin.systemd:
+    name: adguard
+    state: restarted
+  listen: Restart adguard
+
+- name: Reload adguard
+  ansible.builtin.systemd:
+    name: adguard
+    state: reloaded
+  listen: Reload adguard
+
+- name: Stop adguard
+  ansible.builtin.systemd:
+    name: adguard
+    state: stopped
+  listen: Stop adguard

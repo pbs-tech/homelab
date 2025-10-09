@@ -1,12 +1,15 @@
 ---
 # Main orchestration playbook for homelab infrastructure
+
 # This provides backwards compatibility while recommending the new structure
 
 # For new deployments, use: ansible-playbook playbooks/infrastructure.yml
+
 # This file maintains backward compatibility with existing workflows
 
 - name: Deploy infrastructure using improved orchestration
   import_playbook: playbooks/infrastructure.yml
 
 # Legacy support - individual collection playbooks
+
 # Use tags to run specific components: --tags "k3s" or --tags "proxmox"

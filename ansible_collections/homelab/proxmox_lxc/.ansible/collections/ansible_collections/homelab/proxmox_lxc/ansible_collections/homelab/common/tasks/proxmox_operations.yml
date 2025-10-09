@@ -1,0 +1,174 @@
+---
+# Common Proxmox API operations with standardized patterns
+# These tasks provide reusable patterns for Proxmox API calls
+
+- name: Create LXC container with standardized API authentication
+  community.general.proxmox:
+    # API connection parameters
+    api_host: "{{ proxmox_host }}"
+    api_token_id: "{{ proxmox_api_token_id | default(omit) }}"
+    api_token_secret: "{{ proxmox_api_token_secret | default(omit) }}"
+    api_user: "{{ proxmox_user | default(omit) }}"
+    api_password: "{{ proxmox_password | default(omit) }}"
+    validate_certs: "{{ proxmox_api.validate_certs | default(true) }}"
+    timeout: "{{ proxmox_api.timeout | default(300) }}"
+
+    # Container configuration
+    vmid: "{{ container_vmid }}"
+    node: "{{ proxmox_node }}"
+    hostname: "{{ container_hostname }}"
+    ostemplate: "{{ container_template }}"
+
+    # Resource allocation
+    cores: "{{ container_cores | default(container_defaults.cores) }}"
+    memory: "{{ container_memory | default(container_defaults.memory) }}"
+    swap: "{{ container_swap | default(container_defaults.swap) }}"
+    disk: "{{ container_disk_size | default(container_defaults.disk_size) }}"
+
+    # Network configuration
+    netif: "{{ container_netif | default({'net0': 'name=eth0,bridge=vmbr0,ip=dhcp'}) }}"
+    nameserver: "{{ homelab_network.dns_servers | join(' ') }}"
+    searchdomain: "{{ homelab_domain }}"
+
+    # Security and management settings
+    unprivileged: "{{ container_unprivileged | default(container_defaults.unprivileged) }}"
+    onboot: "{{ container_onboot | default(container_defaults.onboot) }}"
+    startup: "{{ container_startup | default(omit) }}"
+
+    # SSH key configuration
+    pubkey: "{{ container_ssh_key | default(omit) }}"
+
+    # Container state
+    state: "{{ container_state | default('present') }}"
+
+    # Advanced options
+    features: "{{ container_features | default(omit) }}"
+    mounts: "{{ container_mounts | default(omit) }}"
+
+  register: proxmox_container_result
+  retries: "{{ proxmox_api.retry_count | default(3) }}"
+  delay: "{{ proxmox_api.retry_delay | default(5) }}"
+  until: proxmox_container_result is succeeded
+  tags:
+    - proxmox
+    - lxc
+    - containers
+
+- name: Manage LXC container state with standardized API authentication
+  community.general.proxmox:
+    # API connection parameters
+    api_host: "{{ proxmox_host }}"
+    api_token_id: "{{ proxmox_api_token_id | default(omit) }}"
+    api_token_secret: "{{ proxmox_api_token_secret | default(omit) }}"
+    api_user: "{{ proxmox_user | default(omit) }}"
+    api_password: "{{ proxmox_password | default(omit) }}"
+    validate_certs: "{{ proxmox_api.validate_certs | default(true) }}"
+    timeout: "{{ proxmox_api.timeout | default(300) }}"
+
+    # Container identification
+    vmid: "{{ container_vmid }}"
+    node: "{{ proxmox_node }}"
+
+    # State management
+    state: "{{ container_target_state }}"
+
+  register: proxmox_state_result
+  retries: "{{ proxmox_api.retry_count | default(3) }}"
+  delay: "{{ proxmox_api.retry_delay | default(5) }}"
+  until: proxmox_state_result is succeeded
+  tags:
+    - proxmox
+    - lxc
+    - containers
+    - state
+
+- name: Query LXC container information with standardized API authentication
+  community.general.proxmox:
+    # API connection parameters
+    api_host: "{{ proxmox_host }}"
+    api_token_id: "{{ proxmox_api_token_id | default(omit) }}"
+    api_token_secret: "{{ proxmox_api_token_secret | default(omit) }}"
+    api_user: "{{ proxmox_user | default(omit) }}"
+    api_password: "{{ proxmox_password | default(omit) }}"
+    validate_certs: "{{ proxmox_api.validate_certs | default(true) }}"
+    timeout: "{{ proxmox_api.timeout | default(300) }}"
+
+    # Container identification
+    vmid: "{{ container_vmid }}"
+    node: "{{ proxmox_node }}"
+
+    # Query operation
+    state: query
+
+  register: proxmox_query_result
+  retries: "{{ proxmox_api.retry_count | default(3) }}"
+  delay: "{{ proxmox_api.retry_delay | default(5) }}"
+  until: proxmox_query_result is succeeded
+  tags:
+    - proxmox
+    - lxc
+    - containers
+    - query
+
+- name: Download LXC template with standardized patterns
+  community.general.proxmox_template:
+    # API connection parameters
+    api_host: "{{ proxmox_host }}"
+    api_token_id: "{{ proxmox_api_token_id | default(omit) }}"
+    api_token_secret: "{{ proxmox_api_token_secret | default(omit) }}"
+    api_user: "{{ proxmox_user | default(omit) }}"
+    api_password: "{{ proxmox_password | default(omit) }}"
+    validate_certs: "{{ proxmox_api.validate_certs | default(true) }}"
+    timeout: "{{ template_download_timeout | default(1800) }}"
+
+    # Template configuration
+    node: "{{ proxmox_node }}"
+    src: "{{ template_url }}"
+    template: "{{ template_name }}"
+    content_type: "{{ template_content_type | default('vztmpl') }}"
+    storage: "{{ template_storage | default('local') }}"
+
+    # Download options
+    force: "{{ template_force_download | default(false) }}"
+
+  register: proxmox_template_result
+  retries: "{{ proxmox_api.retry_count | default(3) }}"
+  delay: "{{ proxmox_api.retry_delay | default(5) }}"
+  until: proxmox_template_result is succeeded
+  tags:
+    - proxmox
+    - templates
+    - download
+
+- name: Set container startup order and advanced configuration
+  community.general.proxmox:
+    # API connection parameters
+    api_host: "{{ proxmox_host }}"
+    api_token_id: "{{ proxmox_api_token_id | default(omit) }}"
+    api_token_secret: "{{ proxmox_api_token_secret | default(omit) }}"
+    api_user: "{{ proxmox_user | default(omit) }}"
+    api_password: "{{ proxmox_password | default(omit) }}"
+    validate_certs: "{{ proxmox_api.validate_certs | default(true) }}"
+    timeout: "{{ proxmox_api.timeout | default(300) }}"
+
+    # Container identification
+    vmid: "{{ container_vmid }}"
+    node: "{{ proxmox_node }}"
+
+    # Startup configuration
+    startup: "{{ container_startup_config }}"
+
+    # Update only - don't recreate
+    state: present
+    update: true
+
+  register: proxmox_startup_result
+  retries: "{{ proxmox_api.retry_count | default(3) }}"
+  delay: "{{ proxmox_api.retry_delay | default(5) }}"
+  until: proxmox_startup_result is succeeded
+  when: container_startup_config is defined
+  tags:
+    - proxmox
+    - lxc
+    - containers
+    - startup

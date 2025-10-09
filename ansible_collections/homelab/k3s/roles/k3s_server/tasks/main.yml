@@ -43,21 +43,21 @@
   when: ansible_user is defined
   ansible.builtin.lineinfile:
     path: "~{{ ansible_user }}/.bashrc"
-    regexp: '\.\s+<\(k3s completion bash\)'
-    line: ". <(k3s completion bash)  # Added by k3s-ansible"
+    regexp: \.\s+<\(k3s completion bash\)
+    line: . <(k3s completion bash)  # Added by k3s-ansible
 
 - name: Setup optional config file
   when: server_config_yaml is defined
   block:
     - name: Make config directory
       ansible.builtin.file:
-        path: "/etc/rancher/k3s"
+        path: /etc/rancher/k3s
         mode: "0755"
         state: directory
     - name: Copy config values
       ansible.builtin.copy:
         content: "{{ server_config_yaml }}"
-        dest: "/etc/rancher/k3s/config.yaml"
+        dest: /etc/rancher/k3s/config.yaml
         mode: "0644"
       register: _server_config_result
 
@@ -67,7 +67,7 @@
     - name: Copy K3s service file [Single]
       when: groups[server_group] | length == 1 or use_external_database
       ansible.builtin.template:
-        src: "k3s-single.service.j2"
+        src: k3s-single.service.j2
         dest: "{{ systemd_dir }}/k3s.service"
         owner: root
         group: root
@@ -79,7 +79,7 @@
         - groups[server_group] | length > 1
         - not use_external_database
       ansible.builtin.template:
-        src: "k3s-cluster-init.service.j2"
+        src: k3s-cluster-init.service.j2
         dest: "{{ systemd_dir }}/k3s.service"
         owner: root
         group: root
@@ -119,7 +119,9 @@
         state: restarted
 
     - name: Enable and check K3s service
-      when: ansible_facts.services['k3s.service'] is not defined or ansible_facts.services['k3s.service'].state != 'running'
+      when: >-
+        ansible_facts.services['k3s.service'] is not defined or
+        ansible_facts.services['k3s.service'].state != 'running'
       ansible.builtin.systemd:
         name: k3s
         daemon_reload: true
@@ -132,7 +134,7 @@
         seconds: 10
 
     - name: Check whether kubectl is installed on control node
-      ansible.builtin.command: 'kubectl'
+      ansible.builtin.command: kubectl
       register: kubectl_installed
       ignore_errors: true
       delegate_to: 127.0.0.1
@@ -162,7 +164,8 @@
 
         - name: Change server address in kubeconfig on control node
           ansible.builtin.shell: |
-            KUBECONFIG={{ kubeconfig }} kubectl config set-cluster default --server=https://{{ api_endpoint }}:{{ api_port }}
+            KUBECONFIG={{ kubeconfig }} kubectl config set-cluster default \
+              --server=https://{{ api_endpoint }}:{{ api_port }}
           delegate_to: 127.0.0.1
           become: false
           register: csa_result
@@ -173,8 +176,8 @@
           when: kubeconfig == "~/.kube/config.new"
           ansible.builtin.replace:
             path: "{{ kubeconfig }}"
-            regexp: 'default'
-            replace: '{{ cluster_context }}'
+            regexp: default
+            replace: "{{ cluster_context }}"
           delegate_to: 127.0.0.1
           become: false
 
@@ -182,7 +185,8 @@
           when: kubeconfig == "~/.kube/config.new"
           ansible.builtin.shell: |
             TFILE=$(mktemp)
-            KUBECONFIG={{ kubeconfig }}:~/.kube/config kubectl config set-context {{ cluster_context }} --user={{ cluster_context }} --cluster={{ cluster_context }}
+            KUBECONFIG={{ kubeconfig }}:~/.kube/config kubectl config set-context {{ cluster_context }} \
+              --user={{ cluster_context }} --cluster={{ cluster_context }}
             KUBECONFIG={{ kubeconfig }}:~/.kube/config kubectl config view --flatten > ${TFILE}
             mv ${TFILE} ~/.kube/config
           delegate_to: 127.0.0.1
@@ -240,7 +244,7 @@
     - name: Copy K3s service file [HA]
       when: not use_external_database
       ansible.builtin.template:
-        src: "k3s-ha.service.j2"
+        src: k3s-ha.service.j2
         dest: "{{ systemd_dir }}/k3s.service"
         owner: root
         group: root
@@ -250,7 +254,7 @@
     - name: Copy K3s service file [External DB]
       when: use_external_database
       ansible.builtin.template:
-        src: "k3s-single.service.j2"
+        src: k3s-single.service.j2
         dest: "{{ systemd_dir }}/k3s.service"
         owner: root
         group: root
@@ -268,7 +272,9 @@
         state: restarted
 
     - name: Enable and check K3s service
-      when: ansible_facts.services['k3s.service'] is not defined or ansible_facts.services['k3s.service'].state != 'running'
+      when: >-
+        ansible_facts.services['k3s.service'] is not defined or
+        ansible_facts.services['k3s.service'].state != 'running'
       ansible.builtin.systemd:
         name: k3s
         daemon_reload: true
@@ -292,28 +298,28 @@
 
     - name: Create directory .kube
       ansible.builtin.file:
-        path: ~{{ ansible_user }}/.kube
+        path: "~{{ ansible_user }}/.kube"
         state: directory
         owner: "{{ ansible_user }}"
-        mode: "u=rwx,g=rx,o="
+        mode: u=rwx,g=rx,o=
 
     - name: Copy config file to user home directory
       ansible.builtin.copy:
         src: /etc/rancher/k3s/k3s.yaml
-        dest: ~{{ ansible_user }}/.kube/config
+        dest: "~{{ ansible_user }}/.kube/config"
         remote_src: true
         owner: "{{ ansible_user }}"
-        mode: "u=rw,g=,o="
+        mode: u=rw,g=,o=
 
     - name: Configure default KUBECONFIG for user
       ansible.builtin.lineinfile:
-        path: ~{{ ansible_user }}/.bashrc
-        regexp: 'export KUBECONFIG=~/.kube/config'
-        line: 'export KUBECONFIG=~/.kube/config # Added by k3s-ansible'
+        path: "~{{ ansible_user }}/.bashrc"
+        regexp: export KUBECONFIG=~/.kube/config
+        line: export KUBECONFIG=~/.kube/config # Added by k3s-ansible
         state: present
 
     - name: Configure kubectl autocomplete
       ansible.builtin.lineinfile:
-        path: ~{{ ansible_user }}/.bashrc
-        regexp: '\.\s+<\(kubectl completion bash\)'
-        line: ". <(kubectl completion bash)  # Added by k3s-ansible"
+        path: "~{{ ansible_user }}/.bashrc"
+        regexp: \.\s+<\(kubectl completion bash\)
+        line: . <(kubectl completion bash)  # Added by k3s-ansible

@@ -1,39 +1,49 @@
 ---
+
 # Consolidated requirements for homelab infrastructure
+
 # Install with: ansible-galaxy install -r requirements.yml
 
 collections:
-  # Core homelab collections
+# Core homelab collections
+
   - source: ansible_collections/homelab/common
     name: homelab.common
     type: dir
-  
-  - source: ansible_collections/homelab/k3s  
+
+  - source: ansible_collections/homelab/k3s
     name: homelab.k3s
     type: dir
-    
+
   - source: ansible_collections/homelab/proxmox_lxc
     name: homelab.proxmox_lxc
     type: dir
 
-  # External collections
+# External collections
+
   - name: community.general
     version: ">=7.0.0"
-    
+
   - name: ansible.posix
     version: ">=1.5.0"
-    
+
   - name: community.proxmox
     version: ">=1.3.0"
-    
+
   - name: kubernetes.core
     version: ">=2.4.0"
-    
+
   - name: containers.podman
     version: ">=1.10.0"
-    
+
   - name: community.crypto
     version: ">=2.0.0"
 
+  - name: community.grafana
+    version: ">=2.3.0"
+
+  - name: community.docker
+    version: ">=4.7.0"
 # Optional: Include external roles if needed
+
 roles: []

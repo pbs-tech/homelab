@@ -1,0 +1,157 @@
+---
+# Monitoring agent configuration defaults
+
+# Version management
+node_exporter_version: 1.7.0
+promtail_version: 2.9.0
+monitoring_agent_version: 1.0.0
+
+# User and directories
+monitoring_user: monitoring
+monitoring_group: monitoring
+monitoring_home: /opt/monitoring
+monitoring_config_dir: /etc/monitoring
+monitoring_data_dir: /var/lib/monitoring
+monitoring_log_dir: /var/log/monitoring
+monitoring_scripts_dir: "{{ monitoring_home }}/scripts"
+
+# Service ports
+node_exporter_port: 9100
+promtail_port: 9080
+monitoring_agent_port: 9090
+
+# Prometheus configuration
+prometheus_config:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: "{{ homelab_cluster_name | default('homelab') }}"
+    environment: "{{ homelab_environment | default('production') }}"
+
+# Monitoring targets
+monitoring_targets:
+  - name: node-metrics
+    port: "{{ node_exporter_port }}"
+    path: /metrics
+    interval: 15s
+  - name: infrastructure-health
+    port: "{{ monitoring_agent_port }}"
+    path: /health
+    interval: 30s
+
+# Log collection configuration
+log_collection:
+  enabled: true
+  paths:
+    - /var/log/syslog
+    - /var/log/auth.log
+    - /var/log/monitoring/*.log
+    - /var/log/ansible/*.log
+  labels:
+    job: system-logs
+    host: "{{ inventory_hostname }}"
+    environment: "{{ homelab_environment | default('production') }}"
+
+# Alert rules configuration
+alert_rules:
+  - name: high_cpu_usage
+    condition: cpu_usage > 80
+    duration: 5m
+    severity: warning
+    description: CPU usage is above 80% for 5 minutes
+  - name: high_memory_usage
+    condition: memory_usage > 85
+    duration: 5m
+    severity: warning
+    description: Memory usage is above 85% for 5 minutes
+  - name: disk_space_low
+    condition: disk_free < 10
+    duration: 1m
+    severity: critical
+    description: Disk space is below 10%
+  - name: service_down
+    condition: service_up == 0
+    duration: 1m
+    severity: critical
+    description: Critical service is down
+
+# Health check configuration
+health_checks:
+  enabled: true
+  checks:
+    - name: system_resources
+      type: resource
+      thresholds:
+        cpu: 90
+        memory: 90
+        disk: 95
+    - name: network_connectivity
+      type: network
+      targets:
+        - 8.8.8.8
+        - "{{ homelab_gateway_ip | default('192.168.0.1') }}"
+    - name: service_dependencies
+      type: service
+      services:
+        - ssh
+        - systemd-resolved
+
+# Performance metrics configuration
+performance_metrics:
+  collection_interval: 60  # seconds
+  retention_days: 30
+  metrics:
+    - cpu_usage
+    - memory_usage
+    - disk_io
+    - network_io
+    - load_average
+    - process_count
+
+# Log analysis configuration
+log_analysis:
+  enabled: true
+  patterns:
+    - name: error_patterns
+      regex: ERROR|FATAL|CRITICAL
+      action: alert
+    - name: auth_failures
+      regex: authentication failure|Failed password
+      action: count
+    - name: security_events
+      regex: sudo|su|ssh|login
+      action: track
+
+# Notification configuration
+notifications:
+  enabled: false  # Disable by default, enable per environment
+  channels:
+    slack:
+      webhook_url: "{{ vault_slack_webhook_url | default('') }}"
+      channel: "#infrastructure"
+    email:
+      smtp_server: "{{ vault_smtp_server | default('') }}"
+      recipients: "{{ vault_alert_recipients | default([]) }}"
+
+# Firewall configuration
+firewall_enabled: true
+firewall_rules:
+  - port: "{{ node_exporter_port }}"
+    source: "{{ monitoring_allowed_ips | default(['192.168.0.0/24']) }}"
+  - port: "{{ promtail_port }}"
+    source: "{{ monitoring_allowed_ips | default(['192.168.0.0/24']) }}"
+
+# Security configuration
+security_config:
+  enable_ssl: false  # For internal monitoring, SSL handled by reverse proxy
+  auth_required: false
+  allowed_ips: "{{ monitoring_allowed_ips | default(['192.168.0.0/24']) }}"
+  log_security_events: true
+
+# Backup configuration for monitoring data
+backup_config:
+  enabled: true
+  retention_days: 7
+  backup_path: /opt/backups/monitoring
+  schedule: 0 2 * * *  # Daily at 2 AM
+  compress: true

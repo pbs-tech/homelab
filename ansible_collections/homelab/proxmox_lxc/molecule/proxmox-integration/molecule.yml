@@ -9,7 +9,7 @@ driver:
   options:
     managed: false
     ansible_connection_options:
-      ansible_connection: community.general.proxmox
+      ansible_connection: community.proxmox.proxmox
 
 platforms:
   - name: molecule-test-lxc
@@ -26,29 +26,29 @@ provisioner:
   inventory:
     host_vars:
       molecule-test-lxc:
-        ansible_host: "192.168.0.250"
+        ansible_host: 192.168.0.250
         container_id: 250
         service_port: 8080
         ansible_user: root
         # Target your actual Proxmox host
-        proxmox_host: "192.168.0.56"  # pve-mac
-        proxmox_user: "root@pam"
-        proxmox_node: "pve-mac"
-        container_template: "local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
+        proxmox_host: "192.168.0.56" # pve-mac
+        proxmox_user: root@pam
+        proxmox_node: pve-mac
+        container_template: local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst
         container_cores: 2
         container_memory: 1024
-        container_disk: "8"
+        container_disk: 8
         container_onboot: false
         container_unprivileged: true
     group_vars:
       all:
-        homelab_domain: "test.local"
-        ssl_email: "molecule-test@test.local"
-        container_ssh_key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
-        gateway_ip: "192.168.0.1"
+        homelab_domain: test.local
+        ssl_email: molecule-test@test.local
+        container_ssh_key: {{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+        gateway_ip: 192.168.0.1
         dns_servers:
-          - "192.168.0.202"  # Your Unbound server
-          - "192.168.0.204"  # Your AdGuard server
+          - "192.168.0.202" # Your Unbound server
+          - "192.168.0.204" # Your AdGuard server
 
 verifier:
   name: ansible

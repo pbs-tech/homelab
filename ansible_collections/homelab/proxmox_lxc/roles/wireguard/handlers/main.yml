@@ -1,0 +1,17 @@
+---
+# WireGuard handlers
+
+- name: Restart wireguard
+  ansible.builtin.systemd:
+    name: wg-quick@wg0
+    state: restarted
+  listen: Restart wireguard
+
+- name: Reload wireguard
+  ansible.builtin.shell: |
+    set -o pipefail
+    wg syncconf wg0 <(wg-quick strip wg0)
+  args:
+    executable: /bin/bash
+  listen: Reload wireguard
+  changed_when: false

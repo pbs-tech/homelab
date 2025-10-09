@@ -20,7 +20,7 @@
     - name: Find K3s service files
       ansible.builtin.find:
         paths: "{{ systemd_dir }}"
-        patterns: "k3s*.service"
+        patterns: k3s*.service
       register: k3s_service_files
 
     - name: Save current K3s service
@@ -37,11 +37,11 @@
       # even though its valid https://ansible.readthedocs.io/projects/lint/rules/inline-env-var/#correct-code
       ansible.builtin.command: # noqa inline-env-var
         cmd: /usr/local/bin/k3s-install.sh
-        environment: >-
-          {{ extra_install_envs | combine({
-            "INSTALL_K3S_SKIP_START": "true",
-            "INSTALL_K3S_VERSION": k3s_version,
-          }) }}
+      environment: >-
+        {{ extra_install_envs | combine({
+          "INSTALL_K3S_SKIP_START": "true",
+          "INSTALL_K3S_VERSION": k3s_version,
+        }) }}
       changed_when: true
 
     - name: Restore K3s service
@@ -60,14 +60,14 @@
       loop: "{{ k3s_service_files.files }}"
 
     - name: Restart K3s service [server]
-      when: "server_group in group_names"
+      when: server_group in group_names
       ansible.builtin.systemd:
         state: restarted
         daemon_reload: true
         name: k3s
 
     - name: Restart K3s service [agent]
-      when: "agent_group in group_names"
+      when: agent_group in group_names
       ansible.builtin.systemd:
         state: restarted
         daemon_reload: true

@@ -20,7 +20,7 @@
       systemd:
         name: ssh
       register: ssh_status
-      
+
     - name: Assert SSH is running
       assert:
         that:
@@ -35,7 +35,7 @@
     - name: Check if Traefik would be configured
       debug:
         msg: "Traefik configuration would be applied"
-        
+
     - name: Verify service port configuration
       assert:
         that:
@@ -44,14 +44,14 @@
         fail_msg: "Service port not configured correctly"
         success_msg: "Networking service port configured"
 
-- name: Verify monitoring services  
+- name: Verify monitoring services
   hosts: monitoring
   gather_facts: false
   tasks:
     - name: Check if Prometheus would be configured
       debug:
         msg: "Prometheus configuration would be applied"
-        
+
     - name: Verify monitoring port configuration
       assert:
         that:
@@ -68,7 +68,7 @@
       stat:
         path: /usr/local/bin/k3s
       register: k3s_binary
-      
+
     - name: Assert K3s integration ready
       assert:
         that:
@@ -76,7 +76,7 @@
           - k3s_binary.stat.executable
         fail_msg: "K3s integration not ready"
         success_msg: "K3s integration prepared successfully"
-        
+
     - name: Verify K3s configuration variables
       assert:
         that:
@@ -95,10 +95,10 @@
         msg: |
           Full-stack verification complete:
           - Foundation: Bastion hosts configured
-          - Networking: Traefik and DNS services ready  
+          - Networking: Traefik and DNS services ready
           - Monitoring: Prometheus, Grafana, Loki ready
           - K3s: Integration points configured
-          
+
     - name: Verify all required groups exist
       assert:
         that:

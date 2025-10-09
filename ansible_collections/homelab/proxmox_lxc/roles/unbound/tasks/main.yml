@@ -1,0 +1,143 @@
+---
+# Unbound DNS server deployment and configuration
+
+- name: Install Unbound packages
+  ansible.builtin.apt:
+    name:
+      - unbound
+      - unbound-anchor
+      - dns-root-data
+      - curl
+    state: present
+    update_cache: true
+  tags: packages
+
+- name: Create Unbound configuration directory
+  ansible.builtin.file:
+    path: /etc/unbound/unbound.conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  tags: config
+
+- name: Deploy Unbound main configuration
+  ansible.builtin.template:
+    src: unbound.conf.j2
+    dest: /etc/unbound/unbound.conf.d/homelab.conf
+    owner: root
+    group: root
+    mode: "0644"
+    validate: unbound-checkconf %s
+  notify: Restart unbound
+  tags: config
+
+- name: Download security blocklist
+  ansible.builtin.get_url:
+    url: "{{ unbound_blocklist_url }}"
+    dest: /tmp/hosts-blocklist
+    mode: "0644"
+  when: unbound_enable_blocklist | default(true)
+  tags:
+    - config
+    - blocklist
+
+- name: Convert blocklist to Unbound format
+  ansible.builtin.shell: |
+    set -o pipefail
+    grep '^0.0.0.0' /tmp/hosts-blocklist | \
+    awk '{print "local-zone: \""$2"\" redirect\nlocal-data: \""$2" A 0.0.0.0\""}' \
+    > {{ unbound_blocklist_file }}
+  args:
+    executable: /bin/bash
+    creates: "{{ unbound_blocklist_file }}"
+  when: unbound_enable_blocklist | default(true)
+  notify: Restart unbound
+  tags:
+    - config
+    - blocklist
+  changed_when: false
+
+- name: Set blocklist file permissions
+  ansible.builtin.file:
+    path: "{{ unbound_blocklist_file }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when: unbound_enable_blocklist | default(true)
+  tags:
+    - config
+    - blocklist
+
+- name: Update root trust anchor for DNSSEC
+  ansible.builtin.command: unbound-anchor -a {{ unbound_trust_anchor_file }}
+  register: trust_anchor_result
+  changed_when: "'success' in trust_anchor_result.stdout"
+  failed_when: false
+  when: unbound_enable_dnssec | default(true)
+  tags:
+    - config
+    - dnssec
+
+- name: Set trust anchor file permissions
+  ansible.builtin.file:
+    path: "{{ unbound_trust_anchor_file }}"
+    owner: unbound
+    group: unbound
+    mode: "0644"
+  when: unbound_enable_dnssec | default(true)
+  tags:
+    - config
+    - dnssec
+
+- name: Configure systemd-resolved to not conflict
+  ansible.builtin.systemd:
+    name: systemd-resolved
+    state: stopped
+    enabled: false
+  failed_when: false
+  tags: service
+
+- name: Remove systemd-resolved stub resolver
+  ansible.builtin.file:
+    path: /etc/resolv.conf
+    state: absent
+  when: ansible_facts['service_mgr'] == 'systemd'
+  tags: service
+
+- name: Create resolv.conf for localhost
+  ansible.builtin.copy:
+    content: |
+      nameserver 127.0.0.1
+      options edns0 trust-ad
+    dest: /etc/resolv.conf
+    owner: root
+    group: root
+    mode: "0644"
+  tags: service
+
+- name: Enable and start Unbound service
+  ansible.builtin.systemd:
+    name: unbound
+    enabled: true
+    state: started
+  tags: service
+
+- name: Configure firewall for DNS
+  community.general.ufw:
+    rule: allow
+    port: "{{ unbound_port }}"
+    proto: "{{ item }}"
+    comment: "Unbound DNS"
+  loop:
+    - tcp
+    - udp
+  when: unbound_enable_firewall | default(true)
+  tags: firewall
+
+- name: Test DNS resolution
+  ansible.builtin.command: dig @127.0.0.1 google.com +short
+  register: dns_test
+  changed_when: false
+  failed_when: dns_test.rc != 0
+  tags: validate

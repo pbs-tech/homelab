@@ -1,0 +1,136 @@
+---
+- name: Create k3s-bastion LXC container using secure API token authentication
+  community.general.proxmox:
+    vmid: "{{ bastion_container.vmid }}"
+    node: "{{ ansible_hostname }}"
+    # Secure API token authentication (preferred)
+    api_host: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+    api_token_id: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id }}"
+    api_token_secret: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_secret }}"
+    validate_certs: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].validate_certs }}"
+    hostname: "{{ bastion_container.hostname }}"
+    ostemplate: "{{ bastion_container.template }}"
+    cores: "{{ bastion_container.cores }}"
+    memory: "{{ bastion_container.memory }}"
+    disk: "{{ bastion_container.disk_size }}"
+    netif: '{"net0":"name=eth0,bridge=vmbr0,gw={{ bastion_container.gateway }},ip={{ bastion_container.ip }},type=veth"}'
+    nameserver: "{{ bastion_container.nameservers }}"
+    features: "{{ bastion_container.features | join(', ') }}"
+    unprivileged: "{{ bastion_container.unprivileged }}"
+    state: present
+    timeout: 300
+  register: bastion_create_result
+
+- name: Start bastion container using secure API token authentication
+  community.general.proxmox:
+    vmid: "{{ bastion_container.vmid }}"
+    node: "{{ ansible_hostname }}"
+    # Secure API token authentication (preferred)
+    api_host: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+    api_token_id: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id }}"
+    api_token_secret: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_secret }}"
+    validate_certs: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].validate_certs }}"
+    state: started
+    timeout: 60
+
+- name: Wait for bastion container to be available
+  wait_for:
+    host: "{{ bastion_container.ip.split('/')[0] }}"
+    port: 22
+    delay: 30
+    timeout: 300
+
+- name: Update package cache
+  apt:
+    update_cache: true
+    cache_valid_time: 3600
+  delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
+  become: true
+
+- name: Install required packages
+  apt:
+    name: "{{ bastion_packages }}"
+    state: present
+  delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
+  become: true
+
+- name: Install Python pip packages
+  pip:
+    name: "{{ bastion_pip_packages }}"
+    state: present
+  delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
+  become: true
+
+- name: Configure SSH for security
+  template:
+    src: sshd_config.j2
+    dest: /etc/ssh/sshd_config
+    backup: true
+    mode: "0600"
+  delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
+  become: true
+  notify: restart ssh
+
+- name: Configure fail2ban
+  template:
+    src: jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    mode: "0644"
+  delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
+  become: true
+  notify: restart fail2ban
+
+- name: Configure UFW firewall
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  loop: "{{ bastion_security.allowed_ports }}"
+  delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
+  become: true
+
+- name: Enable UFW
+  community.general.ufw:
+    state: enabled
+    policy: deny
+    direction: incoming
+  delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
+  become: true
+
+- name: Create ansible user
+  user:
+    name: pbs
+    shell: /bin/bash
+    create_home: true
+    groups: sudo
+    append: true
+  delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
+  become: true
+
+- name: Set up SSH keys for ansible user
+  ansible.posix.authorized_key:
+    user: pbs
+    key: "{{ ansible_ssh_public_key_content }}"
+    state: present
+  delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
+  become: true
+  when: ansible_ssh_public_key_content is defined
+
+- name: Copy ansible collections to bastion
+  ansible.posix.synchronize:
+    src: /home/pbs/ansible/k3s-bastion/ansible_collections/
+    dest: /home/pbs/ansible_collections/
+    delete: true
+    recursive: true
+  delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
+  become: true
+  become_user: pbs
+
+- name: Copy main site.yml to bastion
+  copy:
+    src: /home/pbs/ansible/k3s-bastion/site.yml
+    dest: /home/pbs/site.yml
+    mode: "0644"
+  delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
+  become: true
+  become_user: pbs

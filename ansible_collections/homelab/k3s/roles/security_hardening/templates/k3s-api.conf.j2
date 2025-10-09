@@ -7,6 +7,6 @@ failregex = ^.*"user":.*"name":".*","uid":".*".*"verb":".*".*"reason":"Unauthori
             ^.*authentication.*failed.*<HOST>.*$
             ^.*TLS handshake error.*<HOST>.*$
 
-# Ignore successful authentications  
+# Ignore successful authentications
 ignoreregex = ^.*"verb":".*".*"code":20[0-9].*"sourceIPs":\["<HOST>"\].*$
               ^.*authentication.*successful.*<HOST>.*$

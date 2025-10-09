@@ -1,0 +1,2672 @@
+{
+ "files": [
+  {
+   "name": ".",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "TESTING.md",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "93ea545e932ef4ba7f659f0470022f1c0d772b99b7f6e931da961da93fb2f611",
+   "format": 1
+  },
+  {
+   "name": "site.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2891c2657ba9f346a4ae7e3a9fa31d051d65e3d45b9899add894e0dcfc9366b6",
+   "format": 1
+  },
+  {
+   "name": "playbooks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "playbooks/deploy_services.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4c03e1a1da8365262ddda9f76e048bd7f4a08984de0b0aa4ddc637d33481b748",
+   "format": 1
+  },
+  {
+   "name": "playbooks/configure_k3s_integration.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "32044f15ab1191c3aa7515f9d9ba6bb1fa6c5536cbefe2c4251f8472614bc7c3",
+   "format": 1
+  },
+  {
+   "name": ".ansible",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": ".ansible/collections",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": ".ansible/collections/ansible_collections",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": ".ansible/collections/ansible_collections/homelab",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": ".ansible/roles",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": ".ansible/modules",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "inventory",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "inventory/group_vars",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "inventory/group_vars/all.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "410566a57040d6bb7dce89af367c4410ca9a4dd419ae30a96108de3e16287377",
+   "format": 1
+  },
+  {
+   "name": "inventory/group_vars/pve-nas.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "40df96bbed839fa95999cd6484e6267b80ecb8b59fbc64f15403f23965d67910",
+   "format": 1
+  },
+  {
+   "name": "inventory/group_vars/nas_services.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "eaf0436bfe988214d0f4fe0ddee569a341804196e2bdc82e8cbb3757797a5f12",
+   "format": 1
+  },
+  {
+   "name": "inventory/group_vars/all",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "inventory/group_vars/all/vault.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5ca68b7b9419efbf67ca8ba90cd6e645eb845a11c237e0aa2c275aeb4a96c643",
+   "format": 1
+  },
+  {
+   "name": "inventory/group_vars/all/vault.yml.example",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d30f63cc3bfe1c7925b99acad092db9bd2ae4b61533f216ebf1f7aa9edf8088f",
+   "format": 1
+  },
+  {
+   "name": "inventory/hosts.yml.static-backup",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0fc91d47884ff56c88ebfb98122890c4627a1332f594fca6e1208c2b4eca9db3",
+   "format": 1
+  },
+  {
+   "name": "inventory/proxmox.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "58219a831936c3398567b7bf6acb263a874e86c6f763da2d678507efc5c91494",
+   "format": 1
+  },
+  {
+   "name": "ansible.cfg",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3dab22f1619e7e989e2b707b00bacf8b34827d28a3ac87654c4c7c6208c68144",
+   "format": 1
+  },
+  {
+   "name": "tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "tasks/security_checks.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "fb3fa6bba1f433549dc57ff13790a0e7a459721736694cf0d00d8ef92aa564f9",
+   "format": 1
+  },
+  {
+   "name": "tasks/bypass_security_checks.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "bd0c367bed183b08ffe3fef2f9c50b8392d720e2e4c9c670d5caaa4346e3baf8",
+   "format": 1
+  },
+  {
+   "name": "setup_proxmox_inventory.sh",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d27d8703764f77e8c0cd49675663e45b35dd2886b381eefe5f20c733ac446e56",
+   "format": 1
+  },
+  {
+   "name": "roles",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/lxc_template",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/lxc_template/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/lxc_template/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4f7069e49adc4997f4ccbda8e02f105277ca4181580b850be2c2cfdeb3a543d5",
+   "format": 1
+  },
+  {
+   "name": "roles/lxc_template/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/lxc_template/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "53d2269813dfd777d69e231b0409167554c30f0219e74073162cdbe743ff1dae",
+   "format": 1
+  },
+  {
+   "name": "roles/lxc_template/handlers",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/lxc_template/handlers/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "34a08986dac45c7a9df0467f7eeec97268cd3556849a9e3276329d811537d984",
+   "format": 1
+  },
+  {
+   "name": "roles/wireguard",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/wireguard/templates",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/wireguard/templates/wg0.conf.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ce9839f274de9b7ccd41b66044732013e8f9308f62008cb2e4acc06c327a9ccb",
+   "format": 1
+  },
+  {
+   "name": "roles/wireguard/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/wireguard/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d2ea0d598861d233b175d6d67c9330dcd6aac8c1ff6d6f7cb41ccc219786e541",
+   "format": 1
+  },
+  {
+   "name": "roles/prometheus",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/prometheus/templates",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/prometheus/templates/prometheus.yml.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "eccd1eacb6627362202d37b11e51b9654070bf57856709f11611066e3f1962e8",
+   "format": 1
+  },
+  {
+   "name": "roles/prometheus/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/prometheus/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "cf80934933b833c731cbefa59b4c5dd3152556a0f71d7ba02d7d4871f09f12e6",
+   "format": 1
+  },
+  {
+   "name": "roles/prometheus/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/prometheus/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2ee0df298dff609e5b0aedb8f8d476e0e0cba2184ff24adf31cb5952666dd99a",
+   "format": 1
+  },
+  {
+   "name": "roles/loki",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/loki/templates",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/loki/templates/loki.yml.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6a21a54168585bb2e73c58df96dcdfcc911d2819a091fb7a1d366895bbe848fc",
+   "format": 1
+  },
+  {
+   "name": "roles/loki/templates/loki.service.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e8d44823681ac56c77ad993c01e69cb89089dc3dfd69d277952fb341cb0b31d2",
+   "format": 1
+  },
+  {
+   "name": "roles/loki/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/loki/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "23493af78936a7c47cc14d015f4374095085a540f8e94e28c40d5919c211dcf7",
+   "format": 1
+  },
+  {
+   "name": "roles/loki/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/loki/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2a680c86014cf10610ba5142272c4151d793bddae75b50f3cc5442b0c9dc2326",
+   "format": 1
+  },
+  {
+   "name": "roles/loki/handlers",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/loki/handlers/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "609261511ae2ff5606ae6823e39445172c2dbdddaa0fbd149bf0756719e0ce71",
+   "format": 1
+  },
+  {
+   "name": "roles/bastion",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/bastion/templates",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/bastion/templates/sshd_config.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e60cdb4097d7d25f0b3786008b32f680a1807103fbedd5d4ccb27ca6147351e2",
+   "format": 1
+  },
+  {
+   "name": "roles/bastion/templates/jail.local.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8a54f8501bc8235c1ef928f10ecae6d1549236516151ec5625e4dafc44bd51f7",
+   "format": 1
+  },
+  {
+   "name": "roles/bastion/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/bastion/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f70fdf16af6b0336a44de715233495ab8fc5b7eb93c861d93e64fd9687c3d5ad",
+   "format": 1
+  },
+  {
+   "name": "roles/bastion/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/bastion/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a083d52b1785b8d4dcf3760e4ea19555fa70ed90c8f0da947f25c42ba2f8f92e",
+   "format": 1
+  },
+  {
+   "name": "roles/bastion/handlers",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/bastion/handlers/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8ce914668cbd736106a5ed51cd54a1bd9a8b82fa1bc1c2bc4b81b28107894f19",
+   "format": 1
+  },
+  {
+   "name": "roles/alertmanager",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/alertmanager/templates",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/alertmanager/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/alertmanager/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "96aa29e1afb74b905c1c329bb48d1a30eadc909d3391fe877499bddd96624e12",
+   "format": 1
+  },
+  {
+   "name": "roles/alertmanager/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/alertmanager/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "804d51464a7821ba4481dc87c70b7f680ac5ed4ad691576988ccac3c4d31aa19",
+   "format": 1
+  },
+  {
+   "name": "roles/alertmanager/handlers",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/k3s_server",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/k3s_server/templates",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/k3s_server/templates/k3s-ha.service.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6019ca9a2861a836afb52be8ae5514d08ce39773bd05040bac82da48c1c93098",
+   "format": 1
+  },
+  {
+   "name": "roles/k3s_server/templates/k3s-cluster-init.service.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "41c5ec62ecc290c7972408c6a8e298159f7c345b2cd31c4c833bd46986b37780",
+   "format": 1
+  },
+  {
+   "name": "roles/k3s_server/templates/k3s-single.service.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f56db4944f6f92db91e16df696555797afe5053941d824c7373a86b8f0bc5719",
+   "format": 1
+  },
+  {
+   "name": "roles/k3s_server/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/k3s_server/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "26c49121f5f8bc556783879c233da12959b94e7b82e7e70cb3518b406bee07b8",
+   "format": 1
+  },
+  {
+   "name": "roles/k3s_server/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/k3s_server/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "fa3e59ee43d4ebb97861c8147dc17ea8ef9200bc471bcc02c488dd9844c85af8",
+   "format": 1
+  },
+  {
+   "name": "roles/openwrt",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/openwrt/templates",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/openwrt/templates/dhcp.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "fa0d3d8b5eaf198c82ccc0020820ed198b0205a6d2c00166d2a997f550796ee4",
+   "format": 1
+  },
+  {
+   "name": "roles/openwrt/templates/network.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1489d8062cec56f4567ed4cfd23568bdf061e3c9247bc35985aebb4ed2d056de",
+   "format": 1
+  },
+  {
+   "name": "roles/openwrt/templates/openwrt.service.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c799dba727903c6cd26924ca37a44092308f0305f9025cf1a15a56530670ca67",
+   "format": 1
+  },
+  {
+   "name": "roles/openwrt/templates/manage-openwrt.sh.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "55c51c39d04a49a2cbf5c8d4dc769317c8aa9d07892f9c8a3077c6f7fa824970",
+   "format": 1
+  },
+  {
+   "name": "roles/openwrt/templates/system.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "56dd676dcb113b801da62d2838a84eca465352baefa4805158f80e6e75182bb5",
+   "format": 1
+  },
+  {
+   "name": "roles/openwrt/templates/firewall.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2ff2d573a332ed36b5ee2676ade6e79b525efdfe4a839ce988e3e751fed6748f",
+   "format": 1
+  },
+  {
+   "name": "roles/openwrt/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/openwrt/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4a3fde248933949d7c19930e55f5f39f1ffedef364511d908ed8d2256b5c5f13",
+   "format": 1
+  },
+  {
+   "name": "roles/openwrt/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/openwrt/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f0ea531f519c4f6f059e34f4bc8b63ed523715a504529fb2aa44651e7dadbccc",
+   "format": 1
+  },
+  {
+   "name": "roles/openwrt/handlers",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/openwrt/handlers/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7521af20c360696ddad34aa6bf1f1f8cc41b1798ee9bea2491d6e4c315090c6f",
+   "format": 1
+  },
+  {
+   "name": "roles/k3s_upgrade",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/k3s_upgrade/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/k3s_upgrade/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "856fc17dd7a5aa98c5895ca557f7920a90b3e939086aa2be891a3882398b7fcf",
+   "format": 1
+  },
+  {
+   "name": "roles/k3s_upgrade/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/k3s_upgrade/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "964a5fc66f4b69c5ec6ca48e5b9e3989471f878daa463835595fb5f6d8f2fd75",
+   "format": 1
+  },
+  {
+   "name": "roles/raspberrypi",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/raspberrypi/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/raspberrypi/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3a53e01dc012fbde9fb34ffaa5d7e4e98e929b92c20fa3832032db8286fb686",
+   "format": 1
+  },
+  {
+   "name": "roles/raspberrypi/tasks/prereq",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/raspberrypi/tasks/prereq/CentOS.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b7ecb2d14cbe167168ccc13e097f544363c0d65ccbf26d6765c2bebfc23afccb",
+   "format": 1
+  },
+  {
+   "name": "roles/raspberrypi/tasks/prereq/Ubuntu.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "669b36e52a35490d08536de5b012a39884ede709786d1bc446599b0c15c310e6",
+   "format": 1
+  },
+  {
+   "name": "roles/raspberrypi/tasks/prereq/Debian.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6c2cf884ad2a7b91e56e39f8e88fe43f35efa0e330d1f09f556f801d6fd30a81",
+   "format": 1
+  },
+  {
+   "name": "roles/raspberrypi/tasks/prereq/Archlinux.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "10229ce7ae7ed0a0b685d259106c1cd05bfb335bf6a724620015cb393f106036",
+   "format": 1
+  },
+  {
+   "name": "roles/raspberrypi/tasks/prereq/Raspbian.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "901fe2075f213f2d242b968b86d51fb66a7495d58bf2faaf8bd5fc5ae2697464",
+   "format": 1
+  },
+  {
+   "name": "roles/raspberrypi/tasks/prereq/default.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f52d711103d50a437830c6fbcd04fb4bab49a0f82f6d26d1c791c6e8488dd090",
+   "format": 1
+  },
+  {
+   "name": "roles/raspberrypi/handlers",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/raspberrypi/handlers/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8596607de70f9b1782bd3dead7f425e487533c347234dd2c899fff128b90999c",
+   "format": 1
+  },
+  {
+   "name": "roles/unbound",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/unbound/templates",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/unbound/templates/unbound.conf.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "af7b1309c663063981ca91484a119ba74f11443caabb9e0aab5f2a992f37958a",
+   "format": 1
+  },
+  {
+   "name": "roles/adguard",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/adguard/templates",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/adguard/templates/AdGuardHome.yaml.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "24c30ab827749e0e8808acd34b291af5d0b8c5ab95ca14e576e2dfc5c6a3d296",
+   "format": 1
+  },
+  {
+   "name": "roles/promtail",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/promtail/templates",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/promtail/templates/promtail.service.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "41be3ea0f519daa52195845f38e247fa7d167314f9b075dd4a7fdc291cc66b1f",
+   "format": 1
+  },
+  {
+   "name": "roles/promtail/templates/promtail.yml.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "acc67f8d669c1ac62ad0c869292db58b4e5be3b22b09139934a51d149364bd61",
+   "format": 1
+  },
+  {
+   "name": "roles/promtail/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/promtail/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "014b65b3d283d9c2b132d17cf1f1781fc1ae60bb21eecb711eea1b109d7453f4",
+   "format": 1
+  },
+  {
+   "name": "roles/promtail/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/promtail/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6db7467a601b383d5befe71e8b4fa662d753cdb68a85fc6c22bf72fb121276ef",
+   "format": 1
+  },
+  {
+   "name": "roles/promtail/handlers",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/promtail/handlers/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "bd6d5b53991fe7bf528554d45ea3f5e7da700db245d289698b29875e0fd855d3",
+   "format": 1
+  },
+  {
+   "name": "roles/grafana",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/grafana/templates",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/grafana/templates/datasources.yml.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6569de1ff83925016e9806b3ee7e74c77bf5248dc229ec84d43edf5974c9b25e",
+   "format": 1
+  },
+  {
+   "name": "roles/grafana/templates/grafana.ini.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d88fa2103a120efc3b93198b6f5acd1c2301aea3f0db5ebf8554ce80d36f9963",
+   "format": 1
+  },
+  {
+   "name": "roles/grafana/templates/dashboards.yml.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1dafea6a6b692c832ef939f3663d3dbc834eceb76fa9ff17986fefb067f12bd4",
+   "format": 1
+  },
+  {
+   "name": "roles/grafana/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/grafana/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c0e15253e372fff5803136f54c5aee5546c3f2a3a111a53daccf1c1e7f2a43d0",
+   "format": 1
+  },
+  {
+   "name": "roles/grafana/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/grafana/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6b3ffe439a6986af199dc2a5547522d29a742b7e4f21736d80715cbe996fe377",
+   "format": 1
+  },
+  {
+   "name": "roles/grafana/handlers",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/grafana/handlers/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ea274462db235c7b441f405837108c9ef3a5373162646a8fb4b71639c3615faa",
+   "format": 1
+  },
+  {
+   "name": "roles/lxc_container",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/lxc_container/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/lxc_container/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "b6398f5931f8bd67bf913d82d5bd7d72a275a2320ee34f1c3648d0673a7a4fa6",
+   "format": 1
+  },
+  {
+   "name": "roles/lxc_container/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/lxc_container/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2b8f60ac77f9f31a17eb7c45675d5d8fe821ceaa91f6306955363cefdea40695",
+   "format": 1
+  },
+  {
+   "name": "roles/pve_exporter",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/pve_exporter/templates",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/pve_exporter/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/pve_exporter/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4bb3ba66664b388e33c8e365797e9f81d967559d78f9ad56845416b684da6f9e",
+   "format": 1
+  },
+  {
+   "name": "roles/pve_exporter/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/pve_exporter/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3336c59c9940c12cade5a1a410e818bc86dced54479f05dc53f3f4f26f5b225d",
+   "format": 1
+  },
+  {
+   "name": "roles/pve_exporter/handlers",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/k3s_agent",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/k3s_agent/templates",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/k3s_agent/templates/k3s-agent.service.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4fefe5350969e93f1c321a693ade6909c54571c2c2013be1d3af52e6720f508b",
+   "format": 1
+  },
+  {
+   "name": "roles/k3s_agent/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/k3s_agent/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a3a6d0d33ea7eb930f6311fee4ad18be16bcf213b97713bc8d2f24e88e3ea12f",
+   "format": 1
+  },
+  {
+   "name": "roles/k3s_agent/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/k3s_agent/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e2e52e046babe05374814885d060959a2eb57dadb2b45fa8adf0ea51e9589e8e",
+   "format": 1
+  },
+  {
+   "name": "roles/traefik",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/traefik/templates",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/traefik/templates/dynamic.yml.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "93f3b46aa899cd34864bf60d70b8396f0d1b3d9caca9eaa0b9a8bffd330d23d2",
+   "format": 1
+  },
+  {
+   "name": "roles/traefik/templates/traefik.yml.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e14c89ac8737333be58206d965ac4c08cb76b63ea04960585a8ab623a5fb6149",
+   "format": 1
+  },
+  {
+   "name": "roles/traefik/templates/traefik.service.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7aa8feebbf75376ce9a0b057ebb223fc59bdeea68582aa55dfdde6607e34c46d",
+   "format": 1
+  },
+  {
+   "name": "roles/traefik/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/traefik/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2fd0b116ec9ce2c3e01ef5bf40c6358040aad19399a1cff44521efc93e3ea868",
+   "format": 1
+  },
+  {
+   "name": "roles/traefik/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/traefik/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1aa54521a16e50278cfa64d53859723fe58a77d3335169e39e9d00a1ece64b6e",
+   "format": 1
+  },
+  {
+   "name": "roles/traefik/README.md",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c21b82b47058c6c978e012870918e48682bf837bed4881ab8e4a72aa4804fab2",
+   "format": 1
+  },
+  {
+   "name": "roles/traefik/handlers",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/traefik/handlers/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "856b1b4b0ff08f661964093a45bfbcd73bb8cfd3938c9b91fa06a93298df66e2",
+   "format": 1
+  },
+  {
+   "name": "roles/airgap",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/airgap/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/airgap/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "81d1e1a8c369280c387a08169fbb77774315223976d50fdea2cf9fb8a5e1a42f",
+   "format": 1
+  },
+  {
+   "name": "roles/security_hardening",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/security_hardening/templates",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/security_hardening/templates/app-logrotate.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3d46d061f14cf5acde3e038f82cb1d932da54ba050feda77c5eafa217c8f07a7",
+   "format": 1
+  },
+  {
+   "name": "roles/security_hardening/templates/security_monitor.sh.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "10ae3eae03ad93e98ccb22ab22fdf70dbb1b79eb178f26064becfc66949edd15",
+   "format": 1
+  },
+  {
+   "name": "roles/security_hardening/templates/20auto-upgrades.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "581a02faff014942af4576cae36154c24773e7f07ec675715e8601fb42d253f0",
+   "format": 1
+  },
+  {
+   "name": "roles/security_hardening/templates/arr-stack.conf.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9c00da0eac703b354fa8df5c72efcac010c6d4d76122b8eddd267f99020526a3",
+   "format": 1
+  },
+  {
+   "name": "roles/security_hardening/templates/50unattended-upgrades.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "81c5f825c3d1f14d576d56a46fe21e1fe62ccf943f40aea7422cfeaf01c4507d",
+   "format": 1
+  },
+  {
+   "name": "roles/security_hardening/templates/jail.local.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a3d361a77b420c7eb266680e720ad80421164cd257de3ce5b666a4c999c34ed4",
+   "format": 1
+  },
+  {
+   "name": "roles/security_hardening/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/security_hardening/tasks/configure_fail2ban.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d19ac1c1c0560a460f99663d9e589e27b0067c362493a1445c11604c677f334b",
+   "format": 1
+  },
+  {
+   "name": "roles/security_hardening/tasks/configure_ufw.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6935cbbc9b38538e51b129675f572a5234008d0ea3ad194b3e5e45a94fde7b9a",
+   "format": 1
+  },
+  {
+   "name": "roles/security_hardening/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "45ce68e7d34bb6f057dbc164932b04406f1c2c73db943daf508977f21274a49a",
+   "format": 1
+  },
+  {
+   "name": "roles/security_hardening/tasks/configure_logging.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "db350bb17d8b9d5c8b6f122e1a18e231b488c6e7a373cb2417b8106a8f206c70",
+   "format": 1
+  },
+  {
+   "name": "roles/security_hardening/tasks/system_hardening.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4cdd397e36c7c475a27e913836165823013689d80450808accc763b2a9dbaf79",
+   "format": 1
+  },
+  {
+   "name": "roles/security_hardening/tasks/configure_ssh.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e980e741d4a7769d5aa0d976378162ad9b14f4c524083f35cc6c2ce8286644c5",
+   "format": 1
+  },
+  {
+   "name": "roles/security_hardening/tasks/configure_unattended_upgrades.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5d3435ca33c59aaa268be22007479188981dde513900d2bcfca135f2d2b8f5d9",
+   "format": 1
+  },
+  {
+   "name": "roles/security_hardening/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/security_hardening/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5537ff5d027b503b5f9f6489c7ded516dab318ea8764e6b17e9435d19da46700",
+   "format": 1
+  },
+  {
+   "name": "roles/security_hardening/handlers",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/security_hardening/handlers/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a5d486a448a7ff76d525a527fc67bfe74b6154769ead8f06825c08fe8cdcd702",
+   "format": 1
+  },
+  {
+   "name": "roles/prereq",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/prereq/vars",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/prereq/vars/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d9c0f79e3c89490c9ef28180e27ad8311ea34f270e36d63e9b75f2517c8625e3",
+   "format": 1
+  },
+  {
+   "name": "roles/prereq/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/prereq/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "511af7ba19167a4d564a246555fce023b7340a66c1ea5a8af659223205d4226e",
+   "format": 1
+  },
+  {
+   "name": "roles/prereq/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/prereq/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "dc9c539811ae18a0ab73dec06e87e0c1fddc4f057ddae663ce7074ce94e71e82",
+   "format": 1
+  },
+  {
+   "name": "roles/homeassistant",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/homeassistant/templates",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/homeassistant/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/homeassistant/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "eff2e241cf0e5c1fbd25317dae31452f5bc62c2b1f20c865afbbfcccd53c5f15",
+   "format": 1
+  },
+  {
+   "name": "roles/homeassistant/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "roles/homeassistant/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e13d54f0d0dff7a1d873f88b357f7a1b3c7065b215fa36ddb606a384530b1ce6",
+   "format": 1
+  },
+  {
+   "name": "roles/homeassistant/handlers",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "molecule",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "molecule/service-stack",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "molecule/service-stack/molecule.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "19cdbaaa44cd2ab070864f962f9dbf9d09bdd2751a0d0c3e367470e41260d57f",
+   "format": 1
+  },
+  {
+   "name": "molecule/service-stack/converge.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f019f3a7a9127f9af4f2e25984649481139c683bef910bbe10ad78edd9738da3",
+   "format": 1
+  },
+  {
+   "name": "molecule/service-stack/verify.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "411e99d8bf8cc669f3ecb1dddfe069a5a6527ade5be5e4d05fcf605feec7489b",
+   "format": 1
+  },
+  {
+   "name": "molecule/proxmox-integration",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "molecule/proxmox-integration/destroy.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6e158d642cff333c1ed072bb698f60c24878687e4f4e23021f2fb7ad2b180402",
+   "format": 1
+  },
+  {
+   "name": "molecule/proxmox-integration/molecule.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "57117b253f11963134af957b1cc99b3335393fea96d1d88339b11ffab1b0a5a4",
+   "format": 1
+  },
+  {
+   "name": "molecule/proxmox-integration/converge.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0201454dda598dbbdfb02b0ba17560229ff4334d9ffc70bad0ed8393c711244c",
+   "format": 1
+  },
+  {
+   "name": "molecule/proxmox-integration/verify.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "27773e01d0574cef20ad1796aeec7a0f8ad00a894ced1d0eea6cd724a445cd33",
+   "format": 1
+  },
+  {
+   "name": "molecule/proxmox-integration/create.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c166f85510c71b06003981ddb173fc71b87193dc366901173180d0aeee87446d",
+   "format": 1
+  },
+  {
+   "name": "molecule/default",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "molecule/default/molecule.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "77055995f75ee35551c7ce657107b09cfde7e97094d241ceb6f98e60edd21727",
+   "format": 1
+  },
+  {
+   "name": "molecule/default/converge.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "5e3066efe0096f719bcd3253dfe400a68311bf099a8305119add1df24107ee91",
+   "format": 1
+  },
+  {
+   "name": "molecule/default/prepare.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "49ca901cfb76ff92938c441a6553d1add57919b4be0674f827ec0f1155eef273",
+   "format": 1
+  },
+  {
+   "name": "molecule/default/verify.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7e98934d3e117121b64ce95695cd8c422892e4a13fbc436a5ac02111ccb3db79",
+   "format": 1
+  },
+  {
+   "name": "DYNAMIC_INVENTORY_SETUP.md",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d37ce13c909065aa7fe7a6036c224d76db0afbc462f075a7c49c6de35d79a8a6",
+   "format": 1
+  },
+  {
+   "name": "README.md",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f348d5708058b11b8bd3a966fe24a897f1ed370df493340b827ab070cc6e2a24",
+   "format": 1
+  },
+  {
+   "name": "meta",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "meta/runtime.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f0e623910ea968377ed6b31bac36881843faa1fe76a962dc812398ff41037d3b",
+   "format": 1
+  },
+  {
+   "name": "molecule.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1c5f72e20e5c995eed729f73dbd7755a27b74d2e23815cc47cbc584a83ce2884",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/.ansible",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/.ansible/collections",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/.ansible/collections/ansible_collections",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/.ansible/roles",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/.ansible/modules",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/inventory",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/inventory/group_vars",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/inventory/group_vars/all.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8123c9c607b1ba6ab0ea950d8bcca223d3db66f04b2e363629a2f9085bb18ed7",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/inventory/group_vars/all",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/inventory/group_vars/all/vault.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a63158121403fa89fd9caa6baf2f92797f301d766c57b9a2ef2d20de891eb66e",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/tasks/proxmox_api_validation.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "fb943c32def19441e3c4a14682d6f286713710cecf27ad6ef014c2c2c6ff9ffa",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/tasks/proxmox_operations.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "fbd16e3d3e3815a0f9d4a06259c2fc691d18d757e76f7ef722f654e83f9f8bf6",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/monitoring_agent",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/monitoring_agent/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/monitoring_agent/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "7f7b3cb639d9f92f9029c3686b98c4dca11d9f756cd8fa84f14a116eb1d6a6bb",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/monitoring_agent/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/monitoring_agent/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "09f6f6aed2577297dcd1a54addb87a50e83de2c3589f9df8cebe4a40581b8ba1",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/common_setup",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/common_setup/templates",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/common_setup/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/common_setup/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f9917a76926500bc4683dabafb9d51d25a117f3a2b95c1b298f0e1337e34a0bc",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/common_setup/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/common_setup/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e9f90aabd2ce748ab3376de52d13f77adb390fd519696c0108d29726279b59dc",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/common_setup/handlers",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/common_setup/handlers/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4a1ce98c4d9d68448400c3d77b79ee70a14fd04b668bbf4728dec36213748094",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/container_base",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/container_base/templates",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/container_base/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/container_base/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "602d44575b84abd3375d03f4c332cb604e43c514be20978cc18fe822ae879f63",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/container_base/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/container_base/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "8b28cf86e938922d73e69445f2b3a8fa6ec29655bd386899661532c8ebdd64be",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/security_hardening",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/security_hardening/templates",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/security_hardening/templates/k3s-api.conf.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9e4b3543a3693d41b51a501ddd45add8ecdaa3e22e68305e89e6b85f6219856f",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/security_hardening/templates/avahi-daemon.conf.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ec6bd2b3342c65ef54c2d3eab810390bcf3f567472ecc707be1c9f408abf7f29",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/security_hardening/templates/jail.local.k3s.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "00d220ac7aaaf683ddcadc99f03bb4534c076868b04a50a4e021b06484094536",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/security_hardening/templates/hostname.service.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d90b3cd34960035880104590f3cb397ec2da3b075d2102b61baf732323a214f2",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/security_hardening/templates/50unattended-upgrades-pi.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9e1285d1795dcc6c69f570823b91c6773f4f2c33c36ddf6174ec98b4ca32c24b",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/security_hardening/templates/k3s_security_monitor.sh.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1db50aec6111d9c52e4039b96146a898bb0fa660114ecbc7dc8978d561baefde",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/security_hardening/templates/20auto-upgrades-pi.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "725d231ddc6309a36949cf5392c4374883afe4f42214ea8316d4256131e4b6d1",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/security_hardening/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/security_hardening/tasks/configure_fail2ban_k3s.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "79725a30db572e248bb1fbea0332b76035e250131b9a2b81aa82b795a2582a15",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/security_hardening/tasks/system_hardening_k3s.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "0f5d32bfe8fba830591805464be6a19e61304d1597af242545592439a65c427f",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/security_hardening/tasks/configure_unattended_upgrades_pi.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "02e09a64a3c5405b8525a876e8223bcede0fe5d8e8208915e58cba6e1fe243f2",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/security_hardening/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "112473e2bd6dc0f02700fe58068f5a6fbf38f5a65ab4d7c838a9c7f9b8a8b3b5",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/security_hardening/tasks/detect_pi.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e558051b52aa349a14e95e470a38ab490a3019b0490547a7511112107493c333",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/security_hardening/tasks/configure_ufw_k3s.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "669434e4ecb2e52f7a18b09216d1ae3763acc0a0c7fc9a4862a9640d4fe088e5",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/security_hardening/tasks/configure_logging_k3s.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2ef97e3e8ad9bb391462d6e5d7c7ca87090dadd9bc1e358cc5ac625f5bc4ef77",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/security_hardening/tasks/configure_ssh_k3s.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d85dbcdb87236b50610f9a561db167c86755b19b47d032f0da2cff3970e97551",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/security_hardening/tasks/pi_system_hardening.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3e1e8e086f7b756357791c247356fa7b910e141aac0ffc4703a75134902e6fc7",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/security_hardening/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/security_hardening/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "69d08f11ca60a0451ca961163a54a01bd57433e82332a707ca7b0ba176425679",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/security_hardening/README.md",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a988d7ca2a09237061105a6410f2d37f77cb4be0b76d5d1e9763eebc943ed672",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/security_hardening/handlers",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/roles/security_hardening/handlers/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f5928e3d6048110e824c2103488274b536840d40079860dc84d77415d8fee71a",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/FILES.json",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e3729b1c93c0e83a2f1a732324adc102551b14f55e0cac7e5fca558a22310410",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/molecule",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/molecule/common-roles",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/molecule/common-roles/molecule.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6756556f86d2d84cfa08e70b896b7b66263212c2fe12f17b28b95fd0adcc5b09",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/molecule/common-roles/converge.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3bb5ef39f662aafdac99f3e206df313a7b554129609868b025e48e525941c78a",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/molecule/common-roles/verify.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c0cfb7001bdd69fabe7c3702206ed9da7d8e4ffaba8c8640a09405b84c21c68d",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/molecule/default",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/molecule/default/molecule.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9f25e3a4ee53e06f0b4420d66d5fc1dce7a8b521bb837d08f97e973bf553776d",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/molecule/default/converge.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "807cdb5443af459114a24bb4a32cdff3d1f16f1881e70dd46359bf99c6143aac",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/molecule/default/verify.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "51ccfd2f92abe6dd5e509f72d99aa39d9b2c94ca2158d334382c2f7e56ebfefe",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/README.md",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "524b9552efcd26c8357d606d70b0d141a9eb0106138912cf87e21a3b21f105f9",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/MANIFEST.json",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3891680fc589337099816f79aa2626f5ff08ed8635b9e5088694f80e267a78d9",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/meta",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/meta/runtime.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d949cb6a96fbe9e4e95e981be2e36daf8cac041da62487c4d2414e806487113a",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/collections/ansible_collections/homelab/common/requirements.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ec94111f8e2ff7b7b942722939600050eace43c74b87812bb0f044b0a3ef4dd8",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/roles",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/.ansible/modules",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/inventory",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/inventory/group_vars",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/inventory/group_vars/all.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ffa8fa866bb8812a9962f898fdfabe556722f579f1b5af1d29109d99feddddd9",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/inventory/group_vars/all",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/inventory/group_vars/all/vault.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a63158121403fa89fd9caa6baf2f92797f301d766c57b9a2ef2d20de891eb66e",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/tasks/proxmox_api_validation.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e2231b578722e632f599e783d8c247ebadf641e8ac3de53d223ce13e34da0601",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/tasks/proxmox_operations.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "fbd16e3d3e3815a0f9d4a06259c2fc691d18d757e76f7ef722f654e83f9f8bf6",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/monitoring_agent",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/monitoring_agent/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/monitoring_agent/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "51d12fd839c9de95308e2c168acf819386ebaf306077a97b17b1c0dee0570945",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/monitoring_agent/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/monitoring_agent/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "09f6f6aed2577297dcd1a54addb87a50e83de2c3589f9df8cebe4a40581b8ba1",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/common_setup",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/common_setup/templates",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/common_setup/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/common_setup/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f9917a76926500bc4683dabafb9d51d25a117f3a2b95c1b298f0e1337e34a0bc",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/common_setup/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/common_setup/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e9f90aabd2ce748ab3376de52d13f77adb390fd519696c0108d29726279b59dc",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/common_setup/handlers",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/common_setup/handlers/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "4a1ce98c4d9d68448400c3d77b79ee70a14fd04b668bbf4728dec36213748094",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/container_base",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/container_base/templates",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/container_base/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/container_base/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "048e6ffa57f9ef8599859c22cfa636bcbd4d52c6749e975ffc0b0ca3b350ccf3",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/container_base/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/container_base/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9ec1aeeb4b0c2ae1dd41ada9c6611c9956ff122040e6587ea5d3ae6a0a23665f",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/security_hardening",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/security_hardening/templates",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/security_hardening/templates/k3s-api.conf.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9e4b3543a3693d41b51a501ddd45add8ecdaa3e22e68305e89e6b85f6219856f",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/security_hardening/templates/avahi-daemon.conf.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ec6bd2b3342c65ef54c2d3eab810390bcf3f567472ecc707be1c9f408abf7f29",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/security_hardening/templates/jail.local.k3s.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "00d220ac7aaaf683ddcadc99f03bb4534c076868b04a50a4e021b06484094536",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/security_hardening/templates/hostname.service.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d90b3cd34960035880104590f3cb397ec2da3b075d2102b61baf732323a214f2",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/security_hardening/templates/50unattended-upgrades-pi.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9e1285d1795dcc6c69f570823b91c6773f4f2c33c36ddf6174ec98b4ca32c24b",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/security_hardening/templates/k3s_security_monitor.sh.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "1db50aec6111d9c52e4039b96146a898bb0fa660114ecbc7dc8978d561baefde",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/security_hardening/templates/20auto-upgrades-pi.j2",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "725d231ddc6309a36949cf5392c4374883afe4f42214ea8316d4256131e4b6d1",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/security_hardening/tasks",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/security_hardening/tasks/configure_fail2ban_k3s.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "79725a30db572e248bb1fbea0332b76035e250131b9a2b81aa82b795a2582a15",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/security_hardening/tasks/system_hardening_k3s.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "01b77eb222ad52d48e2ec29913b5e228a828b35273a3694af893778f49872c46",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/security_hardening/tasks/configure_unattended_upgrades_pi.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "02e09a64a3c5405b8525a876e8223bcede0fe5d8e8208915e58cba6e1fe243f2",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/security_hardening/tasks/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "112473e2bd6dc0f02700fe58068f5a6fbf38f5a65ab4d7c838a9c7f9b8a8b3b5",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/security_hardening/tasks/detect_pi.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e558051b52aa349a14e95e470a38ab490a3019b0490547a7511112107493c333",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/security_hardening/tasks/configure_ufw_k3s.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e202f5a5c9e10882827dc9c2ea5d1c9b32369656bc91d7d6b61a411aaea32b5a",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/security_hardening/tasks/configure_logging_k3s.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "2ef97e3e8ad9bb391462d6e5d7c7ca87090dadd9bc1e358cc5ac625f5bc4ef77",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/security_hardening/tasks/configure_ssh_k3s.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "cf19b8686a042fc7da8955e0e8a608b40b1c5903c12bd2b9152d319ea57567e3",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/security_hardening/tasks/pi_system_hardening.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "cd3f564c0fcf93d477fb6115dea39cb6621045f367ba3a995caab625fca36160",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/security_hardening/defaults",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/security_hardening/defaults/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "646a85b475743720c74cd706ded319ae5bfe982ba2993dfd1a739d91bf3f3fa1",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/security_hardening/README.md",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "a988d7ca2a09237061105a6410f2d37f77cb4be0b76d5d1e9763eebc943ed672",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/security_hardening/handlers",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/roles/security_hardening/handlers/main.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "f5928e3d6048110e824c2103488274b536840d40079860dc84d77415d8fee71a",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/FILES.json",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "40868d0523519b1caebf94b4ba316713143661780ac83d40ae24070737fd1e92",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/molecule",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/molecule/common-roles",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/molecule/common-roles/molecule.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "6756556f86d2d84cfa08e70b896b7b66263212c2fe12f17b28b95fd0adcc5b09",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/molecule/common-roles/converge.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "3bb5ef39f662aafdac99f3e206df313a7b554129609868b025e48e525941c78a",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/molecule/common-roles/verify.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "c0cfb7001bdd69fabe7c3702206ed9da7d8e4ffaba8c8640a09405b84c21c68d",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/molecule/default",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/molecule/default/molecule.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "9f25e3a4ee53e06f0b4420d66d5fc1dce7a8b521bb837d08f97e973bf553776d",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/molecule/default/converge.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "807cdb5443af459114a24bb4a32cdff3d1f16f1881e70dd46359bf99c6143aac",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/molecule/default/verify.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "51ccfd2f92abe6dd5e509f72d99aa39d9b2c94ca2158d334382c2f7e56ebfefe",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/README.md",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "524b9552efcd26c8357d606d70b0d141a9eb0106138912cf87e21a3b21f105f9",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/MANIFEST.json",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "e84ad8d1fc147b9523baf09e369c9da72dc765c4334b94948417a221a4898fa7",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/meta",
+   "ftype": "dir",
+   "chksum_type": null,
+   "chksum_sha256": null,
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/meta/runtime.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d949cb6a96fbe9e4e95e981be2e36daf8cac041da62487c4d2414e806487113a",
+   "format": 1
+  },
+  {
+   "name": "ansible_collections/homelab/common/requirements.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "ec94111f8e2ff7b7b942722939600050eace43c74b87812bb0f044b0a3ef4dd8",
+   "format": 1
+  },
+  {
+   "name": "requirements.yml",
+   "ftype": "file",
+   "chksum_type": "sha256",
+   "chksum_sha256": "d05321e03e6aae5decd374c30d324509d44cebf050195b89beffb8db177fb9b9",
+   "format": 1
+  }
+ ],
+ "format": 1
+}

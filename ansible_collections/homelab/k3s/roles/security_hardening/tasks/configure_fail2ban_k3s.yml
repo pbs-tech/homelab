@@ -3,7 +3,7 @@
   template:
     src: jail.local.k3s.j2
     dest: /etc/fail2ban/jail.local
-    mode: '0644'
+    mode: "0644"
     owner: root
     group: root
   notify: restart fail2ban
@@ -12,7 +12,7 @@
   template:
     src: k3s-api.conf.j2
     dest: /etc/fail2ban/filter.d/k3s-api.conf
-    mode: '0644'
+    mode: "0644"
     owner: root
     group: root
   when: inventory_hostname in groups['server']
@@ -21,7 +21,7 @@
 - name: Configure K3s-specific jails
   blockinfile:
     path: /etc/fail2ban/jail.local
-    marker: "# {mark} ANSIBLE MANAGED K3S JAILS"
+    marker: # {mark} ANSIBLE MANAGED K3S JAILS
     block: |
       [k3s-api]
       enabled = {{ 'true' if inventory_hostname in groups['server'] else 'false' }}
@@ -31,7 +31,7 @@
       maxretry = {{ pi_security_hardening.fail2ban.maxretry }}
       bantime = {{ pi_security_hardening.fail2ban.bantime }}
       findtime = {{ pi_security_hardening.fail2ban.findtime }}
-      
+
       [kubelet]
       enabled = true
       port = 10250
@@ -52,7 +52,7 @@
                   ^.*kubelet.*authentication.*failed.*<HOST>.*$
       ignoreregex = ^.*kubelet.*authentication.*successful.*$
     dest: /etc/fail2ban/filter.d/kubelet.conf
-    mode: '0644'
+    mode: "0644"
     owner: root
     group: root
   notify: restart fail2ban
@@ -61,4 +61,4 @@
   systemd:
     name: fail2ban
     state: started
-    enabled: yes
+    enabled: true

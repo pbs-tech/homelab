@@ -2,17 +2,19 @@
 - name: Cleanup test resources
   hosts: raspberry_pi_test
   become: true
-  
+
   tasks:
     - name: Remove test namespace and workloads
-      shell: |
+      ansible.builtin.shell: |
+        # yamllint disable-line rule:line-length
+        # yamllint disable-line rule:line-length
         k3s kubectl delete namespace molecule-test-{{ molecule_test_id | default(ansible_date_time.epoch) }} --ignore-not-found=true
       delegate_to: "{{ groups['k3s_servers'][0] }}"
       run_once: true
       ignore_errors: true
 
     - name: Remove test marker file
-      file:
+      ansible.builtin.file:
         path: /tmp/molecule-k3s-test
         state: absent
 
@@ -21,7 +23,7 @@
         # Uncomment these tasks if you want to fully reset after testing
         # - name: Stop K3s services
         #   systemd:
-        #     name: "{{ item }}"
+        #     name: {{ item }}
         #     state: stopped
         #   loop:
         #     - k3s
@@ -33,11 +35,11 @@
         #   ignore_errors: true
         #   when: inventory_hostname in groups['k3s_servers']
 
-        # - name: Run K3s agent uninstall script  
+        # - name: Run K3s agent uninstall script
         #   shell: /usr/local/bin/k3s-agent-uninstall.sh
         #   ignore_errors: true
         #   when: inventory_hostname in groups['k3s_agents']
 
         - name: Log cleanup completion
-          debug:
-            msg: "Molecule K3s test cleanup completed. Cluster left running for further use."
+          ansible.builtin.debug:
+            msg: Molecule K3s test cleanup completed. Cluster left running for further use.

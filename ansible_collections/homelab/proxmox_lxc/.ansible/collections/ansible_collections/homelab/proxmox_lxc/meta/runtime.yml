@@ -1,0 +1,10 @@
+---
+requires_ansible: ">=2.15.0"
+action_groups:
+  proxmox:
+    - community.general.proxmox
+    - community.general.proxmox_template
+plugin_routing:
+  modules:
+    proxmox:
+      redirect: community.general.proxmox

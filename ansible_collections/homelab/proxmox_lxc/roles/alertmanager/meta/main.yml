@@ -1,0 +1,33 @@
+---
+galaxy_info:
+  role_name: alertmanager
+  namespace: homelab
+  author: Homelab Administrator
+  description: Deploy and configure Prometheus AlertManager for centralized alert handling and notification routing
+  company: Homelab
+  license: MIT
+
+  min_ansible_version: "2.13"
+
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+        - focal
+
+  galaxy_tags:
+    - alertmanager
+    - prometheus
+    - monitoring
+    - alerts
+    - notifications
+    - observability
+    - homelab
+    - lxc
+    - proxmox
+
+dependencies:
+  - role: homelab.common.container_base
+    when: use_container_base | default(true)
+  - role: homelab.common.security_hardening
+    when: use_security_hardening | default(true)

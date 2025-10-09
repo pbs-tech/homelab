@@ -1,8 +1,8 @@
 ---
 - name: Update system packages
   apt:
-    update_cache: yes
-    upgrade: yes
+    update_cache: true
+    upgrade: true
 
 - name: Install required packages
   apt:
@@ -19,7 +19,7 @@
   file:
     path: "{{ item }}"
     state: directory
-    mode: '0755'
+    mode: "0755"
   loop:
     - /opt/openwrt
     - /opt/openwrt/config
@@ -29,62 +29,68 @@
   get_url:
     url: "{{ openwrt_release_url }}"
     dest: /tmp/openwrt.img.gz
-    mode: '0644'
+    mode: "0644"
   register: openwrt_download
 
 - name: Extract OpenWrt image
   command: gunzip -f /tmp/openwrt.img.gz
-  when: openwrt_download.changed
+  args:
+    creates: /tmp/openwrt.img
+  when: openwrt_download.changed  # noqa: no-handler
 
 - name: Convert OpenWrt image to VM disk
   command: qemu-img convert -f raw -O qcow2 /tmp/openwrt.img /opt/openwrt/openwrt.qcow2
-  when: openwrt_download.changed
+  args:
+    creates: /opt/openwrt/openwrt.qcow2
+  when: openwrt_download.changed  # noqa: no-handler
 
 - name: Resize OpenWrt disk
   command: qemu-img resize /opt/openwrt/openwrt.qcow2 1G
-  when: openwrt_download.changed
+  when: openwrt_download.changed  # noqa: no-handler
+  changed_when: true
 
 - name: Generate UCI network configuration
   template:
     src: network.j2
     dest: /opt/openwrt/config/network
-    mode: '0644'
+    mode: "0644"
 
 - name: Generate UCI system configuration
   template:
     src: system.j2
     dest: /opt/openwrt/config/system
-    mode: '0644'
+    mode: "0644"
 
 - name: Generate UCI firewall configuration
   template:
     src: firewall.j2
     dest: /opt/openwrt/config/firewall
-    mode: '0644'
+    mode: "0644"
 
 - name: Generate UCI DHCP configuration
   template:
     src: dhcp.j2
     dest: /opt/openwrt/config/dhcp
-    mode: '0644'
+    mode: "0644"
 
 - name: Generate UCI wireless configuration (if applicable)
   template:
     src: wireless.j2
     dest: /opt/openwrt/config/wireless
-    mode: '0644'
+    mode: "0644"
   when: openwrt_enable_wifi | default(false)
 
 - name: Create OpenWrt management script
   template:
     src: manage-openwrt.sh.j2
     dest: /usr/local/bin/manage-openwrt
-    mode: '0755'
+    mode: "0755"
 
 - name: Create OpenWrt systemd service
   template:
     src: openwrt.service.j2
     dest: /etc/systemd/system/openwrt.service
+    mode: "0644"
   notify:
     - reload systemd
     - restart openwrt
@@ -93,12 +99,13 @@
   template:
     src: rsyslog-openwrt.conf.j2
     dest: /etc/rsyslog.d/30-openwrt.conf
+    mode: "0644"
   notify: restart rsyslog
   when: openwrt_remote_syslog_server is defined
 
 - name: Enable and start OpenWrt service
   systemd:
     name: openwrt
-    enabled: yes
+    enabled: true
     state: started
-    daemon_reload: yes
+    daemon_reload: true

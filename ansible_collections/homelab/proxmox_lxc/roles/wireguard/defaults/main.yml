@@ -2,8 +2,8 @@
 # WireGuard secure access configuration
 wireguard_port: 51820
 wireguard_interface: wg0
-wireguard_server_ip: "10.200.0.1/24"
-wireguard_server_network: "10.200.0.0/24"
+wireguard_server_ip: 10.200.0.1/24
+wireguard_server_network: 10.200.0.0/24
 
 # Security settings
 wireguard_mtu: 1420
@@ -12,18 +12,17 @@ wireguard_enable_preshared_keys: true
 
 # Example client configurations (replace with actual keys)
 wireguard_clients:
-  - name: "admin-laptop"
-    description: "Primary admin laptop"
-    public_key: "REPLACE_WITH_ACTUAL_PUBLIC_KEY"
-    allowed_ips: "10.200.0.2/32"
-    preshared_key: "REPLACE_WITH_ACTUAL_PSK"
+  - name: admin-laptop
+    description: Primary admin laptop
+    public_key: REPLACE_WITH_ACTUAL_PUBLIC_KEY
+    allowed_ips: 10.200.0.2/32
+    preshared_key: REPLACE_WITH_ACTUAL_PSK
     persistent_keepalive: 25
-    
-  - name: "mobile-device"
-    description: "Admin mobile device"  
-    public_key: "REPLACE_WITH_ACTUAL_PUBLIC_KEY"
-    allowed_ips: "10.200.0.3/32"
-    preshared_key: "REPLACE_WITH_ACTUAL_PSK"
+  - name: mobile-device
+    description: Admin mobile device
+    public_key: REPLACE_WITH_ACTUAL_PUBLIC_KEY
+    allowed_ips: 10.200.0.3/32
+    preshared_key: REPLACE_WITH_ACTUAL_PSK
     persistent_keepalive: 25
 
 # Network access policies
@@ -35,10 +34,23 @@ wireguard_allowed_networks:
 # Security firewall rules
 wireguard_firewall_rules:
   - "iptables -A INPUT -i {{ wireguard_interface }} -j ACCEPT"
-  - "iptables -A FORWARD -i {{ wireguard_interface }} -j ACCEPT" 
+  - "iptables -A FORWARD -i {{ wireguard_interface }} -j ACCEPT"
   - "iptables -A FORWARD -o {{ wireguard_interface }} -j ACCEPT"
   - "iptables -A INPUT -p udp --dport {{ wireguard_port }} -j ACCEPT"
 
 # Logging and monitoring
 wireguard_enable_logging: true
-wireguard_log_level: "info"
+wireguard_log_level: info
+
+# Firewall configuration
+wireguard_enable_firewall: true
+
+# DNS servers for clients
+wireguard_dns_servers:
+  - "192.168.0.202"  # AdGuard/Unbound DNS
+
+# Public endpoint (replace with your actual public IP or domain)
+wireguard_public_endpoint: "vpn.homelab.example.com"
+
+# QR code generation for mobile clients
+wireguard_generate_qrcodes: false

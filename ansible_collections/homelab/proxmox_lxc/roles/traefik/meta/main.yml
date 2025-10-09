@@ -1,0 +1,64 @@
+---
+galaxy_info:
+  role_name: traefik
+  namespace: homelab
+  author: "Homelab Administrator"
+  description: >
+    Deploys and configures Traefik reverse proxy in LXC container with
+    automatic SSL certificate management, service discovery for Docker and
+    Kubernetes workloads, security headers, and rate limiting.
+  company: Homelab
+  license: MIT
+  min_ansible_version: "2.14"
+
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal      # 20.04 LTS
+        - jammy      # 22.04 LTS
+    - name: Debian
+      versions:
+        - bullseye   # 11
+        - bookworm   # 12
+
+  galaxy_tags:
+    - traefik
+    - reverseproxy
+    - loadbalancer
+    - proxy
+    - ingress
+    - letsencrypt
+    - ssl
+    - tls
+    - docker
+    - kubernetes
+    - k3s
+    - homelab
+    - lxc
+    - proxmox
+    - servicediscovery
+    - middleware
+
+dependencies:
+  - role: homelab.common.container_base
+    vars:
+      container_unprivileged: true
+  - role: homelab.common.security_hardening
+    vars:
+      ufw_config:
+        service_rules:
+          http:
+            port: 80
+            protocol: tcp
+            comment: "HTTP traffic"
+          https:
+            port: 443
+            protocol: tcp
+            comment: "HTTPS traffic"
+          dashboard:
+            port: 8080
+            protocol: tcp
+            source: "192.168.0.0/24"
+            comment: "Traefik dashboard (internal only)"
+
+allow_duplicates: false

@@ -10,24 +10,25 @@
       assert:
         that:
           - ansible_version.full is version('2.15.0', '>=')
-        fail_msg: "Ansible 2.15.0 or higher is required"
-        success_msg: "Ansible version check passed"
+        fail_msg: Ansible 2.15.0 or higher is required
+        success_msg: Ansible version check passed
 
     - name: Verify collections are available
       assert:
         that:
-          - lookup('ansible.builtin.env', 'ANSIBLE_COLLECTIONS_PATH') is defined or 
+          - >-
+            lookup('ansible.builtin.env', 'ANSIBLE_COLLECTIONS_PATH') is defined or
             lookup('file', '../ansible_collections/homelab/common/galaxy.yml', errors='ignore') != ""
-        fail_msg: "homelab.common collection not found"
-        success_msg: "Collections check passed"
+        fail_msg: homelab.common collection not found
+        success_msg: Collections check passed
 
 - name: Deploy infrastructure foundation
   import_playbook: foundation.yml
-  tags: 
+  tags:
     - foundation
     - phase1
 
-- name: Deploy networking services  
+- name: Deploy networking services
   import_playbook: networking.yml
   tags:
     - networking

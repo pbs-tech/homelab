@@ -6,21 +6,36 @@ readme: README.md
 authors:
   - "Homelab Administrator"
   - "K3s Ansible Community"
-description: Ansible collection for deploying K3s Kubernetes cluster on Raspberry Pi nodes
+description: >
+  Ansible collection for deploying and managing K3s Kubernetes clusters on
+  Raspberry Pi nodes with integrated security hardening, monitoring, and
+  Traefik ingress controller integration.
 license:
   - Apache-2.0
 tags:
   - k3s
   - kubernetes
-  - raspberry-pi
+  - raspberrypi
   - homelab
   - cluster
+  - security
+  - monitoring
+  - ingress
+  - automation
 dependencies:
   homelab.common: "*"
   community.general: ">=7.0.0"
   ansible.posix: ">=1.5.0"
-repository: ""
-documentation: ""
-homepage: ""
-issues: ""
-build_ignore: []
+repository: "https://github.com/your-org/homelab-ansible"
+documentation: "https://github.com/your-org/homelab-ansible/tree/main/ansible_collections/homelab/k3s"
+homepage: "https://github.com/your-org/homelab-ansible"
+issues: "https://github.com/your-org/homelab-ansible/issues"
+build_ignore:
+  - "*.tar.gz"
+  - "molecule/"
+  - "tests/"
+  - "**/__pycache__"
+  - "**/*.pyc"
+  - ".ansible/"
+  - ".cache/"
+  - ".pytest_cache/"

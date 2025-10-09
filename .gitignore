@@ -1,0 +1,35 @@
+/.claude/
+
+# Ansible build artifacts
+*.tar.gz
+*.retry
+
+# Collection build artifacts
+ansible_collections/**/homelab-*.tar.gz
+
+# Cache directories
+.ansible/
+.cache/
+**/__pycache__/
+**/*.pyc
+.pytest_cache/
+
+# Molecule artifacts
+molecule/.cache/
+.molecule/
+
+# Vault files
+vault.yml
+*vault*.yml
+.vault_pass
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db

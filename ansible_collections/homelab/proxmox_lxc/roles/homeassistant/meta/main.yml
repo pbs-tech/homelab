@@ -1,0 +1,53 @@
+---
+galaxy_info:
+  role_name: homeassistant
+  namespace: homelab
+  author: Homelab Administrator
+  description: >
+    Deploys and configures Home Assistant in an LXC container for comprehensive
+    home automation. Supports 2000+ integrations, voice control, energy management,
+    and advanced automation workflows. Includes Docker-based deployment, USB device
+    passthrough for Zigbee/Z-Wave, MQTT integration, and automated backup configuration.
+
+  license: MIT
+
+  min_ansible_version: "2.15.0"
+
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy  # 22.04 LTS
+        - focal  # 20.04 LTS
+
+  galaxy_tags:
+    - homeassistant
+    - smarthome
+    - automation
+    - iot
+    - homelab
+    - lxc
+    - proxmox
+    - zigbee
+    - zwave
+    - mqtt
+    - docker
+    - monitoring
+
+dependencies:
+  - role: homelab.common.container_base
+    vars:
+      container_name: "homeassistant"
+      container_ip: "{{ homeassistant_ip | default('192.168.0.208') }}"
+      container_id: "{{ homeassistant_container_id | default(208) }}"
+      container_memory: "{{ homeassistant_resources.memory | default(2048) }}"
+      container_cores: "{{ homeassistant_resources.cores | default(2) }}"
+      container_disk: "{{ homeassistant_resources.disk_size | default('30') }}"
+      container_node: "{{ homeassistant_node | default('pve-mac') }}"
+
+  - role: homelab.common.security_hardening
+    vars:
+      hardening_ssh_enabled: true
+      hardening_firewall_enabled: true
+      hardening_allowed_ports:
+        - "{{ homeassistant_port | default(8123) }}/tcp"  # Home Assistant web UI
+      hardening_fail2ban_enabled: false  # Optional, enable if exposing directly

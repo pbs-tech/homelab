@@ -10,7 +10,7 @@
     - name: Ensure monitoring containers exist
       include_role:
         name: homelab.common.container_base
-      when: 
+      when:
         - inventory_hostname.endswith('-lxc')
         - container_id is defined
 
@@ -33,7 +33,7 @@
   post_tasks:
     - name: Verify monitoring services
       uri:
-        url: "http://{{ ansible_host }}:{{ service_port }}"
+        url: http://{{ ansible_host }}:{{ service_port }}
         method: GET
         timeout: 30
         status_code: [200, 302]

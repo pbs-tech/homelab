@@ -24,7 +24,7 @@ check_disk_space() {
     if [ $DISK_USAGE -gt 80 ]; then
         log_message "WARNING: Disk usage is ${DISK_USAGE}%"
     fi
-    
+
     # Check /var/log specifically for Pi nodes
     LOG_USAGE=$(df /var/log | awk 'NR==2 {print $5}' | sed 's/%//')
     if [ $LOG_USAGE -gt 75 ]; then
@@ -39,7 +39,7 @@ check_k3s_services() {
     if ! systemctl is-active --quiet k3s; then
         log_message "ERROR: K3s server service is not running"
     fi
-    
+
     # Check API server accessibility
     if ! curl -k -s https://localhost:6443/readyz > /dev/null 2>&1; then
         log_message "ERROR: K3s API server not accessible"
@@ -51,7 +51,7 @@ check_k3s_services() {
     if ! systemctl is-active --quiet k3s-agent; then
         log_message "ERROR: K3s agent service is not running"
     fi
-    
+
     # Check kubelet
     if ! curl -s http://localhost:10248/healthz > /dev/null 2>&1; then
         log_message "ERROR: Kubelet not responding"
@@ -62,12 +62,12 @@ check_k3s_services() {
     if ! systemctl is-active --quiet avahi-daemon; then
         log_message "WARNING: avahi-daemon is not running (.local domains unavailable)"
     fi
-    
+
     # Check UFW status
     if ! ufw status | grep -q "Status: active"; then
         log_message "ERROR: UFW firewall is not active"
     fi
-    
+
     # Check Fail2ban status
     if ! systemctl is-active --quiet fail2ban; then
         log_message "ERROR: Fail2ban is not running"
@@ -81,7 +81,7 @@ check_resources() {
     if [ $MEMORY_USAGE -gt 85 ]; then
         log_message "WARNING: Memory usage is ${MEMORY_USAGE}%"
     fi
-    
+
     # Check CPU temperature (Pi-specific)
     if [ -f /opt/vc/bin/vcgencmd ]; then
         TEMP=$(vcgencmd measure_temp | sed 's/temp=//' | sed 's/°C//')
@@ -90,7 +90,7 @@ check_resources() {
             log_message "WARNING: Pi temperature is ${TEMP}"
         fi
     fi
-    
+
     # Check for high CPU usage processes
     HIGH_CPU=$(ps aux --sort=-%cpu | awk 'NR<=6 && $3>50.0 {print $11}' | grep -v "COMMAND")
     if [ ! -z "$HIGH_CPU" ]; then
@@ -118,7 +118,7 @@ check_network() {
 # Main execution
 log_message "Starting K3s security monitoring check"
 check_logins
-check_disk_space  
+check_disk_space
 check_k3s_services
 check_resources
 check_network

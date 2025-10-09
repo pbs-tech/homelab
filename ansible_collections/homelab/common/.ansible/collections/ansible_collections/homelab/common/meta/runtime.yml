@@ -1,0 +1,10 @@
+---
+requires_ansible: '>=2.15.0'
+action_groups:
+  homelab:
+    - community.general.proxmox
+    - community.general.proxmox_kvm
+    - community.general.lxc_container
+    - kubernetes.core.k8s
+    - kubernetes.core.k8s_info
+    - kubernetes.core.helm

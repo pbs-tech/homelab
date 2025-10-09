@@ -1,0 +1,27 @@
+---
+galaxy_info:
+  author: "Homelab Administrator"
+  description: "Creates and manages LXC containers in Proxmox VE with secure API authentication"
+  company: "Homelab"
+  license: "Apache-2.0"
+  min_ansible_version: "2.12"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+        - noble
+    - name: Debian
+      versions:
+        - bullseye
+        - bookworm
+  galaxy_tags:
+    - proxmox
+    - lxc
+    - containers
+    - virtualization
+    - infrastructure
+
+# proxmox_api_validation is a task file, not a role.
+# Include it directly in your playbook using include_tasks if needed.
+dependencies: []
