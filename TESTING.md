@@ -136,25 +136,26 @@ The project uses Molecule 6.0+ for collection-level testing and validation.
 ### Molecule Test Scenarios
 
 **Common Collection:**
-- `default` - Tests common roles and setup
-- `common-roles` - Tests container base and security hardening roles
+- `default` - Tests common roles and setup (Docker driver)
+- `common-roles` - Tests container base and security hardening roles (Docker driver)
 
 **K3s Collection:**
-- `raspberry-pi` - Tests K3s deployment on real Raspberry Pi hardware
+- `raspberry-pi` - Tests K3s deployment on real Raspberry Pi hardware (default driver)
 
 **Proxmox LXC Collection:**
-- `default` - Docker-based unit tests for LXC roles
-- `service-stack` - Multi-service integration testing
-- `proxmox-integration` - Real Proxmox infrastructure testing
+- `default` - Docker-based unit tests for LXC roles (Docker driver)
+- `service-stack` - Multi-service integration testing (Docker driver)
+- `proxmox-integration` - Real Proxmox infrastructure testing (default driver)
 
 **Full Stack:**
-- `full-stack` - Complete infrastructure integration test
+- `full-stack` - Complete infrastructure integration test (Docker driver)
 
 ### Running Molecule Tests
 
 ```bash
-# Install Molecule
+# Install Molecule and dependencies
 pip install "molecule>=6.0" "molecule-plugins[docker]>=23.5.0"
+pip install "ansible-core>=2.17" "yamllint>=1.35" "ansible-lint>=24.0"
 
 # Test individual collections
 cd ansible_collections/homelab/common
@@ -166,10 +167,28 @@ molecule test -s raspberry-pi
 cd ansible_collections/homelab/proxmox_lxc
 molecule test -s service-stack
 
-# Test full stack integration
-cd molecule/full-stack
-molecule test
+# Test full stack integration from repository root
+molecule test -s full-stack
 ```
+
+### Molecule 6.0+ Driver Notes
+
+**Important Changes in Molecule 6.0+:**
+
+- **Default Driver**: Scenarios testing real infrastructure (Raspberry Pi nodes, Proxmox LXC) use `driver: name: default` (formerly `delegated`)
+- **Docker Driver**: Requires separate installation via `molecule-plugins[docker]` package
+- **Driver Compatibility**: The `delegated` driver name is no longer recognized; use `default` instead
+
+**Driver Selection:**
+
+- `docker` - For fast unit tests in containers (requires Docker daemon)
+- `default` - For testing on pre-existing infrastructure (SSH-based)
+
+**Local Testing Requirements:**
+
+- Docker daemon running for Docker-based scenarios
+- SSH access to target nodes for default driver scenarios
+- Proper authentication configured (SSH keys, API tokens)
 
 ### Molecule CI Pipeline
 
@@ -182,8 +201,8 @@ The `.github/workflows/molecule.yml` workflow provides automated Molecule testin
 - All collection scenarios in parallel
 
 **Requirements:**
-- Docker for containerized testing
-- Real hardware access for Raspberry Pi and Proxmox scenarios
+- Docker for containerized testing (GitHub Actions provides this)
+- Real hardware access for Raspberry Pi and Proxmox scenarios (uses default driver)
 
 ## CI/CD Integration
 

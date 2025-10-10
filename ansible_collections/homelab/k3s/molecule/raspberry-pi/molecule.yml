@@ -5,7 +5,7 @@ dependency:
     requirements-file: ../../requirements.yml
 
 driver:
-  name: delegated
+  name: default
   options:
     managed: false
     login_cmd_template: ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa {instance}

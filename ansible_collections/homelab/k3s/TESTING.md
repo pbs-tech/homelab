@@ -22,16 +22,20 @@ ansible-galaxy install -r requirements.yml
 molecule test -s raspberry-pi
 ```
 
+**Note:** The `raspberry-pi` scenario uses the `default` driver (Molecule 6.0+) for testing on pre-existing infrastructure via SSH. This was formerly called the `delegated` driver in earlier Molecule versions.
+
 ## Available Test Scenarios
 
 ### `raspberry-pi` - Real Hardware Testing
 
+- **Driver**: `default` (tests pre-existing infrastructure)
 - **Platform**: Raspberry Pi nodes (k3s-1, k3s-4)
 - **Purpose**: Validate K3s cluster on ARM64 hardware
 - **Nodes Tested**:
   - k3s-1 (192.168.0.111) - Server
   - k3s-4 (192.168.0.114) - Agent
 - **Runtime**: ~15-20 minutes
+- **Authentication**: SSH key-based (requires `~/.ssh/id_rsa`)
 
 ## Test Coverage
 

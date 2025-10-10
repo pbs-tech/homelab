@@ -18,11 +18,12 @@ ansible-galaxy install -r requirements.yml
 ### Docker Testing (Development)
 
 ```bash
-# Test basic service functionality
+# Test basic service functionality (uses Docker driver)
 molecule test
 
-# Test specific services
-molecule test --tags prometheus,grafana
+# Test specific scenarios with Docker
+molecule test -s default
+molecule test -s service-stack
 ```
 
 ### Real Infrastructure Testing
@@ -32,39 +33,41 @@ molecule test --tags prometheus,grafana
 export PROXMOX_PASSWORD="your-password"
 export CONTAINER_PASSWORD="test-password"
 
-# Test on actual LXC containers
+# Test on actual LXC containers (uses default driver)
 molecule test -s proxmox-integration
-
-# Test service integration
-molecule test -s service-stack
 ```
+
+**Note:** Molecule 6.0+ uses the `default` driver (not `delegated`) for testing on pre-existing infrastructure like Proxmox. Docker-based scenarios use the `docker` driver from `molecule-plugins`.
 
 ## Available Test Scenarios
 
 ### `default` - Docker-based Testing
 
+- **Driver**: `docker` (containerized testing)
 - **Platform**: Docker containers (geerlingguy/docker-ubuntu2204-ansible)
 - **Purpose**: Fast development feedback
 - **Services Tested**: Prometheus, Grafana, Loki, Promtail
 - **Runtime**: ~5-10 minutes
-- **Requirements**: Docker, Molecule 6.0+
+- **Requirements**: Docker daemon, Molecule 6.0+, molecule-plugins[docker]
 
 ### `proxmox-integration` - Real LXC Testing
 
+- **Driver**: `default` (pre-existing infrastructure)
 - **Platform**: Proxmox LXC (pve-mac:192.168.0.56)
 - **Purpose**: Production-like validation
-- **Container**: 192.168.0.250 (auto-created/destroyed)
+- **Container**: 192.168.0.250 (managed externally)
 - **Services Tested**: Core monitoring stack
 - **Runtime**: ~10-15 minutes
-- **Requirements**: Proxmox access, API credentials
+- **Requirements**: Proxmox access, API credentials, SSH access to container
 
 ### `service-stack` - Multi-Service Integration
 
+- **Driver**: `docker` (containerized testing)
 - **Platform**: Docker (multi-container)
 - **Purpose**: Test service interactions
 - **Services Tested**: Monitoring + Networking stacks
 - **Runtime**: ~10-15 minutes
-- **Requirements**: Docker with cgroupns support
+- **Requirements**: Docker daemon with cgroupns support
 
 ## Test Coverage
 

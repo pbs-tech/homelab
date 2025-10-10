@@ -179,6 +179,13 @@ molecule verify             # Run verification
 molecule destroy            # Clean up
 ```
 
+**Important Note - Molecule 6.0+ Changes:**
+
+- Molecule 6.0+ uses the `default` driver name (not `delegated`) for non-managed infrastructure testing
+- The `docker` driver requires separate installation via `molecule-plugins[docker]`
+- Scenarios using real infrastructure (K3s Pi nodes, Proxmox) use `driver: name: default`
+- Docker-based scenarios use `driver: name: docker` with the molecule-plugins package
+
 ## Architecture and Structure
 
 ### Network Layout

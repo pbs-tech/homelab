@@ -414,6 +414,8 @@ cd ansible_collections/homelab/k3s/
 molecule test -s raspberry-pi
 ```
 
+See [TESTING.md](TESTING.md) for detailed information about Molecule 6.0+ testing, including driver configuration and requirements.
+
 ### Production Testing
 
 ```bash

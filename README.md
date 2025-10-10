@@ -241,11 +241,11 @@ Test collections in isolated environments:
 cd ansible_collections/homelab/common/
 molecule test
 
-# K3s collection - Real Raspberry Pi hardware tests
+# K3s collection - Real Raspberry Pi hardware tests (default driver)
 cd ansible_collections/homelab/k3s/
 molecule test -s raspberry-pi
 
-# Proxmox LXC collection - Service integration tests
+# Proxmox LXC collection - Service integration tests (docker driver)
 cd ansible_collections/homelab/proxmox_lxc/
 molecule test -s service-stack
 
@@ -253,6 +253,8 @@ molecule test -s service-stack
 cd molecule/full-stack/
 molecule test
 ```
+
+**Note:** Molecule 6.0+ uses the `default` driver for testing on real infrastructure (Raspberry Pi, Proxmox) and `docker` driver for containerized tests. The `delegated` driver from earlier versions is now named `default`.
 
 ### Production Validation
 
@@ -296,10 +298,9 @@ See [SECURITY-ARCHITECTURE.md](SECURITY-ARCHITECTURE.md) and [.github/SECURITY.m
 
 ### Core Documentation
 
-- [TESTING.md](TESTING.md) - Comprehensive testing strategy with Molecule and production tests
+- [TESTING.md](TESTING.md) - Comprehensive testing strategy with Molecule 6.0+ and production tests
 - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Detailed troubleshooting guide for common issues
 - [SECURITY-ARCHITECTURE.md](SECURITY-ARCHITECTURE.md) - Security design and threat model
-- [MOLECULE_TESTING.md](MOLECULE_TESTING.md) - Development testing with Molecule
 
 ### Collection Documentation
 
