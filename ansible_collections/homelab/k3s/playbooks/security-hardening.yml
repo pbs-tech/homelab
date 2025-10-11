@@ -88,7 +88,7 @@
         # yamllint disable-line rule:line-length
         line: ExecStart=/usr/local/bin/k3s server --audit-log-path=/var/lib/rancher/k3s/server/logs/audit.log --audit-policy-file=/etc/rancher/k3s/audit-policy.yaml
         backup: true
-      notify: restart k3s
+      notify: Restart k3s
       when: ansible_facts.services['k3s.service'] is defined
 
   handlers:

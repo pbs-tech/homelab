@@ -65,8 +65,8 @@
     dest: /etc/systemd/system/node_exporter.service
     mode: "0644"
   notify:
-    - reload systemd
-    - restart node_exporter
+    - Reload systemd
+    - Restart node_exporter
 
 - name: Install custom monitoring scripts
   ansible.builtin.template:
@@ -88,7 +88,7 @@
     owner: "{{ monitoring_user }}"
     group: "{{ monitoring_user }}"
     mode: "0644"
-  notify: restart monitoring_agent
+  notify: Restart monitoring_agent
 
 - name: Install Promtail for log collection
   ansible.builtin.unarchive:
@@ -115,7 +115,7 @@
     owner: "{{ monitoring_user }}"
     group: "{{ monitoring_user }}"
     mode: "0644"
-  notify: restart promtail
+  notify: Restart promtail
 
 - name: Create Promtail systemd service
   ansible.builtin.template:
@@ -123,8 +123,8 @@
     dest: /etc/systemd/system/promtail.service
     mode: "0644"
   notify:
-    - reload systemd
-    - restart promtail
+    - Reload systemd
+    - Restart promtail
 
 - name: Configure log rotation
   ansible.builtin.template:

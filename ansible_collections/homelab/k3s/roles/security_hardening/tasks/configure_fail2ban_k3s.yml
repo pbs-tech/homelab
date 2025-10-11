@@ -6,7 +6,7 @@
     mode: "0644"
     owner: root
     group: root
-  notify: restart fail2ban
+  notify: Restart fail2ban
 
 - name: Create Fail2ban filter for K3s API server
   template:
@@ -16,7 +16,7 @@
     owner: root
     group: root
   when: inventory_hostname in groups['server']
-  notify: restart fail2ban
+  notify: Restart fail2ban
 
 - name: Configure K3s-specific jails
   blockinfile:
@@ -41,7 +41,7 @@
       bantime = {{ pi_security_hardening.fail2ban.bantime }}
       findtime = {{ pi_security_hardening.fail2ban.findtime }}
     insertafter: EOF
-  notify: restart fail2ban
+  notify: Restart fail2ban
 
 - name: Create Fail2ban filter for kubelet
   copy:
@@ -55,7 +55,7 @@
     mode: "0644"
     owner: root
     group: root
-  notify: restart fail2ban
+  notify: Restart fail2ban
 
 - name: Start and enable Fail2ban
   systemd:

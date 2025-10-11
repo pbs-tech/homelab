@@ -61,7 +61,7 @@
     owner: traefik
     group: traefik
     mode: "0644"
-  notify: restart traefik
+  notify: Restart traefik
 
 - name: Create Traefik dynamic configuration for services
   template:
@@ -70,7 +70,7 @@
     owner: traefik
     group: traefik
     mode: "0644"
-  notify: restart traefik
+  notify: Restart traefik
 
 - name: Create Traefik systemd service
   template:
@@ -78,8 +78,8 @@
     dest: /etc/systemd/system/traefik.service
     mode: "0644"
   notify:
-    - reload systemd
-    - restart traefik
+    - Reload systemd
+    - Restart traefik
 
 - name: Enable and start Traefik
   systemd:

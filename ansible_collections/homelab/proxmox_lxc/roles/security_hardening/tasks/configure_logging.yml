@@ -19,7 +19,7 @@
       $ActionFileEnableSync on
       $IncludeConfig /etc/rsyslog.d/*.conf
     insertafter: ^#.*facilities.*
-  notify: restart rsyslog
+  notify: Restart rsyslog
 
 - name: Create application log directories
   file:

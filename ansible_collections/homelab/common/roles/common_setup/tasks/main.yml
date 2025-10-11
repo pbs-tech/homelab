@@ -15,7 +15,7 @@
 - name: Set timezone
   community.general.timezone:
     name: "{{ timezone }}"
-  notify: restart rsyslog
+  notify: Restart rsyslog 
 
 - name: Create common users
   ansible.builtin.user:
@@ -44,7 +44,7 @@
     owner: root
     group: root
     validate: sshd -t -f %s
-  notify: restart ssh
+  notify: Restart ssh
   tags: [molecule-notest]
 
 - name: Ensure SSH is enabled and started
@@ -62,7 +62,7 @@
     mode: "0644"
     owner: root
     group: root
-  notify: restart rsyslog
+  notify: Restart rsyslog
   tags: [molecule-notest]
 
 - name: Create log rotation configuration

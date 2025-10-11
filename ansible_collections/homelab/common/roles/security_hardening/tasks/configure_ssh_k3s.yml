@@ -52,7 +52,7 @@
       line: AllowAgentForwarding no
     - regexp: "^#?PermitEmptyPasswords"
       line: PermitEmptyPasswords no
-  notify: restart ssh
+  notify: Restart ssh
 
 - name: Add K3s-specific SSH security settings
   ansible.builtin.blockinfile:
@@ -71,7 +71,7 @@
       AllowUsers {{ ansible_user }}
       AllowGroups sudo
     marker: # {mark} ANSIBLE MANAGED K3S SSH SECURITY
-  notify: restart ssh
+  notify: Restart ssh
 
 - name: Test SSH configuration
   ansible.builtin.command: sshd -t

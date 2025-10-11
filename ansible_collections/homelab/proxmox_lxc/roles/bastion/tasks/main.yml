@@ -69,7 +69,7 @@
     mode: "0600"
   delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
   become: true
-  notify: restart ssh
+  notify: Restart ssh
 
 - name: Configure fail2ban
   template:
@@ -78,7 +78,7 @@
     mode: "0644"
   delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
   become: true
-  notify: restart fail2ban
+  notify: Restart fail2ban
 
 - name: Configure UFW firewall
   community.general.ufw:

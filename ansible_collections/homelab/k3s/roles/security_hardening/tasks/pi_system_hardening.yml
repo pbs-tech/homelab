@@ -34,7 +34,7 @@
             mode: "0644"
             owner: root
             group: root
-          notify: restart avahi-daemon
+          notify: Restart avahi-daemon
 
         - name: Create .local hostname service file
           template:
@@ -43,7 +43,7 @@
             mode: "0644"
             owner: root
             group: root
-          notify: restart avahi-daemon
+          notify: Restart avahi-daemon
 
         - name: Enable and start avahi-daemon
           systemd:
