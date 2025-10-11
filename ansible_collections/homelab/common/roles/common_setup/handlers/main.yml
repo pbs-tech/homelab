@@ -1,12 +1,12 @@
 ---
 # Common setup handlers
 
-- name: Restart SSH
+- name: restart ssh
   ansible.builtin.service:
     name: ssh
     state: restarted
 
-- name: Restart rsyslog
+- name: restart rsyslog
   ansible.builtin.service:
     name: rsyslog
     state: restarted

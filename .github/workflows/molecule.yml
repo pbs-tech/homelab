@@ -40,21 +40,22 @@ jobs:
           - name: common/default
             collection: homelab/common
             scenario: default
-          - name: common/common-roles
-            collection: homelab/common
-            scenario: common-roles
-          - name: k3s/raspberry-pi
-            collection: homelab/k3s
-            scenario: raspberry-pi
           - name: proxmox_lxc/default
             collection: homelab/proxmox_lxc
             scenario: default
           - name: proxmox_lxc/service-stack
             collection: homelab/proxmox_lxc
             scenario: service-stack
-          - name: proxmox_lxc/proxmox-integration
-            collection: homelab/proxmox_lxc
-            scenario: proxmox-integration
+          # Scenarios below require real infrastructure - run manually only
+          # - name: common/common-roles
+          #   collection: homelab/common
+          #   scenario: common-roles
+          # - name: k3s/raspberry-pi
+          #   collection: homelab/k3s
+          #   scenario: raspberry-pi
+          # - name: proxmox_lxc/proxmox-integration
+          #   collection: homelab/proxmox_lxc
+          #   scenario: proxmox-integration
 
     steps:
       - uses: actions/checkout@v4
@@ -70,6 +71,7 @@ jobs:
           pip install "ansible-core${{ env.ANSIBLE_VERSION }}" "yamllint>=1.35" "ansible-lint>=24.0" docker
 
       - name: Setup Docker Buildx
+        if: env.ACT != 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Install base collections
@@ -116,6 +118,7 @@ jobs:
           pip install "ansible-core${{ env.ANSIBLE_VERSION }}" "yamllint>=1.35" "ansible-lint>=24.0" docker
 
       - name: Setup Docker Buildx
+        if: env.ACT != 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Install all collections
