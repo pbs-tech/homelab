@@ -2,7 +2,7 @@
 # Provides common development and deployment tasks
 
 .DEFAULT_GOAL := help
-.PHONY: help install install-dev lint lint-yaml lint-ansible lint-markdown lint-fix test test-quick test-infrastructure test-security test-services test-api test-molecule test-molecule-all test-molecule-common test-molecule-common-roles test-molecule-k3s test-molecule-k3s-pi test-molecule-proxmox test-molecule-proxmox-integration molecule-converge molecule-converge-common molecule-converge-k3s molecule-converge-proxmox molecule-verify molecule-verify-common molecule-verify-k3s molecule-verify-proxmox molecule-destroy molecule-reset deploy deploy-phase1 deploy-phase2 deploy-security validate clean security-scan docs performance drift-check release monitor backup restore status ci-status
+.PHONY: help install install-dev lint lint-yaml lint-ansible lint-markdown lint-fix test test-quick test-infrastructure test-security test-services test-api test-molecule test-molecule-smoke test-molecule-all test-molecule-common test-molecule-common-roles test-molecule-k3s test-molecule-k3s-pi test-molecule-proxmox test-molecule-proxmox-integration molecule-converge molecule-converge-smoke molecule-converge-common molecule-converge-k3s molecule-converge-proxmox molecule-verify molecule-verify-common molecule-verify-k3s molecule-verify-proxmox molecule-destroy molecule-reset deploy deploy-phase1 deploy-phase2 deploy-security validate clean security-scan docs performance drift-check release monitor backup restore status ci-status
 
 # Colors for output
 YELLOW := \033[1;33m
@@ -114,6 +114,12 @@ test-molecule: ## Run Molecule tests for all collections (default scenarios)
 	@cd $(PROXMOX_PATH) && molecule test -s default || { echo "$(RED)Proxmox LXC collection tests failed!$(NC)"; exit 1; }
 	@echo "$(GREEN)All Molecule tests passed!$(NC)"
 
+test-molecule-smoke: ## Run fast smoke test for ALL roles across all collections
+	@echo "$(YELLOW)Running Molecule smoke test for all roles...$(NC)"
+	@echo "$(YELLOW)This is a fast syntax and basic validation test (< 5 min)$(NC)"
+	@molecule test -s smoke || { echo "$(RED)Smoke test failed!$(NC)"; exit 1; }
+	@echo "$(GREEN)Smoke test passed!$(NC)"
+
 test-molecule-all: ## Run ALL Molecule scenarios (including real infrastructure)
 	@echo "$(YELLOW)Running ALL Molecule scenarios (including real infrastructure)...$(NC)"
 	@echo "$(YELLOW)Testing common collection - default scenario...$(NC)"
@@ -174,6 +180,10 @@ molecule-converge: ## Run converge on all collections (no destroy)
 	@cd $(PROXMOX_PATH) && molecule converge -s default
 	@echo "$(GREEN)All converge operations completed!$(NC)"
 
+molecule-converge-smoke: ## Run converge for smoke test scenario
+	@echo "$(YELLOW)Running converge for smoke test...$(NC)"
+	@molecule converge -s smoke
+
 molecule-converge-common: ## Run converge for common collection
 	@echo "$(YELLOW)Running converge for common collection...$(NC)"
 	@cd $(COMMON_PATH) && molecule converge -s default
@@ -215,6 +225,7 @@ molecule-verify-proxmox: ## Run verify for proxmox_lxc collection
 
 molecule-destroy: ## Destroy all Molecule test instances
 	@echo "$(YELLOW)Destroying all Molecule test instances...$(NC)"
+	@molecule destroy -s smoke || true
 	@cd $(COMMON_PATH) && molecule destroy -s default || true
 	@cd $(COMMON_PATH) && molecule destroy -s common-roles || true
 	@cd $(K3S_PATH) && molecule destroy -s default || true

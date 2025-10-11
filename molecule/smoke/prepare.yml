@@ -1,0 +1,64 @@
+---
+# Prepare instances for smoke testing
+# Sets up mock data and dependencies required for role execution
+- name: Prepare all instances
+  hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Create mock SSH key directory
+      ansible.builtin.file:
+        path: /tmp
+        state: directory
+        mode: 0755
+
+    - name: Create mock SSH private key
+      ansible.builtin.copy:
+        content: |
+          -----BEGIN OPENSSH PRIVATE KEY-----
+          # Mock SSH key for smoke testing
+          # This is not a real key, just for testing role syntax
+          -----END OPENSSH PRIVATE KEY-----
+        dest: "{{ security_config.ssh_key_path }}"
+        mode: 0600
+
+    - name: Create mock SSH public key
+      ansible.builtin.copy:
+        content: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC... smoke-test-key"
+        dest: "{{ security_config.ssh_key_path }}.pub"
+        mode: 0644
+
+    - name: Install basic dependencies
+      ansible.builtin.package:
+        name:
+          - python3
+          - python3-pip
+          - curl
+          - wget
+          - git
+        state: present
+        update_cache: true
+
+    - name: Create systemd directory
+      ansible.builtin.file:
+        path: "{{ systemd_dir }}"
+        state: directory
+        mode: 0755
+
+    - name: Create mock directories for services
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: 0755
+      loop:
+        - /etc/prometheus
+        - /etc/grafana
+        - /etc/traefik
+        - /etc/loki
+        - /var/lib/prometheus
+        - /var/lib/grafana
+        - /var/log
+
+    - name: Set hostname
+      ansible.builtin.hostname:
+        name: "{{ inventory_hostname }}"

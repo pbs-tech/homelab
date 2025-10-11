@@ -165,6 +165,9 @@ both Makefile targets for convenient execution and direct molecule commands for 
 #### Quick Start - Makefile Targets
 
 ```bash
+# RECOMMENDED: Fast smoke test for all roles across all collections (< 5 min)
+make test-molecule-smoke
+
 # Run all molecule tests across all collections (recommended for CI/pre-commit)
 make test-molecule-all
 
@@ -179,6 +182,7 @@ make test-molecule              # Run default scenario in current directory
 
 **When to use each target:**
 
+- `make test-molecule-smoke` - **RECOMMENDED**: Fast validation of all roles across all collections (< 5 min)
 - `make test-molecule-all` - Before committing changes, in CI/CD pipelines
 - `make test-molecule-common` - When modifying common roles (security_hardening, container_base, etc.)
 - `make test-molecule-k3s` - When modifying K3s cluster configuration or roles
@@ -192,12 +196,16 @@ make test-molecule              # Run default scenario in current directory
 pip install "molecule>=6.0" "molecule-plugins[docker]>=23.5.0"
 pip install "ansible-core>=2.17" "yamllint>=1.35" "ansible-lint>=24.0"
 
+# Fast smoke test for ALL roles (< 5 min, from repository root)
+molecule test -s smoke
+
 # Test individual collections with default scenario
 cd ansible_collections/homelab/common && molecule test
 cd ansible_collections/homelab/k3s && molecule test
 cd ansible_collections/homelab/proxmox_lxc && molecule test
 
 # Test specific scenarios
+molecule test -s smoke                                             # Smoke test all roles
 cd ansible_collections/homelab/common && molecule test -s common-roles
 cd ansible_collections/homelab/k3s && molecule test -s raspberry-pi
 cd ansible_collections/homelab/proxmox_lxc && molecule test -s proxmox-integration
@@ -207,6 +215,12 @@ molecule create              # Create test environment
 molecule converge           # Run playbook (repeatable)
 molecule verify             # Run verification tests
 molecule destroy            # Clean up test environment
+
+# Smoke test development workflow
+molecule create -s smoke     # Create smoke test instances
+molecule converge -s smoke   # Run smoke test playbook
+molecule verify -s smoke     # Run smoke test verification
+molecule destroy -s smoke    # Clean up smoke test instances
 
 # List available scenarios
 molecule list               # Show all scenarios in current collection
@@ -262,8 +276,17 @@ molecule test -s proxmox-integration
 
 #### CI/CD Integration
 
-Molecule tests are automatically executed in GitHub Actions CI pipeline:
+Molecule tests are automatically executed in GitHub Actions CI pipeline via two workflows:
 
+**1. Smoke Test Workflow** (`.github/workflows/molecule-smoke.yml`)
+- **Purpose:** Fast validation of ALL roles across all collections
+- **Trigger:** Pull requests, pushes to main/molecule branches, workflow_dispatch
+- **Duration:** < 15 minutes total (typically 5-8 minutes)
+- **Strategy:** Single job testing all collections in one comprehensive smoke test
+- **Optimal for:** Quick feedback on role changes, pre-commit validation
+
+**2. Standard Molecule Workflow** (`.github/workflows/ci.yml`)
+- **Purpose:** Comprehensive collection-specific testing
 - **Trigger:** Pull requests, pushes to main, manual workflow dispatch
 - **Strategy:** Matrix testing across all three collections in parallel
 - **Duration:** Typically 3-5 minutes per collection
@@ -271,7 +294,8 @@ Molecule tests are automatically executed in GitHub Actions CI pipeline:
 
 **CI Workflow highlights:**
 
-- Runs after successful linting checks
+- Smoke test runs first for fast feedback
+- Standard tests run after successful linting checks
 - Tests each collection independently with dependency resolution
 - Uses Docker driver for fast, isolated testing
 - Automatically installs collection dependencies (e.g., homelab.common for k3s/proxmox_lxc)
@@ -284,12 +308,12 @@ Molecule tests are automatically executed in GitHub Actions CI pipeline:
 make ci-status
 
 # Or view in GitHub
-# Navigate to: Actions > CI workflow > Latest run
+# Navigate to: Actions > Molecule Smoke Test or CI workflow > Latest run
 ```
 
 #### Best Practices
 
-1. **Before committing:** Run `make test-molecule-all` to ensure all collections pass
+1. **Before committing:** Run `make test-molecule-smoke` for fast validation (< 5 min) or `make test-molecule-all` for comprehensive testing
 2. **During development:** Use `molecule converge` for rapid iteration without destroying the environment
 3. **For debugging:** Use `molecule --debug converge` to see detailed output
 4. **Real infrastructure:** Use `driver: name: default` for testing on actual hardware (K3s Pi nodes, Proxmox)
@@ -505,10 +529,11 @@ The collection implements:
 - **Molecule testing** - Collection-level testing with Molecule 6.0+
   - Python 3.12, Ansible 2.17+
   - Docker-based unit tests and real infrastructure validation
+  - **Smoke test scenario** (`molecule/smoke/`) - Fast validation of ALL roles across all collections (< 5 min)
   - Multiple scenarios per collection (default, integration, service-stack)
-  - Makefile targets for convenient execution
+  - Makefile targets for convenient execution (`make test-molecule-smoke`)
   - Automated CI/CD integration via GitHub Actions
-- **CI/CD integration** - Automated linting, Molecule tests, and validation via GitHub Actions
+- **CI/CD integration** - Automated linting, Molecule smoke tests, and validation via GitHub Actions
 
 **Documentation Coverage**:
 

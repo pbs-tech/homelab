@@ -1,0 +1,137 @@
+---
+name: Molecule Smoke Test
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    branches: [main, develop, molecule]
+    paths:
+      - 'ansible_collections/**'
+      - 'molecule/smoke/**'
+      - 'requirements.yml'
+      - '.github/workflows/molecule-smoke.yml'
+  push:
+    branches: [main, molecule]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: '3.12'
+  ANSIBLE_VERSION: '>=2.17'
+
+jobs:
+  smoke-test:
+    name: Smoke Test - All Collections
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Cache Ansible collections
+        uses: actions/cache@v4
+        with:
+          path: ~/.ansible/collections
+          key: ansible-collections-${{ hashFiles('**/requirements.yml') }}
+          restore-keys: ansible-collections-
+
+      - name: Install Molecule and dependencies
+        run: |
+          pip install "ansible-core${{ env.ANSIBLE_VERSION }}"
+          pip install "molecule>=6.0" "molecule-plugins[docker]>=23.5.0"
+          pip install docker
+
+      - name: Install external Ansible collections
+        run: |
+          ansible-galaxy collection install -r requirements.yml --force
+          find ansible_collections/ -name "requirements.yml" -exec ansible-galaxy collection install -r {} --force \;
+
+      - name: Build and install homelab collections
+        run: |
+          # Build and install common collection (required by others)
+          cd ansible_collections/homelab/common
+          ansible-galaxy collection build --force
+          ansible-galaxy collection install *.tar.gz --force
+          cd ../../..
+
+          # Build and install k3s collection
+          cd ansible_collections/homelab/k3s
+          ansible-galaxy collection build --force
+          ansible-galaxy collection install *.tar.gz --force
+          cd ../../..
+
+          # Build and install proxmox_lxc collection
+          cd ansible_collections/homelab/proxmox_lxc
+          ansible-galaxy collection build --force
+          ansible-galaxy collection install *.tar.gz --force
+          cd ../../..
+
+      - name: Verify collection installation
+        run: |
+          echo "=== Installed homelab collections ==="
+          ansible-galaxy collection list homelab.common
+          ansible-galaxy collection list homelab.k3s
+          ansible-galaxy collection list homelab.proxmox_lxc
+
+      - name: Display tool versions
+        run: |
+          echo "=== Tool versions ==="
+          molecule --version
+          ansible --version
+          docker --version
+          python --version
+
+      - name: Start Docker service
+        run: |
+          sudo systemctl start docker
+          sudo systemctl status docker
+
+      - name: List smoke test scenario
+        run: |
+          echo "=== Available Molecule scenarios ==="
+          molecule list -s smoke
+
+      - name: Run smoke test
+        run: molecule test -s smoke
+        env:
+          PY_COLORS: '1'
+          ANSIBLE_FORCE_COLOR: '1'
+          MOLECULE_NO_LOG: 'false'
+
+      - name: Show logs on failure
+        if: failure()
+        run: |
+          echo "=== Molecule logs ==="
+          if [ -d .molecule/smoke ]; then
+            find .molecule/smoke -type f -name "*.log" -exec echo "--- {} ---" \; -exec cat {} \;
+          fi
+          echo ""
+          echo "=== Docker containers ==="
+          docker ps -a
+          echo ""
+          echo "=== Docker images ==="
+          docker images
+          echo ""
+          echo "=== Recent Docker logs ==="
+          docker ps -a --format "{{.Names}}" | while read container; do
+            echo "--- Logs for $container ---"
+            docker logs --tail 50 "$container" 2>&1 || true
+          done
+
+      - name: Cleanup
+        if: always()
+        run: |
+          molecule destroy -s smoke || true
+          docker system prune -f --volumes || true
