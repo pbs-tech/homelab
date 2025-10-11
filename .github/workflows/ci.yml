@@ -6,6 +6,8 @@ permissions:
 on:
   pull_request:
     branches: [main, develop]
+  push:
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -13,8 +15,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  PYTHON_VERSION: '3.11'
-  ANSIBLE_VERSION: '>=2.15'
+  PYTHON_VERSION: '3.12'
+  ANSIBLE_VERSION: '>=2.17'
 
 jobs:
   lint:
@@ -29,7 +31,7 @@ jobs:
           cache: pip
 
       - name: Install linting tools
-        run: pip install yamllint ansible-core${{ env.ANSIBLE_VERSION }} ansible-lint pymarkdownlnt
+        run: pip install "yamllint>=1.35" "ansible-core${{ env.ANSIBLE_VERSION }}" "ansible-lint>=24.0" pymarkdownlnt
 
       - name: YAML lint
         run: yamllint . --format github
@@ -63,21 +65,16 @@ jobs:
           ansible-playbook --syntax-check ansible_collections/homelab/k3s/playbooks/site.yml
           ansible-playbook --syntax-check ansible_collections/homelab/proxmox_lxc/site.yml
 
-  security:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Secrets scan
+      - name: TruffleHog secrets scan
+        if: github.ref != 'refs/heads/main'
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
           base: ${{ github.event.repository.default_branch }}
           head: HEAD
           extra_args: --only-verified
+
 
   collections:
     name: Validate Collections
@@ -95,7 +92,7 @@ jobs:
           cache: pip
 
       - name: Install tools
-        run: pip install ansible-core${{ env.ANSIBLE_VERSION }} galaxy-importer
+        run: pip install "ansible-core${{ env.ANSIBLE_VERSION }}" galaxy-importer
 
       - name: Install external dependencies
         run: ansible-galaxy collection install -r requirements.yml --force

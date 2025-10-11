@@ -51,7 +51,7 @@
     owner: prometheus
     group: prometheus
     mode: "0644"
-  notify: restart prometheus
+  notify: Restart prometheus
 
 - name: Create Prometheus systemd service
   ansible.builtin.template:
@@ -59,8 +59,8 @@
     dest: /etc/systemd/system/prometheus.service
     mode: "0644"
   notify:
-    - reload systemd
-    - restart prometheus
+    - Reload systemd
+    - Restart prometheus
 
 - name: Enable and start Prometheus
   ansible.builtin.systemd:

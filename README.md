@@ -67,8 +67,8 @@ This repository implements a layered homelab infrastructure using three core Ans
 
 ### Prerequisites
 
-- Ansible 2.15.0+
-- Python 3.8+
+- Ansible 2.17.0+
+- Python 3.12+
 - SSH access to target hosts
 - Domain name for homelab services
 
@@ -222,36 +222,58 @@ grafana_config:
 
 ## 🧪 Testing
 
-The repository includes comprehensive testing using both Molecule and production validation:
+The repository includes comprehensive testing using Molecule 6.0+ for collection development and fast validation tests for production infrastructure:
 
-### Local Development Testing
+### Prerequisites
 
 ```bash
-# Run Molecule tests for individual collections
+# Install testing dependencies
+pip install "molecule>=6.0" "molecule-plugins[docker]>=23.5.0"
+pip install "ansible-core>=2.17" "yamllint>=1.35" "ansible-lint>=24.0"
+```
+
+### Molecule Collection Testing
+
+Test collections in isolated environments:
+
+```bash
+# Common collection - Docker-based unit tests
 cd ansible_collections/homelab/common/
 molecule test
 
+# K3s collection - Real Raspberry Pi hardware tests (default driver)
 cd ansible_collections/homelab/k3s/
 molecule test -s raspberry-pi
 
+# Proxmox LXC collection - Service integration tests (docker driver)
 cd ansible_collections/homelab/proxmox_lxc/
 molecule test -s service-stack
+
+# Full stack integration test
+cd molecule/full-stack/
+molecule test
 ```
 
-### Production Testing
+**Note:** Molecule 6.0+ uses the `default` driver for testing on real infrastructure (Raspberry Pi, Proxmox) and `docker` driver for containerized tests. The `delegated` driver from earlier versions is now named `default`.
+
+### Production Validation
+
+Fast validation tests for deployed infrastructure (< 5 minutes total):
 
 ```bash
-# Run production validation tests
-cd tests/
-ansible-playbook test_suite.yml
+# Quick smoke test (30 seconds)
+make test-quick
 
-# Specific test types
-ansible-playbook test_suite.yml -e "test_types=['unit']" --tags quick
-ansible-playbook test_suite.yml -e "test_types=['integration']"
-ansible-playbook test_suite.yml -e "test_types=['system']"
+# Full validation suite
+make test
+
+# Individual test suites
+make test-infrastructure  # Container and K3s health
+make test-security       # Security hardening validation
+make test-services       # Service functionality checks
 ```
 
-See [TESTING.md](TESTING.md) for detailed testing procedures.
+See [TESTING.md](TESTING.md) for detailed testing procedures and [collection TESTING.md files](ansible_collections/homelab/*/TESTING.md) for collection-specific testing.
 
 ## 🔒 Security
 
@@ -276,10 +298,9 @@ See [SECURITY-ARCHITECTURE.md](SECURITY-ARCHITECTURE.md) and [.github/SECURITY.m
 
 ### Core Documentation
 
-- [TESTING.md](TESTING.md) - Comprehensive testing strategy with Molecule and production tests
+- [TESTING.md](TESTING.md) - Comprehensive testing strategy with Molecule 6.0+ and production tests
 - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Detailed troubleshooting guide for common issues
 - [SECURITY-ARCHITECTURE.md](SECURITY-ARCHITECTURE.md) - Security design and threat model
-- [MOLECULE_TESTING.md](MOLECULE_TESTING.md) - Development testing with Molecule
 
 ### Collection Documentation
 
@@ -309,14 +330,25 @@ The repository includes comprehensive linting and quality checks:
 make lint
 
 # Individual checks
-make lint-yaml      # YAML formatting
-make lint-ansible   # Ansible best practices
+make lint-yaml      # YAML formatting (yamllint 1.35+)
+make lint-ansible   # Ansible best practices (ansible-lint 24.0+)
 make lint-markdown  # Markdown formatting
 
 # Pre-commit hooks
 pre-commit install
 pre-commit run --all-files
 ```
+
+### CI/CD Pipeline
+
+Automated testing and validation via GitHub Actions:
+
+- **Linting**: YAML, Ansible, Markdown validation
+- **Security**: TruffleHog secret scanning
+- **Molecule Tests**: All collection scenarios (Python 3.12, Ansible 2.17+)
+- **Collection Validation**: Galaxy import validation
+
+See [.github/workflows/](/.github/workflows/) for pipeline configurations.
 
 ### Contributing
 

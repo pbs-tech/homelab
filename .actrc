@@ -1,0 +1,2 @@
+--container-daemon-socket /var/run/docker.sock
+-P ubuntu-latest=catthehacker/ubuntu:act-latest

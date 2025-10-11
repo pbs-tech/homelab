@@ -48,7 +48,7 @@
     - name: Set proper permissions on SSH keys
       ansible.builtin.file:
         path: "{{ item.path }}"
-        mode: {{ item.mode }}
+        mode: "{{ item.mode }}"
       loop:
         - { path: "/root/.ssh/id_rsa", mode: "0600" }
         - { path: "/root/.ssh/id_rsa.pub", mode: "0644" }

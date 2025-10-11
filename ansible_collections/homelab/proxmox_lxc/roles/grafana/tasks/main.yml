@@ -53,7 +53,7 @@
     group: "{{ grafana_group }}"
     mode: "0640"
     backup: true
-  notify: restart grafana
+  notify: Restart grafana
 
 - name: Create datasources provisioning configuration
   ansible.builtin.template:
@@ -62,7 +62,7 @@
     owner: "{{ grafana_user }}"
     group: "{{ grafana_group }}"
     mode: "0644"
-  notify: restart grafana
+  notify: Restart grafana
 
 - name: Create dashboard provisioning configuration
   ansible.builtin.template:
@@ -71,14 +71,14 @@
     owner: "{{ grafana_user }}"
     group: "{{ grafana_group }}"
     mode: "0644"
-  notify: restart grafana
+  notify: Restart grafana
 
 - name: Install Grafana plugins
   community.grafana.grafana_plugin:
     name: "{{ item }}"
     state: present
   loop: "{{ grafana_plugins }}"
-  notify: restart grafana
+  notify: Restart grafana
   failed_when: false # Plugin installation can fail if already installed or unavailable
 
 - name: Enable and start Grafana

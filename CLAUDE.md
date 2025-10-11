@@ -149,13 +149,41 @@ pre-commit install          # Install pre-commit hooks
 pre-commit run --all-files  # Run hooks on all files
 
 # Manual linting commands
-yamllint .                  # Check YAML formatting
-ansible-lint                # Check Ansible best practices with security profile
+yamllint .                  # Check YAML formatting (yamllint 1.35+)
+ansible-lint                # Check Ansible best practices (ansible-lint 24.0+)
 pymarkdown --config .markdownlint.yaml scan .  # Check Markdown formatting
 
 # Security scanning
 trufflehog git file://. --only-verified  # Scan for secrets
 ```
+
+### Molecule Testing Commands
+
+```bash
+# Install Molecule testing dependencies
+pip install "molecule>=6.0" "molecule-plugins[docker]>=23.5.0"
+pip install "ansible-core>=2.17" "yamllint>=1.35" "ansible-lint>=24.0"
+
+# Test individual collections
+cd ansible_collections/homelab/common && molecule test
+cd ansible_collections/homelab/k3s && molecule test -s raspberry-pi
+cd ansible_collections/homelab/proxmox_lxc && molecule test
+
+# Run specific Molecule commands
+molecule create              # Create test environment
+molecule converge           # Run playbook
+molecule verify             # Run verification
+molecule destroy            # Clean up
+```
+
+**Important Note - Molecule 6.0+ Changes:**
+
+- Molecule 6.0+ uses the `default` driver name (not `delegated`) for non-managed infrastructure testing
+- The `docker` driver requires separate installation via `molecule-plugins[docker]`
+- Scenarios using real infrastructure (K3s Pi nodes, Proxmox) use `driver: name: default`
+- Docker-based scenarios use `driver: name: docker` with the molecule-plugins package
+- The proxmox_lxc collection has simplified molecule tests for faster CI execution
+- Complex integration tests (service-stack, full-stack) have been removed in favor of focused unit tests
 
 ## Architecture and Structure
 
@@ -323,7 +351,11 @@ The collection implements:
 - **Security validation** - Security hardening verification (< 3 min)
 - **Service validation** - Functional testing of all services (< 4 min)
 - **Total test time** - Complete validation in under 5 minutes
-- **CI/CD integration** - Automated linting and validation via GitHub Actions
+- **Molecule testing** - Collection-level testing with Molecule 6.0+
+  - Python 3.12, Ansible 2.17+
+  - Docker-based unit tests and real infrastructure validation
+  - Multiple scenarios per collection (default, integration, service-stack)
+- **CI/CD integration** - Automated linting, Molecule tests, and validation via GitHub Actions
 
 **Documentation Coverage**:
 

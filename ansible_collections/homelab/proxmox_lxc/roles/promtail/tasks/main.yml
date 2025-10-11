@@ -63,7 +63,7 @@
     mode: "0755"
     remote_src: true
   when: promtail_extract.changed
-  notify: restart promtail
+  notify: Restart promtail
 
 - name: Create Promtail configuration file
   template:
@@ -73,7 +73,7 @@
     group: "{{ promtail_group }}"
     mode: "0644"
     backup: true
-  notify: restart promtail
+  notify: Restart promtail
 
 - name: Create Promtail systemd service
   template:
@@ -81,8 +81,8 @@
     dest: /etc/systemd/system/promtail.service
     mode: "0644"
   notify:
-    - reload systemd
-    - restart promtail
+    - Reload systemd
+    - Restart promtail
 
 - name: Enable and start Promtail
   systemd:

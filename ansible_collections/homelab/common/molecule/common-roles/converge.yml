@@ -20,13 +20,13 @@
           -----BEGIN OPENSSH PRIVATE KEY-----
           # Mock key for molecule testing
           -----END OPENSSH PRIVATE KEY-----
-        dest: {{ security_config.ssh_key_path }}
+        dest: "{{ security_config.ssh_key_path }}"
         mode: 0600
 
     - name: Create mock SSH public key
       ansible.builtin.copy:
-        content: {{ test_ssh_key }}
-        dest: {{ security_config.ssh_key_path }}.pub
+        content: "{{ test_ssh_key }}"
+        dest: "{{ security_config.ssh_key_path }}.pub"
         mode: 0644
 
   tasks:
@@ -38,14 +38,19 @@
 
     # Test container_base role (will skip Proxmox tasks but test variable logic)
     - name: Test container base role variable computation
-      ansible.builtin.include_role:
-        name: homelab.common.container_base
-        tasks_from: main
-      vars:
-        # Skip actual Proxmox API calls in molecule
-        ansible_check_mode: false
       tags: [container_base]
-      ignore_errors: true # Expected to fail on Proxmox API calls
+      block:
+        - name: Include container_base role
+          ansible.builtin.include_role:
+            name: homelab.common.container_base
+            tasks_from: main
+          vars:
+            # Skip actual Proxmox API calls in molecule
+            ansible_check_mode: false
+      rescue:
+        - name: Handle expected Proxmox API failures
+          ansible.builtin.debug:
+            msg: "Container base role encountered expected failures in molecule environment (no Proxmox API)"
 
     # Test security_hardening role
     - name: Test security hardening role

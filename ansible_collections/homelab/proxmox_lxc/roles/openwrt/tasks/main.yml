@@ -92,15 +92,15 @@
     dest: /etc/systemd/system/openwrt.service
     mode: "0644"
   notify:
-    - reload systemd
-    - restart openwrt
+    - Reload systemd
+    - Restart openwrt
 
 - name: Create rsyslog configuration for OpenWrt logs
   template:
     src: rsyslog-openwrt.conf.j2
     dest: /etc/rsyslog.d/30-openwrt.conf
     mode: "0644"
-  notify: restart rsyslog
+  notify: Restart rsyslog
   when: openwrt_remote_syslog_server is defined
 
 - name: Enable and start OpenWrt service

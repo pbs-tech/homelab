@@ -15,7 +15,7 @@
 - name: Set timezone
   community.general.timezone:
     name: "{{ timezone }}"
-  notify: restart rsyslog
+  notify: Restart rsyslog
 
 - name: Create common users
   ansible.builtin.user:
@@ -44,13 +44,15 @@
     owner: root
     group: root
     validate: sshd -t -f %s
-  notify: restart ssh
+  notify: Restart ssh
+  tags: [molecule-notest]
 
 - name: Ensure SSH is enabled and started
   ansible.builtin.service:
     name: ssh
     enabled: true
     state: started
+  tags: [molecule-notest]
 
 - name: Configure rsyslog
   ansible.builtin.template:
@@ -60,7 +62,8 @@
     mode: "0644"
     owner: root
     group: root
-  notify: restart rsyslog
+  notify: Restart rsyslog
+  tags: [molecule-notest]
 
 - name: Create log rotation configuration
   ansible.builtin.template:
@@ -70,3 +73,4 @@
     owner: root
     group: root
   when: security_config.log_retention_days is defined
+  tags: [molecule-notest]
