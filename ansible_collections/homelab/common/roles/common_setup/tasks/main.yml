@@ -15,7 +15,7 @@
 - name: Set timezone
   community.general.timezone:
     name: "{{ timezone }}"
-  notify: Restart rsyslog 
+  notify: Restart rsyslog
 
 - name: Create common users
   ansible.builtin.user:
