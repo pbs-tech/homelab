@@ -10,6 +10,7 @@ The testing strategy prioritizes speed and practicality:
 2. **Infrastructure Validation** - Health checks for all deployed services
 3. **Security Validation** - Security hardening verification
 4. **Service Validation** - Functional testing of all services
+5. **Molecule Testing** - Collection-level automated testing
 
 All tests complete in under 5 minutes total, making them practical for frequent validation.
 
@@ -114,6 +115,12 @@ make test-services
 
 # Specific validations
 make test-api                 # Proxmox API authentication
+
+# Molecule tests (collection-level automated testing)
+make test-molecule-all        # Run all Molecule scenarios
+make test-molecule-common     # Test common collection
+make test-molecule-k3s        # Test K3s collection
+make test-molecule-proxmox    # Test Proxmox LXC collection
 ```
 
 ### Direct Ansible Commands
@@ -131,44 +138,116 @@ ansible-playbook tests/validate-services.yml -vv
 
 ## Molecule Testing
 
-The project uses Molecule 6.0+ for collection-level testing and validation.
+The project uses Molecule 6.0+ for collection-level testing and validation. Molecule provides automated testing with multiple scenarios per collection.
 
-### Molecule Test Scenarios
+### Quick Start
 
-**Common Collection:**
-- `default` - Tests common roles and setup (Docker driver)
-- `common-roles` - Tests container base and security hardening roles (Docker driver)
+**Using Makefile (Recommended):**
 
-**K3s Collection:**
-- `raspberry-pi` - Tests K3s deployment on real Raspberry Pi hardware (default driver)
+```bash
+# Run all molecule tests (recommended before commits)
+make test-molecule-all
 
-**Proxmox LXC Collection:**
-- `default` - Docker-based unit tests for LXC roles (Docker driver)
-- `service-stack` - Multi-service integration testing (Docker driver)
-- `proxmox-integration` - Real Proxmox infrastructure testing (default driver)
+# Test individual collections
+make test-molecule-common        # Test common collection
+make test-molecule-k3s          # Test K3s collection
+make test-molecule-proxmox      # Test Proxmox LXC collection
 
-**Full Stack:**
-- `full-stack` - Complete infrastructure integration test (Docker driver)
+# Test specific scenarios
+make test-molecule-common-roles      # Common roles scenario
+make test-molecule-k3s-pi           # K3s on Raspberry Pi
+make test-molecule-proxmox-integration  # Proxmox integration
+```
 
-### Running Molecule Tests
+**Direct Molecule Commands:**
 
 ```bash
 # Install Molecule and dependencies
 pip install "molecule>=6.0" "molecule-plugins[docker]>=23.5.0"
 pip install "ansible-core>=2.17" "yamllint>=1.35" "ansible-lint>=24.0"
 
-# Test individual collections
+# Test individual collections with default scenario
+cd ansible_collections/homelab/common && molecule test
+cd ansible_collections/homelab/k3s && molecule test
+cd ansible_collections/homelab/proxmox_lxc && molecule test
+
+# Test specific scenarios
+cd ansible_collections/homelab/common && molecule test -s common-roles
+cd ansible_collections/homelab/k3s && molecule test -s raspberry-pi
+cd ansible_collections/homelab/proxmox_lxc && molecule test -s proxmox-integration
+```
+
+### Molecule Test Scenarios
+
+**Common Collection (`homelab.common`):**
+- `default` - Tests common roles and setup (Docker driver)
+- `common-roles` - Tests container base and security hardening roles (Docker driver)
+
+**K3s Collection (`homelab.k3s`):**
+- `default` - Basic K3s role validation (Docker driver)
+- `raspberry-pi` - Tests K3s deployment on real Raspberry Pi hardware (default driver)
+
+**Proxmox LXC Collection (`homelab.proxmox_lxc`):**
+- `default` - Docker-based unit tests for LXC roles (Docker driver)
+- `proxmox-integration` - Real Proxmox infrastructure testing (default driver)
+
+### Development Workflow with Molecule
+
+**Iterative Testing (Fast Development Cycle):**
+
+```bash
+# Navigate to collection directory
 cd ansible_collections/homelab/common
-molecule test
 
-cd ansible_collections/homelab/k3s
-molecule test -s raspberry-pi
+# Create test environment (once)
+molecule create
 
-cd ansible_collections/homelab/proxmox_lxc
-molecule test -s service-stack
+# Run playbook (repeatable without destroying environment)
+molecule converge
 
-# Test full stack integration from repository root
-molecule test -s full-stack
+# Run verification tests
+molecule verify
+
+# Destroy test environment when done
+molecule destroy
+```
+
+**Makefile Helpers for Development:**
+
+```bash
+# Run converge on all collections (no destroy)
+make molecule-converge
+
+# Run converge on specific collection
+make molecule-converge-common
+make molecule-converge-k3s
+make molecule-converge-proxmox
+
+# Run verify on all collections
+make molecule-verify
+
+# Destroy all test instances
+make molecule-destroy
+
+# Reset all instances (destroy + create fresh)
+make molecule-reset
+```
+
+### Debugging Molecule Tests
+
+```bash
+# Run with debug output
+cd ansible_collections/homelab/common
+molecule --debug test
+
+# Keep environment after failure (for inspection)
+molecule converge  # Re-run without destroying
+
+# Login to test container/instance
+molecule login
+
+# List all scenarios and their status
+molecule list
 ```
 
 ### Molecule 6.0+ Driver Notes
@@ -190,47 +269,65 @@ molecule test -s full-stack
 - SSH access to target nodes for default driver scenarios
 - Proper authentication configured (SSH keys, API tokens)
 
-### Molecule CI Pipeline
+### Molecule CI/CD Integration
 
-The `.github/workflows/molecule.yml` workflow provides automated Molecule testing:
+Molecule tests are automatically executed in the GitHub Actions CI pipeline (`.github/workflows/ci.yml`):
+
+**CI Configuration:**
+- **Trigger:** Pull requests, pushes to main, manual workflow dispatch
+- **Strategy:** Matrix testing across collections in parallel
+- **Duration:** 3-5 minutes per collection
+- **Environment:** Python 3.12, Ansible 2.17+, Docker
 
 **Test Matrix:**
-- Python 3.12
-- Ansible 2.17+
-- Molecule 6.0+
-- All collection scenarios in parallel
+- `common` collection with `default` scenario
+- `proxmox_lxc` collection with `default` scenario
+- K3s collection tested separately (requires real hardware)
 
-**Requirements:**
-- Docker for containerized testing (GitHub Actions provides this)
-- Real hardware access for Raspberry Pi and Proxmox scenarios (uses default driver)
+**CI Workflow highlights:**
+- Runs after successful linting checks
+- Tests each collection independently with dependency resolution
+- Uses Docker driver for fast, isolated testing
+- Automatically installs collection dependencies
+- Caches Ansible collections for faster execution
+
+**View CI Results:**
+
+```bash
+# Check CI status from command line
+make ci-status
+
+# View detailed logs
+# Navigate to: GitHub > Actions > CI workflow > Latest run
+```
 
 ## CI/CD Integration
 
 The GitHub Actions workflow (`.github/workflows/ci.yml`) provides automated validation:
 
 **Workflow Jobs:**
-- **yamllint** - YAML syntax validation
-- **ansible-lint** - Ansible best practices with security profile
-- **markdownlint** - Documentation quality
-- **secrets-scan** - TruffleHog secret detection
-- **galaxy-validation** - Collection build and validation
+- **lint** - YAML, Ansible, and Markdown linting
+- **collections** - Galaxy collection build and validation
+- **molecule** - Collection-level automated testing
+- **secrets-scan** - TruffleHog secret detection (PRs only)
 
 **Environment:**
 - Python 3.12
 - Ansible 2.17+
 - yamllint 1.35+
 - ansible-lint 24.0+
+- Molecule 6.0+
 
 **Trigger Conditions:**
-- Push to main, develop, or update-actions branches
+- Push to main branch
 - Pull requests to main or develop
 - Manual workflow dispatch
 
 **Optimization:**
-- Path filtering to skip unnecessary jobs
-- Caching for Ansible collections and pip packages
-- Parallel execution where possible
+- Dependency caching (pip, Ansible collections)
+- Parallel job execution
 - Fast failure for critical issues
+- Matrix testing for collections
 
 ## Development Workflow
 
@@ -254,13 +351,42 @@ The GitHub Actions workflow (`.github/workflows/ci.yml`) provides automated vali
    make test-quick
    ```
 
-4. **Run full validation** before committing:
+4. **Run molecule tests** for changed collections:
+
+   ```bash
+   # If you modified common collection
+   make test-molecule-common
+
+   # Or test all collections
+   make test-molecule-all
+   ```
+
+5. **Run full validation** before committing:
 
    ```bash
    make test
    ```
 
-5. **Commit changes** once all tests pass
+6. **Commit changes** once all tests pass
+
+### Pre-Commit Testing Checklist
+
+```bash
+# 1. Lint all code
+make lint
+
+# 2. Run Molecule tests for affected collections
+make test-molecule-all
+
+# 3. Run infrastructure validation
+make test-infrastructure
+
+# 4. Run security validation
+make test-security
+
+# 5. Run service validation
+make test-services
+```
 
 ### Pre-Production Validation
 
@@ -311,7 +437,7 @@ Tests use the standard homelab inventory:
 # Install all dependencies
 make install
 
-# Install development dependencies
+# Install development dependencies (includes Molecule)
 make install-dev
 
 # Configure vault password (if needed)
@@ -326,6 +452,19 @@ chmod 600 ~/.ansible_vault_pass
 make test-api
 # OR
 ansible-playbook test-proxmox-api-tokens.yml
+```
+
+#### For Molecule Testing
+
+```bash
+# Install Molecule and dependencies (included in make install-dev)
+pip install "molecule>=6.0" "molecule-plugins[docker]>=23.5.0"
+
+# Ensure Docker is running (for Docker-based scenarios)
+docker ps
+
+# Verify installation
+molecule --version
 ```
 
 ## Understanding Test Results
@@ -367,6 +506,28 @@ Monitoring Stack Status:
 - AlertManager: HEALTHY
 ```
 
+### Molecule Test Output
+
+Molecule provides detailed test execution output:
+
+```text
+PLAY RECAP *********************************************************************
+instance                   : ok=10   changed=5    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0
+
+INFO     Running default > verify
+INFO     Running Ansible Verifier
+
+PLAY [Verify] ******************************************************************
+
+TASK [Verify role deployment] **************************************************
+ok: [instance]
+
+PLAY RECAP *********************************************************************
+instance                   : ok=5    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+
+INFO     Verifier completed successfully.
+```
+
 ## Troubleshooting
 
 ### Common Issues
@@ -401,6 +562,39 @@ make test-api
 # Test API manually
 curl -k -H "Authorization: PVEAPIToken=USER@REALM!TOKENID=SECRET" \
   https://proxmox-host:8006/api2/json/version
+```
+
+#### Molecule Docker Issues
+
+```bash
+# Check Docker daemon is running
+docker ps
+
+# Pull required images manually
+docker pull geerlingguy/docker-ubuntu2204-ansible
+
+# Clean up stale containers
+docker system prune -f
+
+# Ensure user is in docker group
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+#### Molecule Test Failures
+
+```bash
+# Destroy and retry
+cd ansible_collections/homelab/common
+molecule destroy
+molecule test
+
+# Run with debug output
+molecule --debug test
+
+# Keep environment after failure
+molecule converge
+molecule login  # Inspect the test instance
 ```
 
 ### Debug Mode
@@ -456,7 +650,8 @@ curl http://192.168.0.200:9090/-/healthy
 | Infrastructure | < 3 min | 18 containers, 4 K3s nodes, service ports |
 | Security | < 3 min | Firewall, SSH, fail2ban, SSL certificates |
 | Services | < 4 min | 15+ services, APIs, K3s workloads |
-| **Total** | **< 5 min** | **Full infrastructure validation** |
+| Molecule (per collection) | 3-5 min | Role validation, integration tests |
+| **Total** | **< 15 min** | **Full infrastructure + collection validation** |
 
 ## Best Practices
 
@@ -466,6 +661,14 @@ curl http://192.168.0.200:9090/-/healthy
 - **Test real infrastructure** - No mocks, validate actual deployments
 - **Ignore non-critical errors** - Gather complete status before failing
 - **Provide clear output** - Status summaries for quick assessment
+
+### Molecule Testing
+
+- **Use Docker for unit tests** - Fast, isolated, repeatable
+- **Use default driver for integration** - Test on real infrastructure
+- **Iterative development** - Use `converge` for rapid testing
+- **Keep scenarios focused** - Unit tests in default, integration in named scenarios
+- **Test dependencies** - Ensure collection dependencies are installed
 
 ### Test Maintenance
 
@@ -477,9 +680,10 @@ curl http://192.168.0.200:9090/-/healthy
 ### CI/CD Best Practices
 
 - **Run linting before tests** - Catch syntax issues early
-- **Use path filtering** - Skip unnecessary job runs
-- **Cache dependencies** - Speed up workflow execution
+- **Use caching** - Speed up workflow execution with dependency caching
+- **Matrix testing** - Test collections in parallel
 - **Fail fast on critical issues** - Don't waste resources
+- **Test locally first** - Run `make test-molecule-all` before pushing
 
 ## Continuous Improvement
 
@@ -499,6 +703,8 @@ Potential improvements (implement as needed):
 - Load testing for critical services
 - Certificate expiration monitoring
 - Resource utilization validation
+- Extended Molecule scenarios (full-stack integration)
+- Performance benchmarking tests
 
 ## Contributing
 
@@ -506,9 +712,10 @@ When adding new services or infrastructure:
 
 1. **Update relevant test files** with new services
 2. **Add health check endpoints** to service definitions
-3. **Document expected test behavior** in comments
-4. **Verify tests run successfully** before committing
-5. **Update this documentation** with significant changes
+3. **Add Molecule scenarios** for new roles/collections
+4. **Document expected test behavior** in comments
+5. **Verify tests run successfully** before committing
+6. **Update this documentation** with significant changes
 
 ## Reference
 
@@ -520,11 +727,45 @@ tests/
 ├── validate-infrastructure.yml   # Infrastructure health (< 3 min)
 ├── validate-security.yml         # Security validation (< 3 min)
 └── validate-services.yml         # Service functionality (< 4 min)
+
+ansible_collections/homelab/*/molecule/
+├── common/
+│   ├── default/                  # Common roles unit tests
+│   └── common-roles/             # Security and container tests
+├── k3s/
+│   ├── default/                  # K3s role validation
+│   └── raspberry-pi/             # Real hardware tests
+└── proxmox_lxc/
+    ├── default/                  # LXC roles unit tests
+    └── proxmox-integration/      # Real Proxmox tests
+```
+
+### Makefile Test Targets
+
+```bash
+# Infrastructure validation
+make test                    # Full test suite
+make test-quick             # Quick smoke tests
+make test-infrastructure    # Infrastructure health
+make test-security          # Security validation
+make test-services          # Service functionality
+make test-api              # Proxmox API tests
+
+# Molecule testing
+make test-molecule-all              # All Molecule scenarios
+make test-molecule-common           # Common collection
+make test-molecule-k3s             # K3s collection
+make test-molecule-proxmox         # Proxmox LXC collection
+make molecule-converge             # Converge all collections
+make molecule-verify               # Verify all collections
+make molecule-destroy              # Destroy all instances
+make molecule-reset                # Reset all instances
 ```
 
 ### Related Documentation
 
 - **README.md** - Project overview and quick start
-- **CLAUDE.md** - Development guidelines and commands
+- **CLAUDE.md** - Development guidelines and complete command reference
 - **.github/workflows/ci.yml** - CI/CD pipeline configuration
 - **Makefile** - Development and testing commands
+- **ansible_collections/homelab/*/molecule/** - Molecule test scenarios

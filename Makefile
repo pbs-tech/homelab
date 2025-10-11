@@ -2,7 +2,7 @@
 # Provides common development and deployment tasks
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint lint-yaml lint-ansible lint-markdown test deploy clean performance drift-check release monitor backup restore ci-status
+.PHONY: help install install-dev lint lint-yaml lint-ansible lint-markdown lint-fix test test-quick test-infrastructure test-security test-services test-api test-molecule test-molecule-all test-molecule-common test-molecule-common-roles test-molecule-k3s test-molecule-k3s-pi test-molecule-proxmox test-molecule-proxmox-integration molecule-converge molecule-converge-common molecule-converge-k3s molecule-converge-proxmox molecule-verify molecule-verify-common molecule-verify-k3s molecule-verify-proxmox molecule-destroy molecule-reset deploy deploy-phase1 deploy-phase2 deploy-security validate clean security-scan docs performance drift-check release monitor backup restore status ci-status
 
 # Colors for output
 YELLOW := \033[1;33m
@@ -14,12 +14,18 @@ NC := \033[0m # No Color
 PYTHON_VERSION ?= 3.11
 ANSIBLE_CORE_VERSION ?= 2.15
 
+# Collection paths
+COLLECTIONS_PATH := ansible_collections/homelab
+COMMON_PATH := $(COLLECTIONS_PATH)/common
+K3S_PATH := $(COLLECTIONS_PATH)/k3s
+PROXMOX_PATH := $(COLLECTIONS_PATH)/proxmox_lxc
+
 help: ## Show this help message
 	@echo "$(YELLOW)Homelab Infrastructure Management$(NC)"
 	@echo "=================================="
 	@echo
 	@echo "$(GREEN)Available targets:$(NC)"
-	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_-]+:.*?##/ { printf "  $(GREEN)%-15s$(NC) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*?##/ { printf "  $(GREEN)%-30s$(NC) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
 install: ## Install dependencies and collections
 	@echo "$(YELLOW)Installing Python dependencies...$(NC)"
@@ -33,6 +39,8 @@ install: ## Install dependencies and collections
 install-dev: install ## Install development dependencies and setup pre-commit
 	@echo "$(YELLOW)Setting up development environment...$(NC)"
 	pre-commit install
+	@echo "$(YELLOW)Installing Molecule test dependencies...$(NC)"
+	pip install "molecule>=6.0" "molecule-plugins[docker]>=23.5.0"
 	@echo "$(GREEN)Development environment ready!$(NC)"
 
 lint: ## Run all linting checks
@@ -91,6 +99,142 @@ test-services: ## Validate service functionality
 test-api: ## Validate Proxmox API authentication
 	@echo "$(YELLOW)Testing Proxmox API token authentication...$(NC)"
 	@ansible-playbook test-proxmox-api-tokens.yml
+
+# ============================================
+# Molecule Testing Targets
+# ============================================
+
+test-molecule: ## Run Molecule tests for all collections (default scenarios)
+	@echo "$(YELLOW)Running Molecule tests for all collections (default scenarios)...$(NC)"
+	@echo "$(YELLOW)Testing common collection...$(NC)"
+	@cd $(COMMON_PATH) && molecule test -s default || { echo "$(RED)Common collection tests failed!$(NC)"; exit 1; }
+	@echo "$(YELLOW)Testing k3s collection...$(NC)"
+	@cd $(K3S_PATH) && molecule test -s default || { echo "$(RED)K3s collection tests failed!$(NC)"; exit 1; }
+	@echo "$(YELLOW)Testing proxmox_lxc collection...$(NC)"
+	@cd $(PROXMOX_PATH) && molecule test -s default || { echo "$(RED)Proxmox LXC collection tests failed!$(NC)"; exit 1; }
+	@echo "$(GREEN)All Molecule tests passed!$(NC)"
+
+test-molecule-all: ## Run ALL Molecule scenarios (including real infrastructure)
+	@echo "$(YELLOW)Running ALL Molecule scenarios (including real infrastructure)...$(NC)"
+	@echo "$(YELLOW)Testing common collection - default scenario...$(NC)"
+	@cd $(COMMON_PATH) && molecule test -s default || { echo "$(RED)Common default scenario failed!$(NC)"; exit 1; }
+	@echo "$(YELLOW)Testing common collection - common-roles scenario...$(NC)"
+	@cd $(COMMON_PATH) && molecule test -s common-roles || { echo "$(RED)Common roles scenario failed!$(NC)"; exit 1; }
+	@echo "$(YELLOW)Testing k3s collection - default scenario...$(NC)"
+	@cd $(K3S_PATH) && molecule test -s default || { echo "$(RED)K3s default scenario failed!$(NC)"; exit 1; }
+	@echo "$(YELLOW)Testing k3s collection - raspberry-pi scenario...$(NC)"
+	@cd $(K3S_PATH) && molecule test -s raspberry-pi || { echo "$(RED)K3s raspberry-pi scenario failed!$(NC)"; exit 1; }
+	@echo "$(YELLOW)Testing proxmox_lxc collection - default scenario...$(NC)"
+	@cd $(PROXMOX_PATH) && molecule test -s default || { echo "$(RED)Proxmox LXC default scenario failed!$(NC)"; exit 1; }
+	@echo "$(YELLOW)Testing proxmox_lxc collection - proxmox-integration scenario...$(NC)"
+	@cd $(PROXMOX_PATH) && molecule test -s proxmox-integration || { echo "$(RED)Proxmox integration scenario failed!$(NC)"; exit 1; }
+	@echo "$(GREEN)All Molecule scenarios passed!$(NC)"
+
+test-molecule-common: ## Run Molecule tests for common collection
+	@echo "$(YELLOW)Running Molecule tests for common collection...$(NC)"
+	@cd $(COMMON_PATH) && molecule test -s default
+	@echo "$(GREEN)Common collection tests passed!$(NC)"
+
+test-molecule-common-roles: ## Run Molecule tests for common-roles scenario
+	@echo "$(YELLOW)Running Molecule tests for common-roles scenario...$(NC)"
+	@cd $(COMMON_PATH) && molecule test -s common-roles
+	@echo "$(GREEN)Common roles scenario passed!$(NC)"
+
+test-molecule-k3s: ## Run Molecule tests for k3s collection
+	@echo "$(YELLOW)Running Molecule tests for k3s collection...$(NC)"
+	@cd $(K3S_PATH) && molecule test -s default
+	@echo "$(GREEN)K3s collection tests passed!$(NC)"
+
+test-molecule-k3s-pi: ## Run Molecule tests for k3s raspberry-pi scenario
+	@echo "$(YELLOW)Running Molecule tests for k3s raspberry-pi scenario...$(NC)"
+	@cd $(K3S_PATH) && molecule test -s raspberry-pi
+	@echo "$(GREEN)K3s raspberry-pi scenario passed!$(NC)"
+
+test-molecule-proxmox: ## Run Molecule tests for proxmox_lxc collection
+	@echo "$(YELLOW)Running Molecule tests for proxmox_lxc collection...$(NC)"
+	@cd $(PROXMOX_PATH) && molecule test -s default
+	@echo "$(GREEN)Proxmox LXC collection tests passed!$(NC)"
+
+test-molecule-proxmox-integration: ## Run Molecule tests for proxmox-integration scenario
+	@echo "$(YELLOW)Running Molecule tests for proxmox-integration scenario...$(NC)"
+	@cd $(PROXMOX_PATH) && molecule test -s proxmox-integration
+	@echo "$(GREEN)Proxmox integration scenario passed!$(NC)"
+
+# ============================================
+# Molecule Converge Targets (for debugging)
+# ============================================
+
+molecule-converge: ## Run converge on all collections (no destroy)
+	@echo "$(YELLOW)Running converge for all collections...$(NC)"
+	@echo "$(YELLOW)Converging common collection...$(NC)"
+	@cd $(COMMON_PATH) && molecule converge -s default
+	@echo "$(YELLOW)Converging k3s collection...$(NC)"
+	@cd $(K3S_PATH) && molecule converge -s default
+	@echo "$(YELLOW)Converging proxmox_lxc collection...$(NC)"
+	@cd $(PROXMOX_PATH) && molecule converge -s default
+	@echo "$(GREEN)All converge operations completed!$(NC)"
+
+molecule-converge-common: ## Run converge for common collection
+	@echo "$(YELLOW)Running converge for common collection...$(NC)"
+	@cd $(COMMON_PATH) && molecule converge -s default
+
+molecule-converge-k3s: ## Run converge for k3s collection
+	@echo "$(YELLOW)Running converge for k3s collection...$(NC)"
+	@cd $(K3S_PATH) && molecule converge -s default
+
+molecule-converge-proxmox: ## Run converge for proxmox_lxc collection
+	@echo "$(YELLOW)Running converge for proxmox_lxc collection...$(NC)"
+	@cd $(PROXMOX_PATH) && molecule converge -s default
+
+# ============================================
+# Molecule Verify Targets
+# ============================================
+
+molecule-verify: ## Run verify for all collections
+	@echo "$(YELLOW)Running verify for all collections...$(NC)"
+	@cd $(COMMON_PATH) && molecule verify -s default
+	@cd $(K3S_PATH) && molecule verify -s default
+	@cd $(PROXMOX_PATH) && molecule verify -s default
+	@echo "$(GREEN)All verify operations completed!$(NC)"
+
+molecule-verify-common: ## Run verify for common collection
+	@echo "$(YELLOW)Running verify for common collection...$(NC)"
+	@cd $(COMMON_PATH) && molecule verify -s default
+
+molecule-verify-k3s: ## Run verify for k3s collection
+	@echo "$(YELLOW)Running verify for k3s collection...$(NC)"
+	@cd $(K3S_PATH) && molecule verify -s default
+
+molecule-verify-proxmox: ## Run verify for proxmox_lxc collection
+	@echo "$(YELLOW)Running verify for proxmox_lxc collection...$(NC)"
+	@cd $(PROXMOX_PATH) && molecule verify -s default
+
+# ============================================
+# Molecule Cleanup Targets
+# ============================================
+
+molecule-destroy: ## Destroy all Molecule test instances
+	@echo "$(YELLOW)Destroying all Molecule test instances...$(NC)"
+	@cd $(COMMON_PATH) && molecule destroy -s default || true
+	@cd $(COMMON_PATH) && molecule destroy -s common-roles || true
+	@cd $(K3S_PATH) && molecule destroy -s default || true
+	@cd $(K3S_PATH) && molecule destroy -s raspberry-pi || true
+	@cd $(PROXMOX_PATH) && molecule destroy -s default || true
+	@cd $(PROXMOX_PATH) && molecule destroy -s proxmox-integration || true
+	@echo "$(GREEN)All Molecule instances destroyed!$(NC)"
+
+molecule-reset: ## Reset Molecule test instances (destroy + create)
+	@echo "$(YELLOW)Resetting all Molecule test instances...$(NC)"
+	@$(MAKE) molecule-destroy
+	@echo "$(YELLOW)Creating fresh instances...$(NC)"
+	@cd $(COMMON_PATH) && molecule create -s default
+	@cd $(K3S_PATH) && molecule create -s default
+	@cd $(PROXMOX_PATH) && molecule create -s default
+	@echo "$(GREEN)All Molecule instances reset!$(NC)"
+
+# ============================================
+# Deployment Targets
+# ============================================
 
 deploy: lint ## Deploy infrastructure (with linting check first)
 	@echo "$(YELLOW)Deploying infrastructure...$(NC)"

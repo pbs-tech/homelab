@@ -159,21 +159,164 @@ trufflehog git file://. --only-verified  # Scan for secrets
 
 ### Molecule Testing Commands
 
+Molecule 6.0+ provides comprehensive testing for Ansible roles and collections. The project includes
+both Makefile targets for convenient execution and direct molecule commands for advanced usage.
+
+#### Quick Start - Makefile Targets
+
+```bash
+# Run all molecule tests across all collections (recommended for CI/pre-commit)
+make test-molecule-all
+
+# Test individual collections
+make test-molecule-common        # Test common collection
+make test-molecule-k3s          # Test K3s collection
+make test-molecule-proxmox      # Test Proxmox LXC collection
+
+# Run molecule tests with specific scenarios
+make test-molecule              # Run default scenario in current directory
+```
+
+**When to use each target:**
+
+- `make test-molecule-all` - Before committing changes, in CI/CD pipelines
+- `make test-molecule-common` - When modifying common roles (security_hardening, container_base, etc.)
+- `make test-molecule-k3s` - When modifying K3s cluster configuration or roles
+- `make test-molecule-proxmox` - When modifying LXC service roles or deployment logic
+- `make test-molecule` - Quick testing in the current collection directory during development
+
+#### Direct Molecule Commands
+
 ```bash
 # Install Molecule testing dependencies
 pip install "molecule>=6.0" "molecule-plugins[docker]>=23.5.0"
 pip install "ansible-core>=2.17" "yamllint>=1.35" "ansible-lint>=24.0"
 
-# Test individual collections
+# Test individual collections with default scenario
 cd ansible_collections/homelab/common && molecule test
-cd ansible_collections/homelab/k3s && molecule test -s raspberry-pi
+cd ansible_collections/homelab/k3s && molecule test
 cd ansible_collections/homelab/proxmox_lxc && molecule test
 
-# Run specific Molecule commands
+# Test specific scenarios
+cd ansible_collections/homelab/common && molecule test -s common-roles
+cd ansible_collections/homelab/k3s && molecule test -s raspberry-pi
+cd ansible_collections/homelab/proxmox_lxc && molecule test -s proxmox-integration
+
+# Molecule development workflow (iterative testing)
 molecule create              # Create test environment
-molecule converge           # Run playbook
-molecule verify             # Run verification
-molecule destroy            # Clean up
+molecule converge           # Run playbook (repeatable)
+molecule verify             # Run verification tests
+molecule destroy            # Clean up test environment
+
+# List available scenarios
+molecule list               # Show all scenarios in current collection
+
+# Debugging failed tests
+molecule converge           # Re-run without destroying environment
+molecule login              # SSH into test container/instance
+molecule --debug test       # Run with verbose debug output
+```
+
+#### Collection-Specific Testing
+
+**Common Collection** (`homelab.common`):
+
+```bash
+cd ansible_collections/homelab/common
+
+# Test all common roles (default scenario)
+molecule test
+
+# Test specific role scenario
+molecule test -s common-roles
+
+# Available scenarios: default, common-roles
+# Tests: security_hardening, container_base, common_setup roles
+```
+
+**K3s Collection** (`homelab.k3s`):
+
+```bash
+cd ansible_collections/homelab/k3s
+
+# Test K3s deployment on real Raspberry Pi nodes (requires infrastructure)
+molecule test -s raspberry-pi
+
+# Note: K3s tests require actual Raspberry Pi hardware at 192.168.0.111-114
+# Use 'driver: name: default' for real infrastructure testing
+```
+
+**Proxmox LXC Collection** (`homelab.proxmox_lxc`):
+
+```bash
+cd ansible_collections/homelab/proxmox_lxc
+
+# Test basic LXC role structure (default scenario)
+molecule test
+
+# Test Proxmox integration (requires Proxmox access)
+molecule test -s proxmox-integration
+
+# Note: Integration tests require Proxmox hosts at 192.168.0.56-57
+```
+
+#### CI/CD Integration
+
+Molecule tests are automatically executed in GitHub Actions CI pipeline:
+
+- **Trigger:** Pull requests, pushes to main, manual workflow dispatch
+- **Strategy:** Matrix testing across all three collections in parallel
+- **Duration:** Typically 3-5 minutes per collection
+- **Requirements:** Python 3.12, Ansible 2.17+, Docker for container-based tests
+
+**CI Workflow highlights:**
+
+- Runs after successful linting checks
+- Tests each collection independently with dependency resolution
+- Uses Docker driver for fast, isolated testing
+- Automatically installs collection dependencies (e.g., homelab.common for k3s/proxmox_lxc)
+- Caches Ansible collections for faster execution
+
+**View CI results:**
+
+```bash
+# Check CI status from command line
+make ci-status
+
+# Or view in GitHub
+# Navigate to: Actions > CI workflow > Latest run
+```
+
+#### Best Practices
+
+1. **Before committing:** Run `make test-molecule-all` to ensure all collections pass
+2. **During development:** Use `molecule converge` for rapid iteration without destroying the environment
+3. **For debugging:** Use `molecule --debug converge` to see detailed output
+4. **Real infrastructure:** Use `driver: name: default` for testing on actual hardware (K3s Pi nodes, Proxmox)
+5. **Docker testing:** Use `driver: name: docker` with molecule-plugins for fast, isolated unit tests
+6. **Scenario organization:** Keep scenarios focused - unit tests in default, integration in named scenarios
+
+#### Troubleshooting
+
+**Common issues:**
+
+```bash
+# Molecule not found
+pip install "molecule>=6.0" "molecule-plugins[docker]>=23.5.0"
+
+# Docker driver not available
+pip install "molecule-plugins[docker]>=23.5.0"
+
+# Stale test environment
+molecule destroy && molecule test
+
+# Permission issues with Docker
+sudo usermod -aG docker $USER && newgrp docker
+
+# Collection not found during test
+# Ensure you've built and installed the collection first
+ansible-galaxy collection build
+ansible-galaxy collection install *.tar.gz --force
 ```
 
 **Important Note - Molecule 6.0+ Changes:**
@@ -253,11 +396,16 @@ molecule destroy            # Clean up
     │   ├── galaxy.yml               # Common collection metadata
     │   ├── requirements.yml         # Common dependencies
     │   ├── inventory/group_vars/    # Shared infrastructure configuration
+    │   ├── molecule/                # Molecule test scenarios
+    │   │   ├── default/             # Default test scenario
+    │   │   └── common-roles/        # Common roles test scenario
     │   └── roles/                   # Shared roles (common_setup, container_base,
     │                                # security_hardening)
     ├── k3s/                         # K3s cluster management
     │   ├── playbooks/site.yml       # K3s deployment
     │   ├── inventory/hosts.yml      # Raspberry Pi inventory
+    │   ├── molecule/                # Molecule test scenarios
+    │   │   └── raspberry-pi/        # Real hardware test scenario
     │   └── roles/                   # K3s-specific roles (k3s_server, k3s_agent,
     │                                # airgap)
     └── proxmox_lxc/                 # LXC services management
@@ -265,6 +413,9 @@ molecule destroy            # Clean up
         ├── inventory/               # Dynamic and static inventory
         │   ├── proxmox.yml          # Dynamic Proxmox inventory
         │   └── hosts.yml.static-backup  # Backup of static inventory
+        ├── molecule/                # Molecule test scenarios
+        │   ├── default/             # Default test scenario
+        │   └── proxmox-integration/ # Proxmox integration test scenario
         └── roles/                   # Service roles (traefik, prometheus,
                                      # grafana, etc.)
 ```
@@ -355,6 +506,8 @@ The collection implements:
   - Python 3.12, Ansible 2.17+
   - Docker-based unit tests and real infrastructure validation
   - Multiple scenarios per collection (default, integration, service-stack)
+  - Makefile targets for convenient execution
+  - Automated CI/CD integration via GitHub Actions
 - **CI/CD integration** - Automated linting, Molecule tests, and validation via GitHub Actions
 
 **Documentation Coverage**:
