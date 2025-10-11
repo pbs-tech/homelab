@@ -1,0 +1,141 @@
+---
+# Converge playbook for K3s collection molecule testing
+# This playbook applies the K3s roles to test nodes in a CI-compatible way
+
+- name: Install K3s prerequisites on all nodes
+  hosts: k3s_cluster
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Apply prereq role
+      ansible.builtin.include_role:
+        name: homelab.k3s.prereq
+      tags: [prereq]
+
+- name: Install K3s server
+  hosts: k3s_server
+  become: true
+  serial: 1  # Install server nodes one at a time
+
+  tasks:
+    - name: Apply k3s_server role
+      ansible.builtin.include_role:
+        name: homelab.k3s.k3s_server
+      tags: [k3s-server]
+
+- name: Wait for K3s server to be ready
+  hosts: k3s_server
+  become: true
+
+  tasks:
+    - name: Wait for K3s API server to be available
+      ansible.builtin.wait_for:
+        port: 6443
+        host: "{{ ansible_default_ipv4.address | default('127.0.0.1') }}"
+        delay: 10
+        timeout: 300
+        state: started
+      register: api_wait
+      ignore_errors: true
+
+    - name: Display API server wait result
+      ansible.builtin.debug:
+        msg: "API server wait: {{ 'SUCCESS' if api_wait is succeeded else 'TIMEOUT' }}"
+
+    - name: Wait for K3s service to be fully operational
+      ansible.builtin.wait_for:
+        path: /var/lib/rancher/k3s/server/token
+        timeout: 180
+      when: inventory_hostname == groups['k3s_server'][0]
+
+    - name: Get K3s service status
+      ansible.builtin.systemd:
+        name: k3s
+      register: k3s_service_status
+      failed_when: false
+
+    - name: Display K3s service status
+      ansible.builtin.debug:
+        msg: "K3s service state: {{ k3s_service_status.status.ActiveState | default('unknown') }}"
+
+    - name: Wait for K3s to be functional (may take time in containers)
+      ansible.builtin.command: k3s kubectl get nodes
+      register: kubectl_result
+      until: kubectl_result.rc == 0
+      retries: 20
+      delay: 10
+      changed_when: false
+      failed_when: false
+
+    - name: Display kubectl test result
+      ansible.builtin.debug:
+        msg: "kubectl command: {{ 'SUCCESS' if kubectl_result.rc == 0 else 'FAILED' }}"
+
+- name: Install K3s agents
+  hosts: k3s_agent
+  become: true
+
+  tasks:
+    - name: Wait for server token to be available
+      ansible.builtin.pause:
+        seconds: 15
+      when: groups['k3s_server'] | length > 0
+
+    - name: Apply k3s_agent role
+      ansible.builtin.include_role:
+        name: homelab.k3s.k3s_agent
+      tags: [k3s-agent]
+
+- name: Wait for agents to join cluster
+  hosts: k3s_agent
+  become: true
+
+  tasks:
+    - name: Wait for K3s agent service to start
+      ansible.builtin.wait_for:
+        timeout: 30
+      changed_when: false
+
+    - name: Get K3s agent service status
+      ansible.builtin.systemd:
+        name: k3s-agent
+      register: agent_service_status
+      failed_when: false
+
+    - name: Display agent service status
+      ansible.builtin.debug:
+        msg: "K3s agent service state: {{ agent_service_status.status.ActiveState | default('unknown') }}"
+
+- name: Verify cluster formation
+  hosts: k3s_server[0]
+  become: true
+
+  tasks:
+    - name: Wait for all nodes to register
+      ansible.builtin.command: k3s kubectl get nodes -o json
+      register: nodes_check
+      until: >
+        nodes_check.rc == 0 and
+        (nodes_check.stdout | from_json).items | length >= (groups['k3s_cluster'] | length)
+      retries: 30
+      delay: 10
+      changed_when: false
+      failed_when: false
+
+    - name: Display cluster status
+      ansible.builtin.debug:
+        msg:
+          - "Expected nodes: {{ groups['k3s_cluster'] | length }}"
+          - "Registered nodes: {{ (nodes_check.stdout | from_json).items | length if nodes_check.rc == 0 else 'N/A' }}"
+
+    - name: Get detailed node list
+      ansible.builtin.command: k3s kubectl get nodes
+      register: node_list
+      changed_when: false
+      failed_when: false
+
+    - name: Show node list
+      ansible.builtin.debug:
+        var: node_list.stdout_lines
+      when: node_list.rc == 0

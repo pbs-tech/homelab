@@ -121,6 +121,8 @@ jobs:
         include:
           - collection: common
             scenario: default
+          - collection: k3s
+            scenario: default
           - collection: proxmox_lxc
             scenario: default
     steps:

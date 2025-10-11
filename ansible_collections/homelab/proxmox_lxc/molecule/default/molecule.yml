@@ -14,15 +14,9 @@ platforms:
     privileged: true
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
     command: /lib/systemd/systemd
     capabilities:
       - SYS_ADMIN
-    published_ports:
-      - "8080:8080"  # Traefik dashboard
-      - "3000:3000"  # Grafana
-      - "9090:9090"  # Prometheus
-      - "3100:3100"  # Loki
     groups:
       - proxmox_lxc_test
 
@@ -38,7 +32,7 @@ provisioner:
       ubuntu-test:
         ansible_user: root
         ansible_connection: docker
-        # Override network settings for Podman testing
+        # Override network settings for testing
         ansible_default_ipv4:
           address: 127.0.0.1
         # Mock Proxmox settings for testing
