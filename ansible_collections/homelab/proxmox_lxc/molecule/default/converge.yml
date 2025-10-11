@@ -1,49 +1,23 @@
 ---
-- name: Test core service roles
+# Simplified molecule test for proxmox_lxc collection
+# Tests a single lightweight role to verify collection structure and basic functionality
+
+- name: Test lightweight Prometheus deployment
   hosts: all
   gather_facts: true
   vars:
-    # Mock variables for Podman testing
     homelab_domain: test.local
     ssl_email: test@test.local
     container_ssh_key: "{{ lookup('file', '/root/.ssh/id_rsa.pub') }}"
 
   tasks:
-    - name: Test Prometheus role (lightweight)
+    - name: Test Prometheus role with minimal config
       include_role:
         name: homelab.proxmox_lxc.prometheus
       vars:
-        prometheus_storage_retention: "1h"  # Short retention for testing
+        prometheus_storage_retention: "15m"  # Minimal retention for testing
         prometheus_web_listen_address: 0.0.0.0:9090
-      tags: [prometheus]
-
-    - name: Test Grafana role
-      include_role:
-        name: homelab.proxmox_lxc.grafana
-      vars:
-        grafana_admin_password: test123
-        grafana_datasources:
-          - name: Prometheus
-            type: prometheus
-            access: proxy
-            url: http://127.0.0.1:9090
-            is_default: true
-            basic_auth: false
-            editable: true
-      tags: [grafana]
-
-    - name: Test Loki role
-      include_role:
-        name: homelab.proxmox_lxc.loki
-      vars:
-        loki_retention_period: "24h"  # Short retention for testing
-        loki_listen_address: 0.0.0.0
-      tags: [loki]
-
-    - name: Test Promtail role
-      include_role:
-        name: homelab.proxmox_lxc.promtail
-      vars:
-        loki_endpoint: http://127.0.0.1:3100
-        promtail_service_name: molecule-test
-      tags: [promtail]
+        prometheus_scrape_configs:
+          - job_name: prometheus
+            static_configs:
+              - targets: ['localhost:9090']

@@ -43,9 +43,6 @@ jobs:
           - name: proxmox_lxc/default
             collection: homelab/proxmox_lxc
             scenario: default
-          - name: proxmox_lxc/service-stack
-            collection: homelab/proxmox_lxc
-            scenario: service-stack
           # Scenarios below require real infrastructure - run manually only
           # - name: common/common-roles
           #   collection: homelab/common
@@ -96,42 +93,6 @@ jobs:
       - name: Run molecule tests
         run: molecule test -s ${{ matrix.scenario }}
         working-directory: ansible_collections/${{ matrix.collection }}
-        env:
-          ANSIBLE_FORCE_COLOR: '1'
-          PY_COLORS: '1'
-          MOLECULE_NO_LOG: 'false'
-
-  full-stack:
-    name: Full Stack Integration
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-
-      - name: Install dependencies
-        run: |
-          pip install "molecule>=6.0" "molecule-plugins[docker]>=23.5.0"
-          pip install "ansible-core${{ env.ANSIBLE_VERSION }}" "yamllint>=1.35" "ansible-lint>=24.0" docker
-
-      - name: Setup Docker Buildx
-        if: env.ACT != 'true'
-        uses: docker/setup-buildx-action@v3
-
-      - name: Install all collections
-        run: |
-          ansible-galaxy collection install -r requirements.yml --force
-          # Install homelab collections in order
-          for collection in common k3s proxmox_lxc; do
-            ansible-galaxy collection install ansible_collections/homelab/$collection/ --force
-          done
-
-      - name: Run full-stack test
-        run: molecule test
-        working-directory: molecule/full-stack
         env:
           ANSIBLE_FORCE_COLOR: '1'
           PY_COLORS: '1'

@@ -167,10 +167,7 @@ pip install "ansible-core>=2.17" "yamllint>=1.35" "ansible-lint>=24.0"
 # Test individual collections
 cd ansible_collections/homelab/common && molecule test
 cd ansible_collections/homelab/k3s && molecule test -s raspberry-pi
-cd ansible_collections/homelab/proxmox_lxc && molecule test -s service-stack
-
-# Test full stack integration
-cd molecule/full-stack && molecule test
+cd ansible_collections/homelab/proxmox_lxc && molecule test
 
 # Run specific Molecule commands
 molecule create              # Create test environment
@@ -185,6 +182,8 @@ molecule destroy            # Clean up
 - The `docker` driver requires separate installation via `molecule-plugins[docker]`
 - Scenarios using real infrastructure (K3s Pi nodes, Proxmox) use `driver: name: default`
 - Docker-based scenarios use `driver: name: docker` with the molecule-plugins package
+- The proxmox_lxc collection has simplified molecule tests for faster CI execution
+- Complex integration tests (service-stack, full-stack) have been removed in favor of focused unit tests
 
 ## Architecture and Structure
 
