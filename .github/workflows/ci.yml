@@ -115,6 +115,7 @@ jobs:
     name: Molecule Test - ${{ matrix.collection }}
     runs-on: ubuntu-latest
     needs: lint
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -146,16 +147,53 @@ jobs:
           pip install "molecule>=6.0" "molecule-plugins[docker]>=23.5.0"
           pip install docker
 
-      - name: Install Ansible collections
+      - name: Install external Ansible collections
         run: |
           ansible-galaxy collection install -r requirements.yml --force
           find ansible_collections/ -name "requirements.yml" -exec ansible-galaxy collection install -r {} --force \;
 
-      - name: Install homelab collections
+      - name: Build and install homelab.common collection
         run: |
-          ansible-galaxy collection install ansible_collections/homelab/common/ --force
-          ansible-galaxy collection install ansible_collections/homelab/k3s/ --force
-          ansible-galaxy collection install ansible_collections/homelab/proxmox_lxc/ --force
+          cd ansible_collections/homelab/common
+          ansible-galaxy collection build --force
+          ansible-galaxy collection install *.tar.gz --force
+
+      - name: Build and install homelab.k3s collection
+        if: matrix.collection == 'k3s' || matrix.collection == 'proxmox_lxc'
+        run: |
+          cd ansible_collections/homelab/k3s
+          ansible-galaxy collection build --force
+          ansible-galaxy collection install *.tar.gz --force
+
+      - name: Build and install homelab.proxmox_lxc collection
+        if: matrix.collection == 'proxmox_lxc'
+        run: |
+          cd ansible_collections/homelab/proxmox_lxc
+          ansible-galaxy collection build --force
+          ansible-galaxy collection install *.tar.gz --force
+
+      - name: Verify collection installation
+        run: |
+          ansible-galaxy collection list homelab.common
+          if [ "${{ matrix.collection }}" != "common" ]; then
+            ansible-galaxy collection list homelab.${{ matrix.collection }}
+          fi
+
+      - name: Display Molecule version and configuration
+        run: |
+          molecule --version
+          ansible --version
+          docker --version
+
+      - name: Start Docker service
+        run: |
+          sudo systemctl start docker
+          sudo systemctl status docker
+
+      - name: List available scenarios
+        run: |
+          cd ansible_collections/homelab/${{ matrix.collection }}
+          molecule list
 
       - name: Run Molecule tests
         run: |
@@ -164,3 +202,24 @@ jobs:
         env:
           PY_COLORS: '1'
           ANSIBLE_FORCE_COLOR: '1'
+          MOLECULE_NO_LOG: 'false'
+
+      - name: Show Molecule logs on failure
+        if: failure()
+        run: |
+          cd ansible_collections/homelab/${{ matrix.collection }}
+          if [ -d .molecule ]; then
+            echo "=== Molecule logs ==="
+            find .molecule -type f -name "*.log" -exec echo "--- {} ---" \; -exec cat {} \;
+          fi
+          echo "=== Docker containers ==="
+          docker ps -a
+          echo "=== Docker images ==="
+          docker images
+
+      - name: Cleanup Molecule environment
+        if: always()
+        run: |
+          cd ansible_collections/homelab/${{ matrix.collection }}
+          molecule destroy -s ${{ matrix.scenario }} || true
+          docker system prune -f --volumes || true
