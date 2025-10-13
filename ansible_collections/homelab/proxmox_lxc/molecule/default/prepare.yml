@@ -46,20 +46,21 @@
       until: apt_update is success
       when: ansible_os_family == "Debian"
 
-    # Install podman for container-based services
-    - name: Install Podman for container-based services
+    # Install Docker for container-based services
+    - name: Install Docker for container-based services
       ansible.builtin.apt:
         name:
-          - podman
-          - podman-compose
+          - docker.io
+          - docker-compose
         state: present
       environment:
         DEBIAN_FRONTEND: noninteractive
       when: ansible_os_family == "Debian"
+      failed_when: false  # May not be available in test containers
 
-    - name: Enable Podman socket
+    - name: Enable Docker socket
       ansible.builtin.systemd:
-        name: podman.socket
+        name: docker.socket
         state: started
         enabled: true
       failed_when: false  # May not be available in all test containers
