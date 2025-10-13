@@ -63,6 +63,7 @@ provisioner:
       stdout_callback: yaml
       host_key_checking: false
       deprecation_warnings: false
+      remote_tmp: /tmp/.ansible-${USER}/tmp
   inventory:
     group_vars:
       all:
