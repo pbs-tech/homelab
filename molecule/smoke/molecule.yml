@@ -19,7 +19,6 @@ platforms:
     privileged: true
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
     command: /lib/systemd/systemd
     capabilities:
       - SYS_ADMIN
@@ -34,7 +33,6 @@ platforms:
     privileged: true
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
     command: /lib/systemd/systemd
     capabilities:
       - SYS_ADMIN
@@ -49,7 +47,6 @@ platforms:
     privileged: true
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
     command: /lib/systemd/systemd
     capabilities:
       - SYS_ADMIN
@@ -95,14 +92,14 @@ provisioner:
           nodes: [pve-mac, pve-nas]
         # K3s mock configuration
         k3s_version: v1.28.0+k3s1
-        k3s_token: mock-token-for-smoke-test
+        k3s_token: "molecule-test-token-{{ ansible_date_time.epoch }}"
         k3s_server_ip: 172.17.0.2
         k3s_cluster_cidr: 10.42.0.0/16
         k3s_service_cidr: 10.43.0.0/16
         systemd_dir: /etc/systemd/system
         # Monitoring mock configuration
         prometheus_retention: 1d
-        grafana_admin_password: smoke-test-password
+        grafana_admin_password: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits') }}"
         loki_retention: 1d
     host_vars:
       smoke-common:

@@ -14,7 +14,6 @@ platforms:
     privileged: true
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
     command: /lib/systemd/systemd
     capabilities:
       - SYS_ADMIN
@@ -38,7 +37,7 @@ provisioner:
         container_id: 100
         inventory_hostname: prometheus-lxc
         # Mock Proxmox configuration
-        proxmox_password: molecule-test-password
+        proxmox_password: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits') }}"
     group_vars:
       all:
         # Import common configuration

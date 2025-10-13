@@ -16,7 +16,6 @@ platforms:
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
       - /lib/modules:/lib/modules:ro
-    cgroupns_mode: host
     command: /lib/systemd/systemd
     capabilities:
       - SYS_ADMIN
@@ -38,7 +37,6 @@ platforms:
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
       - /lib/modules:/lib/modules:ro
-    cgroupns_mode: host
     command: /lib/systemd/systemd
     capabilities:
       - SYS_ADMIN
@@ -59,7 +57,6 @@ platforms:
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
       - /lib/modules:/lib/modules:ro
-    cgroupns_mode: host
     command: /lib/systemd/systemd
     capabilities:
       - SYS_ADMIN
@@ -104,7 +101,7 @@ provisioner:
         server_group: k3s_server
         agent_group: k3s_agent
         api_port: 6443
-        token: molecule-test-token-secure-k3s
+        token: "molecule-test-token-{{ ansible_date_time.epoch }}"
 
         # Network configuration
         cluster_cidr: 10.42.0.0/16

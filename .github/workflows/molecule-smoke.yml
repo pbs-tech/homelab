@@ -93,10 +93,18 @@ jobs:
           docker --version
           python --version
 
-      - name: Start Docker service
+      - name: Start and verify Docker service
         run: |
           sudo systemctl start docker
-          sudo systemctl status docker
+
+          # Wait for Docker to be fully ready
+          timeout 30 sh -c 'until docker info > /dev/null 2>&1; do sleep 1; done'
+
+          # Verify Docker is operational
+          docker info
+          docker ps -a
+
+          echo "Docker service is ready"
 
       - name: List smoke test scenario
         run: |
@@ -132,6 +140,7 @@ jobs:
 
       - name: Cleanup
         if: always()
+        timeout-minutes: 5
         run: |
           molecule destroy -s smoke || true
           docker system prune -f --volumes || true
