@@ -4,13 +4,20 @@
 - name: Prepare all instances
   hosts: all
   become: true
-  gather_facts: true
+  gather_facts: false
   tasks:
-    - name: Create mock SSH key directory
+    - name: Create Ansible remote temp directory (raw command to avoid module dependency)
+      ansible.builtin.raw: mkdir -p /tmp/ansible-tmp && chmod 755 /tmp/ansible-tmp
+      changed_when: false
+
+    - name: Gather facts (now that temp directory exists)
+      ansible.builtin.setup:
+
+    - name: Ensure /tmp directory has correct permissions
       ansible.builtin.file:
         path: /tmp
         state: directory
-        mode: 0755
+        mode: '1777'
 
     - name: Create mock SSH private key
       ansible.builtin.copy:

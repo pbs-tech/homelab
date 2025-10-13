@@ -4,10 +4,17 @@
 
 - name: Prepare all nodes
   hosts: all
-  gather_facts: true
+  gather_facts: false
   become: true
 
   tasks:
+    - name: Create Ansible remote temp directory (raw command to avoid module dependency)
+      ansible.builtin.raw: mkdir -p /tmp/ansible-tmp && chmod 755 /tmp/ansible-tmp
+      changed_when: false
+
+    - name: Gather facts (now that temp directory exists)
+      ansible.builtin.setup:
+
     - name: Update apt cache (Ubuntu/Debian)
       ansible.builtin.apt:
         update_cache: true
