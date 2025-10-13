@@ -118,6 +118,8 @@ jobs:
           ANSIBLE_FORCE_COLOR: '1'
           MOLECULE_NO_LOG: 'false'
           ANSIBLE_REMOTE_TMP: /tmp/ansible-tmp
+          ANSIBLE_LOCAL_TMP: /tmp/ansible-tmp
+          ANSIBLE_CONFIG: ${{ github.workspace }}/molecule/smoke/ansible.cfg
 
       - name: Show logs on failure
         if: failure()
