@@ -23,7 +23,8 @@ platforms:
       - SYS_MODULE
     tmpfs:
       - /run
-      - /tmp
+      - /run/lock
+      - /tmp:exec,mode=1777
     groups:
       - k3s_cluster
       - k3s_server
@@ -44,7 +45,8 @@ platforms:
       - SYS_MODULE
     tmpfs:
       - /run
-      - /tmp
+      - /run/lock
+      - /tmp:exec,mode=1777
     groups:
       - k3s_cluster
       - k3s_agent
@@ -64,13 +66,16 @@ platforms:
       - SYS_MODULE
     tmpfs:
       - /run
-      - /tmp
+      - /run/lock
+      - /tmp:exec,mode=1777
     groups:
       - k3s_cluster
       - k3s_agent
       - molecule_test
 
 provisioner:
+  env:
+    ANSIBLE_REMOTE_TMP: /tmp/ansible-tmp
   name: ansible
   config_options:
     defaults:

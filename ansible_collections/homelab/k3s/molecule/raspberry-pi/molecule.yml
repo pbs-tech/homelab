@@ -16,6 +16,10 @@ platforms:
     privileged: true
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    tmpfs:
+      - /tmp:exec,mode=1777
+      - /run
+      - /run/lock
     command: /lib/systemd/systemd
     capabilities:
       - SYS_ADMIN
@@ -24,6 +28,8 @@ platforms:
       - molecule_test
 
 provisioner:
+  env:
+    ANSIBLE_REMOTE_TMP: /tmp/ansible-tmp
   name: ansible
   config_options:
     defaults:

@@ -17,6 +17,8 @@ platforms:
       - proxmox_test_containers
 
 provisioner:
+  env:
+    ANSIBLE_REMOTE_TMP: /tmp/ansible-tmp
   name: ansible
   config_options:
     defaults:
