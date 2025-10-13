@@ -31,7 +31,7 @@ provisioner:
       stdout_callback: yaml
       host_key_checking: false
       remote_user: pbs
-      remote_tmp: /tmp/.ansible-${USER}/tmp
+      remote_tmp: /tmp/ansible-tmp
   inventory:
     host_vars:
       k3s-test-server:
