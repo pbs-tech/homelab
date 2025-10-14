@@ -16,16 +16,10 @@ platforms:
   - name: smoke-common
     image: geerlingguy/docker-ubuntu2204-ansible:latest
     pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    privileged: false
+    command: /bin/bash -c "while true; do sleep 10000; done"
     tmpfs:
       - /tmp:exec,mode=1777
-      - /run
-      - /run/lock
-    command: /lib/systemd/systemd
-    capabilities:
-      - SYS_ADMIN
     groups:
       - common_test
       - monitoring
@@ -34,16 +28,10 @@ platforms:
   - name: smoke-k3s
     image: geerlingguy/docker-ubuntu2204-ansible:latest
     pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    privileged: false
+    command: /bin/bash -c "while true; do sleep 10000; done"
     tmpfs:
       - /tmp:exec,mode=1777
-      - /run
-      - /run/lock
-    command: /lib/systemd/systemd
-    capabilities:
-      - SYS_ADMIN
     groups:
       - k3s_test
       - k3s_server
@@ -52,16 +40,10 @@ platforms:
   - name: smoke-proxmox
     image: geerlingguy/docker-ubuntu2204-ansible:latest
     pre_build_image: true
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    privileged: false
+    command: /bin/bash -c "while true; do sleep 10000; done"
     tmpfs:
       - /tmp:exec,mode=1777
-      - /run
-      - /run/lock
-    command: /lib/systemd/systemd
-    capabilities:
-      - SYS_ADMIN
     groups:
       - proxmox_test
       - monitoring

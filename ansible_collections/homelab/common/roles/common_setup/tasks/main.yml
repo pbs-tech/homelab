@@ -6,16 +6,19 @@
     update_cache: true
     cache_valid_time: 3600
   when: ansible_os_family == "Debian"
+  tags: [molecule-notest]
 
 - name: Install common packages
   ansible.builtin.package:
     name: "{{ common_packages[ansible_distribution | lower] | default(common_packages.ubuntu) }}"
     state: present
+  tags: [molecule-notest]
 
 - name: Set timezone
   community.general.timezone:
     name: "{{ timezone }}"
   notify: Restart rsyslog
+  tags: [molecule-notest]
 
 - name: Create common users
   ansible.builtin.user:

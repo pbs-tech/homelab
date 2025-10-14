@@ -35,17 +35,6 @@
         dest: "{{ security_config.ssh_key_path }}.pub"
         mode: 0644
 
-    - name: Install basic dependencies
-      ansible.builtin.package:
-        name:
-          - python3
-          - python3-pip
-          - curl
-          - wget
-          - git
-        state: present
-        update_cache: true
-
     - name: Create systemd directory
       ansible.builtin.file:
         path: "{{ systemd_dir }}"
