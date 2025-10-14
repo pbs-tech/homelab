@@ -65,8 +65,10 @@ jobs:
             type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix={{branch}}-
+            type=sha
             type=raw,value=latest,enable={{is_default_branch}}
+          flavor: |
+            latest=auto
 
       - name: Build CI image
         uses: docker/build-push-action@v5
@@ -117,8 +119,10 @@ jobs:
             type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix={{branch}}-
+            type=sha
             type=raw,value=latest,enable={{is_default_branch}}
+          flavor: |
+            latest=auto
 
       - name: Build Molecule image
         uses: docker/build-push-action@v5
