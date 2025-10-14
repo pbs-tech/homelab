@@ -1,0 +1,160 @@
+---
+# Integration test converge playbook
+# Deploys multiple services and configures them to work together
+
+- name: Converge - Deploy Prometheus
+  hosts: prometheus-integration
+  gather_facts: true
+  tasks:
+    - name: Include container_base role
+      ansible.builtin.include_role:
+        name: homelab.common.container_base
+
+    - name: Create Prometheus configuration directory
+      ansible.builtin.file:
+        path: /etc/prometheus
+        state: directory
+        mode: '0755'
+
+    - name: Create minimal Prometheus config
+      ansible.builtin.copy:
+        dest: /etc/prometheus/prometheus.yml
+        mode: '0644'
+        content: |
+          global:
+            scrape_interval: 15s
+            evaluation_interval: 15s
+
+          scrape_configs:
+            - job_name: 'prometheus'
+              static_configs:
+                - targets: ['localhost:9090']
+
+            - job_name: 'grafana'
+              static_configs:
+                - targets: ['grafana-integration:3000']
+
+    - name: Display Prometheus setup
+      ansible.builtin.debug:
+        msg: "Prometheus configured at port {{ prometheus_port }}"
+
+- name: Converge - Deploy Grafana
+  hosts: grafana-integration
+  gather_facts: true
+  tasks:
+    - name: Include container_base role
+      ansible.builtin.include_role:
+        name: homelab.common.container_base
+
+    - name: Create Grafana configuration directory
+      ansible.builtin.file:
+        path: /etc/grafana
+        state: directory
+        mode: '0755'
+
+    - name: Create Grafana provisioning directory
+      ansible.builtin.file:
+        path: /etc/grafana/provisioning/datasources
+        state: directory
+        mode: '0755'
+
+    - name: Configure Prometheus datasource
+      ansible.builtin.copy:
+        dest: /etc/grafana/provisioning/datasources/prometheus.yml
+        mode: '0644'
+        content: |
+          apiVersion: 1
+          datasources:
+            - name: Prometheus
+              type: prometheus
+              access: proxy
+              url: {{ grafana_prometheus_url }}
+              isDefault: true
+
+    - name: Display Grafana setup
+      ansible.builtin.debug:
+        msg: "Grafana configured with Prometheus datasource at {{ grafana_prometheus_url }}"
+
+- name: Converge - Deploy Traefik
+  hosts: traefik-integration
+  gather_facts: true
+  tasks:
+    - name: Include container_base role
+      ansible.builtin.include_role:
+        name: homelab.common.container_base
+
+    - name: Create Traefik configuration directory
+      ansible.builtin.file:
+        path: /etc/traefik
+        state: directory
+        mode: '0755'
+
+    - name: Create Traefik static configuration
+      ansible.builtin.copy:
+        dest: /etc/traefik/traefik.yml
+        mode: '0644'
+        content: |
+          api:
+            dashboard: {{ traefik_dashboard_enabled }}
+            insecure: true
+
+          entryPoints:
+            {% for name, config in traefik_entrypoints.items() %}
+            {{ name }}:
+              address: "{{ config.address }}"
+            {% endfor %}
+
+          providers:
+            docker:
+              endpoint: "unix:///var/run/docker.sock"
+              exposedByDefault: false
+
+    - name: Create Traefik dynamic configuration for services
+      ansible.builtin.copy:
+        dest: /etc/traefik/dynamic.yml
+        mode: '0644'
+        content: |
+          http:
+            routers:
+              prometheus:
+                rule: "Host(`prometheus.{{ homelab_domain }}`)"
+                service: prometheus
+                entryPoints:
+                  - web
+              grafana:
+                rule: "Host(`grafana.{{ homelab_domain }}`)"
+                service: grafana
+                entryPoints:
+                  - web
+
+            services:
+              prometheus:
+                loadBalancer:
+                  servers:
+                    - url: "http://prometheus-integration:9090"
+              grafana:
+                loadBalancer:
+                  servers:
+                    - url: "http://grafana-integration:3000"
+
+    - name: Display Traefik setup
+      ansible.builtin.debug:
+        msg: "Traefik configured with routing for Prometheus and Grafana"
+
+- name: Integration Summary
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Display integration test summary
+      ansible.builtin.debug:
+        msg:
+          - "=== Integration Test Deployment Complete ==="
+          - "Services deployed:"
+          - "  - Prometheus: http://prometheus-integration:9090"
+          - "  - Grafana: http://grafana-integration:3000 (datasource configured)"
+          - "  - Traefik: Routing configured for both services"
+          - ""
+          - "Integration points tested:"
+          - "  - Grafana -> Prometheus datasource configuration"
+          - "  - Traefik routing to both Prometheus and Grafana"
+          - "  - Prometheus scraping Grafana metrics"

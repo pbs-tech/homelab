@@ -9,6 +9,9 @@ driver:
 
 platforms:
   # K3s server node
+  # SECURITY NOTE: Docker test containers run privileged to support systemd and
+  # K3s requirements (kernel modules, networking). This is ONLY for testing.
+  # Production K3s nodes use standard security hardening.
   - name: k3s-server-01
     image: geerlingguy/docker-ubuntu2204-ansible:latest
     pre_build_image: true

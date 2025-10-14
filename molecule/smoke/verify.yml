@@ -23,9 +23,11 @@
           - container_resources is defined or true  # May not be set in smoke test
           - container_defaults.cores is defined
           - container_defaults.memory is defined
+          - container_defaults.unprivileged is defined
+          - container_defaults.unprivileged == true  # Verify unprivileged by default
         fail_msg: Container base role variables not properly configured
         success_msg: Container base role variables configured correctly
-      when: container_resources is defined
+      when: container_resources is defined and container_defaults is defined
 
     - name: Check SSH configuration exists
       ansible.builtin.stat:

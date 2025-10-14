@@ -11,6 +11,9 @@ platforms:
   - name: ubuntu-test
     image: geerlingguy/docker-ubuntu2204-ansible:latest
     pre_build_image: true
+    # SECURITY NOTE: Docker test container runs privileged to support systemd
+    # This is ONLY for testing infrastructure. Actual LXC containers deployed
+    # by these roles use container_unprivileged=true by default.
     privileged: true
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw

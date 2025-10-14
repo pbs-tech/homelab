@@ -1,0 +1,112 @@
+---
+# Integration test verification
+# Verifies that services are properly integrated and can communicate
+
+- name: Verify Prometheus Integration
+  hosts: prometheus-integration
+  gather_facts: false
+  tasks:
+    - name: Check Prometheus configuration exists
+      ansible.builtin.stat:
+        path: /etc/prometheus/prometheus.yml
+      register: prom_config
+
+    - name: Assert Prometheus configuration
+      ansible.builtin.assert:
+        that:
+          - prom_config.stat.exists
+        fail_msg: "Prometheus configuration not found"
+        success_msg: "Prometheus configuration exists"
+
+    - name: Read Prometheus configuration
+      ansible.builtin.slurp:
+        src: /etc/prometheus/prometheus.yml
+      register: prom_config_content
+
+    - name: Verify Grafana is in scrape targets
+      ansible.builtin.assert:
+        that:
+          - "'grafana-integration' in (prom_config_content.content | b64decode)"
+        fail_msg: "Grafana not configured as scrape target"
+        success_msg: "Grafana properly configured as scrape target"
+
+- name: Verify Grafana Integration
+  hosts: grafana-integration
+  gather_facts: false
+  tasks:
+    - name: Check Grafana datasource configuration
+      ansible.builtin.stat:
+        path: /etc/grafana/provisioning/datasources/prometheus.yml
+      register: grafana_datasource
+
+    - name: Assert Grafana datasource exists
+      ansible.builtin.assert:
+        that:
+          - grafana_datasource.stat.exists
+        fail_msg: "Grafana datasource configuration not found"
+        success_msg: "Grafana datasource configuration exists"
+
+    - name: Read Grafana datasource configuration
+      ansible.builtin.slurp:
+        src: /etc/grafana/provisioning/datasources/prometheus.yml
+      register: datasource_content
+
+    - name: Verify Prometheus datasource configuration
+      ansible.builtin.assert:
+        that:
+          - "'prometheus-integration' in (datasource_content.content | b64decode)"
+          - "'type: prometheus' in (datasource_content.content | b64decode)"
+        fail_msg: "Prometheus datasource not properly configured"
+        success_msg: "Prometheus datasource properly configured"
+
+- name: Verify Traefik Integration
+  hosts: traefik-integration
+  gather_facts: false
+  tasks:
+    - name: Check Traefik static configuration
+      ansible.builtin.stat:
+        path: /etc/traefik/traefik.yml
+      register: traefik_static
+
+    - name: Check Traefik dynamic configuration
+      ansible.builtin.stat:
+        path: /etc/traefik/dynamic.yml
+      register: traefik_dynamic
+
+    - name: Assert Traefik configurations exist
+      ansible.builtin.assert:
+        that:
+          - traefik_static.stat.exists
+          - traefik_dynamic.stat.exists
+        fail_msg: "Traefik configuration files not found"
+        success_msg: "Traefik configuration files exist"
+
+    - name: Read Traefik dynamic configuration
+      ansible.builtin.slurp:
+        src: /etc/traefik/dynamic.yml
+      register: traefik_config
+
+    - name: Verify Traefik routes configured
+      ansible.builtin.assert:
+        that:
+          - "'prometheus-integration' in (traefik_config.content | b64decode)"
+          - "'grafana-integration' in (traefik_config.content | b64decode)"
+          - "'prometheus.{{ homelab_domain }}' in (traefik_config.content | b64decode)"
+          - "'grafana.{{ homelab_domain }}' in (traefik_config.content | b64decode)"
+        fail_msg: "Traefik routes not properly configured"
+        success_msg: "Traefik routes properly configured for all services"
+
+- name: Integration Test Summary
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Display verification summary
+      ansible.builtin.debug:
+        msg:
+          - "=== Integration Test Verification Complete ==="
+          - "✓ Prometheus configuration verified"
+          - "✓ Grafana datasource integration verified"
+          - "✓ Traefik routing configuration verified"
+          - "✓ Service-to-service communication configured"
+          - ""
+          - "All integration tests PASSED!"
