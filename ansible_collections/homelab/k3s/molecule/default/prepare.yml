@@ -1,0 +1,148 @@
+---
+# Prepare test environment for K3s installation
+# This playbook ensures all prerequisites are met before converge.yml runs
+
+- name: Prepare all nodes
+  hosts: all
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Create Ansible remote temp directory (raw command to avoid module dependency)
+      ansible.builtin.raw: mkdir -p /tmp/ansible-tmp && chmod 755 /tmp/ansible-tmp
+      changed_when: false
+
+    - name: Gather facts (now that temp directory exists)
+      ansible.builtin.setup:
+
+    - name: Update apt cache (Ubuntu/Debian)
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+      when: ansible_os_family == 'Debian'
+      changed_when: false
+
+    - name: Install required system packages
+      ansible.builtin.apt:
+        name:
+          - curl
+          - wget
+          - gnupg
+          - ca-certificates
+          - apt-transport-https
+          - software-properties-common
+          - iptables
+          - policycoreutils
+          - python3
+          - python3-pip
+        state: present
+      when: ansible_os_family == 'Debian'
+
+    - name: Ensure /usr/local/bin exists
+      ansible.builtin.file:
+        path: /usr/local/bin
+        state: directory
+        mode: '0755'
+
+    - name: Check if k3s is already installed
+      ansible.builtin.stat:
+        path: /usr/local/bin/k3s
+      register: k3s_binary
+
+    - name: Display k3s installation status
+      ansible.builtin.debug:
+        msg: "K3s binary {{ 'exists' if k3s_binary.stat.exists else 'does not exist' }}"
+
+    - name: Enable IPv4 forwarding (for K3s networking)
+      ansible.posix.sysctl:
+        name: net.ipv4.ip_forward
+        value: "1"
+        state: present
+        reload: true
+        sysctl_file: /etc/sysctl.d/99-k3s.conf
+      ignore_errors: true  # May fail in containers
+
+    - name: Load br_netfilter kernel module
+      community.general.modprobe:
+        name: br_netfilter
+        state: present
+      ignore_errors: true  # May fail in containers
+
+    - name: Create K3s directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - /etc/rancher/k3s
+        - /var/lib/rancher/k3s
+        - /var/lib/rancher/k3s/server
+        - /var/lib/rancher/k3s/agent
+
+    - name: Create systemd directory
+      ansible.builtin.file:
+        path: /etc/systemd/system
+        state: directory
+        mode: '0755'
+
+- name: Prepare server node
+  hosts: k3s_server
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Ensure server environment file directory exists
+      ansible.builtin.file:
+        path: /etc/systemd/system
+        state: directory
+        mode: '0755'
+
+    - name: Create k3s.service.env file
+      ansible.builtin.file:
+        path: /etc/systemd/system/k3s.service.env
+        state: touch
+        mode: '0600'
+        modification_time: preserve
+        access_time: preserve
+
+    - name: Display server preparation complete
+      ansible.builtin.debug:
+        msg: "K3s server node prepared: {{ inventory_hostname }}"
+
+- name: Prepare agent nodes
+  hosts: k3s_agent
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Ensure agent environment file directory exists
+      ansible.builtin.file:
+        path: /etc/systemd/system
+        state: directory
+        mode: '0755'
+
+    - name: Create k3s-agent.service.env file
+      ansible.builtin.file:
+        path: /etc/systemd/system/k3s-agent.service.env
+        state: touch
+        mode: '0600'
+        modification_time: preserve
+        access_time: preserve
+
+    - name: Display agent preparation complete
+      ansible.builtin.debug:
+        msg: "K3s agent node prepared: {{ inventory_hostname }}"
+
+- name: Display preparation summary
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Show test environment status
+      ansible.builtin.debug:
+        msg:
+          - "Molecule test environment prepared successfully"
+          - "Server nodes: {{ groups['k3s_server'] | length }}"
+          - "Agent nodes: {{ groups['k3s_agent'] | length }}"
+          - "Total nodes: {{ groups['k3s_cluster'] | length }}"
+          - "Ready for K3s installation"

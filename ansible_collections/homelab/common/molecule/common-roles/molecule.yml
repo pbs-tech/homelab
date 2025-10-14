@@ -11,10 +11,16 @@ platforms:
   - name: container-base-test
     image: geerlingguy/docker-ubuntu2204-ansible:latest
     pre_build_image: true
+    # SECURITY NOTE: Docker test container runs privileged to support systemd
+    # This is ONLY for testing infrastructure. Actual LXC containers deployed
+    # by these roles use unprivileged=true (see container_defaults below).
     privileged: true
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
+    tmpfs:
+      - /tmp:exec,mode=1777
+      - /run
+      - /run/lock
     command: /lib/systemd/systemd
     capabilities:
       - SYS_ADMIN
@@ -23,12 +29,15 @@ platforms:
       - monitoring
 
 provisioner:
+  env:
+    ANSIBLE_REMOTE_TMP: /tmp/ansible-tmp
   name: ansible
   config_options:
     defaults:
       callbacks_enabled: profile_tasks,timer,yaml
       stdout_callback: yaml
       host_key_checking: false
+      remote_tmp: /tmp/ansible-tmp
   inventory:
     host_vars:
       container-base-test:
@@ -38,7 +47,7 @@ provisioner:
         container_id: 100
         inventory_hostname: prometheus-lxc
         # Mock Proxmox configuration
-        proxmox_password: molecule-test-password
+        proxmox_password: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits') }}"
     group_vars:
       all:
         # Import common configuration

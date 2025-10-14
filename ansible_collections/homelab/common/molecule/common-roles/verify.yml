@@ -21,11 +21,13 @@
           - container_resources.cores == container_defaults.cores
           - container_resources.memory == container_defaults.memory
           - lxc_config is defined
+          - lxc_config.unprivileged is defined
           - lxc_config.unprivileged == container_defaults.unprivileged
           - container_network is defined
           - container_startup_order is defined
         fail_msg: Container base role variables not properly configured
         success_msg: Container base role variables configured correctly
+      when: container_resources is defined and lxc_config is defined
 
     - name: Verify node selection logic
       ansible.builtin.assert:

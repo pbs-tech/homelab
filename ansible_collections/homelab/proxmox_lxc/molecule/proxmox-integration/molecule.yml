@@ -17,12 +17,15 @@ platforms:
       - proxmox_test_containers
 
 provisioner:
+  env:
+    ANSIBLE_REMOTE_TMP: /tmp/ansible-tmp
   name: ansible
   config_options:
     defaults:
       callbacks_enabled: profile_tasks,timer,yaml
       stdout_callback: yaml
       host_key_checking: false
+      remote_tmp: /tmp/ansible-tmp
   inventory:
     host_vars:
       molecule-test-lxc:

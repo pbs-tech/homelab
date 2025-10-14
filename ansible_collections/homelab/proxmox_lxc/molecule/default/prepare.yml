@@ -1,25 +1,76 @@
 ---
 - name: Prepare test environment
   hosts: all
-  gather_facts: true
+  become: true
+  gather_facts: false
+
   tasks:
-    - name: Update apt cache
+    - name: Create Ansible remote temp directory (raw command to avoid module dependency)
+      ansible.builtin.raw: mkdir -p /tmp/ansible-tmp && chmod 755 /tmp/ansible-tmp
+      changed_when: false
+
+    - name: Gather facts (now that temp directory exists)
+      ansible.builtin.setup:
+
+    # Fix /tmp permissions for apt in Docker/Podman containers
+    - name: Ensure /tmp directory has correct permissions
+      ansible.builtin.file:
+        path: /tmp
+        state: directory
+        mode: '1777'
+        owner: root
+        group: root
+
+    # Clean and reinitialize apt for Docker/Podman containers
+    - name: Clean apt cache
+      ansible.builtin.command: apt-get clean
+      changed_when: false
+      failed_when: false
+      when: ansible_os_family == "Debian"
+
+    - name: Remove apt lists
+      ansible.builtin.file:
+        path: /var/lib/apt/lists
+        state: absent
+      when: ansible_os_family == "Debian"
+
+    - name: Recreate apt lists directory
+      ansible.builtin.file:
+        path: /var/lib/apt/lists
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+      when: ansible_os_family == "Debian"
+
+    - name: Update apt cache with retries
       ansible.builtin.apt:
         update_cache: true
-        cache_valid_time: 3600
+        cache_valid_time: 0
+      retries: 3
+      delay: 5
+      register: apt_update
+      until: apt_update is success
+      when: ansible_os_family == "Debian"
 
-    - name: Install Podman for container-based services
+    # Install Docker for container-based services
+    - name: Install Docker for container-based services
       ansible.builtin.apt:
         name:
-          - podman
-          - podman-compose
+          - docker.io
+          - docker-compose
         state: present
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+      when: ansible_os_family == "Debian"
+      failed_when: false  # May not be available in test containers
 
-    - name: Enable Podman socket
+    - name: Enable Docker socket
       ansible.builtin.systemd:
-        name: podman.socket
+        name: docker.socket
         state: started
         enabled: true
+      failed_when: false  # May not be available in all test containers
 
     - name: Create test directories
       ansible.builtin.file:

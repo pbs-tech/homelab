@@ -1,0 +1,227 @@
+---
+name: Molecule Smoke Test
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    branches: [main, develop, molecule]
+    paths:
+      - 'ansible_collections/**'
+      - 'molecule/smoke/**'
+      - 'requirements.yml'
+      - '.github/workflows/molecule-smoke.yml'
+  push:
+    branches: [main, molecule]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: '3.12'
+  ANSIBLE_VERSION: '>=2.17'
+
+jobs:
+  smoke-test:
+    name: Smoke Test - All Collections
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Cache Ansible collections
+        uses: actions/cache@v4
+        with:
+          path: ~/.ansible/collections
+          key: ansible-collections-${{ hashFiles('**/requirements.yml') }}
+          restore-keys: ansible-collections-
+
+      - name: Install Molecule and dependencies
+        run: |
+          set -e
+          pip install "ansible-core${{ env.ANSIBLE_VERSION }}" || {
+            echo "ERROR: Failed to install ansible-core"
+            exit 1
+          }
+          pip install "molecule>=6.0" "molecule-plugins[docker]>=23.5.0" || {
+            echo "ERROR: Failed to install molecule and plugins"
+            exit 1
+          }
+          pip install docker || {
+            echo "ERROR: Failed to install docker python package"
+            exit 1
+          }
+
+      - name: Install external Ansible collections
+        run: |
+          set -e
+          echo "Installing main requirements..."
+          ansible-galaxy collection install -r requirements.yml --force || {
+            echo "ERROR: Failed to install main requirements.yml"
+            exit 1
+          }
+
+          echo "Installing collection-specific requirements..."
+          find ansible_collections/ -name "requirements.yml" -exec ansible-galaxy collection install -r {} --force \; || {
+            echo "ERROR: Failed to install collection-specific requirements"
+            exit 1
+          }
+
+      - name: Build and install homelab collections
+        run: |
+          set -e
+
+          # Build and install common collection (required by others)
+          echo "Building homelab.common collection..."
+          cd ansible_collections/homelab/common
+          ansible-galaxy collection build --force || {
+            echo "ERROR: Failed to build homelab.common collection"
+            exit 1
+          }
+          ansible-galaxy collection install *.tar.gz --force || {
+            echo "ERROR: Failed to install homelab.common collection"
+            exit 1
+          }
+          cd ../../..
+
+          # Build and install k3s collection
+          echo "Building homelab.k3s collection..."
+          cd ansible_collections/homelab/k3s
+          ansible-galaxy collection build --force || {
+            echo "ERROR: Failed to build homelab.k3s collection"
+            exit 1
+          }
+          ansible-galaxy collection install *.tar.gz --force || {
+            echo "ERROR: Failed to install homelab.k3s collection"
+            exit 1
+          }
+          cd ../../..
+
+          # Build and install proxmox_lxc collection
+          echo "Building homelab.proxmox_lxc collection..."
+          cd ansible_collections/homelab/proxmox_lxc
+          ansible-galaxy collection build --force || {
+            echo "ERROR: Failed to build homelab.proxmox_lxc collection"
+            exit 1
+          }
+          ansible-galaxy collection install *.tar.gz --force || {
+            echo "ERROR: Failed to install homelab.proxmox_lxc collection"
+            exit 1
+          }
+          cd ../../..
+
+      - name: Verify collection installation
+        run: |
+          echo "=== Installed homelab collections ==="
+          ansible-galaxy collection list homelab.common
+          ansible-galaxy collection list homelab.k3s
+          ansible-galaxy collection list homelab.proxmox_lxc
+
+      - name: Display tool versions
+        run: |
+          echo "=== Tool versions ==="
+          molecule --version
+          ansible --version
+          docker --version
+          python --version
+
+      - name: Start and verify Docker service
+        run: |
+          set -e
+
+          echo "Starting Docker service..."
+          sudo systemctl start docker || {
+            echo "ERROR: Failed to start Docker service"
+            sudo systemctl status docker || true
+            exit 1
+          }
+
+          # Wait for Docker to be fully ready with retries
+          echo "Waiting for Docker to be ready..."
+          RETRY_COUNT=0
+          MAX_RETRIES=30
+          until docker info > /dev/null 2>&1; do
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+              echo "ERROR: Docker failed to become ready after ${MAX_RETRIES} attempts"
+              sudo systemctl status docker || true
+              docker info || true
+              exit 1
+            fi
+            echo "Waiting for Docker... (attempt $RETRY_COUNT/$MAX_RETRIES)"
+            sleep 1
+          done
+
+          # Verify Docker is operational
+          echo "Docker is ready. Verifying operation..."
+          docker info || {
+            echo "ERROR: Docker info command failed"
+            exit 1
+          }
+          docker ps -a || {
+            echo "ERROR: Docker ps command failed"
+            exit 1
+          }
+
+          echo "Docker service is ready and operational"
+
+      - name: List smoke test scenario
+        run: |
+          echo "=== Available Molecule scenarios ==="
+          molecule list -s smoke
+
+      - name: Run smoke test
+        run: |
+          set -e
+          echo "Starting Molecule smoke test..."
+          molecule test -s smoke || {
+            echo "ERROR: Molecule smoke test failed"
+            echo "Collecting diagnostic information..."
+            docker ps -a || true
+            exit 1
+          }
+          echo "Smoke test completed successfully"
+        env:
+          PY_COLORS: '1'
+          ANSIBLE_FORCE_COLOR: '1'
+          MOLECULE_NO_LOG: 'false'
+          ANSIBLE_REMOTE_TMP: /tmp/ansible-tmp
+          ANSIBLE_LOCAL_TMP: /tmp/ansible-tmp
+
+      - name: Show logs on failure
+        if: failure()
+        run: |
+          echo "=== Molecule logs ==="
+          if [ -d .molecule/smoke ]; then
+            find .molecule/smoke -type f -name "*.log" -exec echo "--- {} ---" \; -exec cat {} \;
+          fi
+          echo ""
+          echo "=== Docker containers ==="
+          docker ps -a
+          echo ""
+          echo "=== Docker images ==="
+          docker images
+          echo ""
+          echo "=== Recent Docker logs ==="
+          docker ps -a --format "{{.Names}}" | while read container; do
+            echo "--- Logs for $container ---"
+            docker logs --tail 50 "$container" 2>&1 || true
+          done
+
+      - name: Cleanup
+        if: always()
+        timeout-minutes: 5
+        run: |
+          molecule destroy -s smoke || true
+          docker system prune -f --volumes || true

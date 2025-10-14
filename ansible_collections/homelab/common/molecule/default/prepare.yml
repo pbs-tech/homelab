@@ -2,9 +2,16 @@
 - name: Prepare
   hosts: all
   become: true
-  gather_facts: true
+  gather_facts: false
 
   tasks:
+    - name: Create Ansible remote temp directory (raw command to avoid module dependency)
+      ansible.builtin.raw: mkdir -p /tmp/ansible-tmp && chmod 755 /tmp/ansible-tmp
+      changed_when: false
+
+    - name: Gather facts (now that temp directory exists)
+      ansible.builtin.setup:
+
     # Fix /tmp permissions for apt in Docker containers
     - name: Ensure /tmp directory has correct permissions
       ansible.builtin.file:

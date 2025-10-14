@@ -1,0 +1,127 @@
+---
+# Molecule Smoke Test Configuration
+# Fast smoke test for all roles in the homelab collections
+# Runs in < 5 minutes with basic validation only
+
+dependency:
+  name: galaxy
+  options:
+    requirements-file: requirements.yml
+
+driver:
+  name: docker
+
+platforms:
+  # Common collection roles test instance
+  - name: smoke-common
+    image: geerlingguy/docker-ubuntu2204-ansible:latest
+    pre_build_image: true
+    privileged: false
+    command: /bin/bash -c "while true; do sleep 10000; done"
+    tmpfs:
+      - /tmp:exec,mode=1777
+    groups:
+      - common_test
+      - monitoring
+
+  # K3s collection roles test instance
+  - name: smoke-k3s
+    image: geerlingguy/docker-ubuntu2204-ansible:latest
+    pre_build_image: true
+    privileged: false
+    command: /bin/bash -c "while true; do sleep 10000; done"
+    tmpfs:
+      - /tmp:exec,mode=1777
+    groups:
+      - k3s_test
+      - k3s_server
+
+  # Proxmox LXC collection roles test instance
+  - name: smoke-proxmox
+    image: geerlingguy/docker-ubuntu2204-ansible:latest
+    pre_build_image: true
+    privileged: false
+    command: /bin/bash -c "while true; do sleep 10000; done"
+    tmpfs:
+      - /tmp:exec,mode=1777
+    groups:
+      - proxmox_test
+      - monitoring
+      - networking
+
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_REMOTE_TMP: /tmp/ansible-tmp
+  config_options:
+    defaults:
+      callbacks_enabled: profile_tasks,timer,yaml
+      stdout_callback: yaml
+      host_key_checking: false
+      deprecation_warnings: false
+      remote_tmp: /tmp/ansible-tmp
+  inventory:
+    group_vars:
+      all:
+        # Mock infrastructure configuration for smoke testing
+        homelab_domain: smoke.test
+        homelab_network:
+          gateway_ip: 172.17.0.1
+          dns_servers: [8.8.8.8, 1.1.1.1]
+          cidr: 172.17.0.0/16
+        security_config:
+          hardening_enabled: true
+          ssh_key_path: /tmp/smoke_test_key
+          log_retention_days: 1
+          fail2ban_enabled: false  # Skip for smoke test
+        container_defaults:
+          template: ubuntu-22.04-standard_22.04-1_amd64.tar.zst
+          disk_size: 4
+          cores: 1
+          memory: 512
+          swap: 0
+          onboot: false
+          unprivileged: true
+        proxmox_config:
+          api_host: pve-mac.homelab.local
+          api_user: root@pam
+          validate_certs: false
+          nodes: [pve-mac, pve-nas]
+        # K3s mock configuration
+        k3s_version: v1.28.0+k3s1
+        k3s_token: "molecule-test-token-{{ ansible_date_time.epoch }}"
+        k3s_server_ip: 172.17.0.2
+        k3s_cluster_cidr: 10.42.0.0/16
+        k3s_service_cidr: 10.43.0.0/16
+        systemd_dir: /etc/systemd/system
+        # Monitoring mock configuration
+        prometheus_retention: 1d
+        grafana_admin_password: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits') }}"
+        loki_retention: 1d
+    host_vars:
+      smoke-common:
+        ansible_user: root
+        ansible_connection: docker
+      smoke-k3s:
+        ansible_user: root
+        ansible_connection: docker
+      smoke-proxmox:
+        ansible_user: root
+        ansible_connection: docker
+
+verifier:
+  name: ansible
+
+scenario:
+  name: smoke
+  test_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    - verify
+    - cleanup
+    - destroy

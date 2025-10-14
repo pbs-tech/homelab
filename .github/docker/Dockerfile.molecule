@@ -1,0 +1,58 @@
+# Custom Molecule test image based on geerlingguy's docker-ubuntu2204-ansible
+# This image adds pre-installed dependencies for faster molecule testing
+
+FROM geerlingguy/docker-ubuntu2204-ansible:latest
+
+LABEL maintainer="homelab"
+LABEL description="Molecule test image with pre-installed dependencies for homelab testing"
+LABEL version="1.0"
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+
+# Install additional system packages commonly needed in tests
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        curl \
+        wget \
+        git \
+        vim \
+        htop \
+        net-tools \
+        iputils-ping \
+        dnsutils \
+        ca-certificates \
+        gnupg \
+        rsync \
+        jq \
+        unzip \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python packages commonly used in homelab roles
+RUN pip3 install --no-cache-dir \
+        jinja2 \
+        netaddr \
+        dnspython \
+        pytz \
+        pyyaml
+
+# Pre-create common directories used in homelab
+RUN mkdir -p \
+        /etc/prometheus \
+        /etc/grafana \
+        /etc/traefik \
+        /etc/loki \
+        /etc/ssh \
+        /var/log
+
+# Set proper permissions
+RUN chmod 755 /etc/prometheus /etc/grafana /etc/traefik /etc/loki
+
+# Default command
+CMD ["/lib/systemd/systemd"]
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD systemctl is-system-running || exit 1

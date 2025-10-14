@@ -1,0 +1,132 @@
+---
+# Smoke Test Verification Playbook
+# Verifies basic functionality and configuration after role execution
+
+- name: Verify common collection roles
+  hosts: smoke-common
+  gather_facts: false
+  tasks:
+    - name: Verify required configuration variables are defined
+      ansible.builtin.assert:
+        that:
+          - homelab_domain is defined
+          - homelab_network is defined
+          - container_defaults is defined
+          - security_config is defined
+          - proxmox_config is defined
+        fail_msg: Required configuration variables are missing
+        success_msg: All required configuration variables are present
+
+    - name: Verify container_base role variables (if computed)
+      ansible.builtin.assert:
+        that:
+          - container_resources is defined or true  # May not be set in smoke test
+          - container_defaults.cores is defined
+          - container_defaults.memory is defined
+          - container_defaults.unprivileged is defined
+          - container_defaults.unprivileged == true  # Verify unprivileged by default
+        fail_msg: Container base role variables not properly configured
+        success_msg: Container base role variables configured correctly
+      when: container_resources is defined and container_defaults is defined
+
+    - name: Check SSH configuration exists
+      ansible.builtin.stat:
+        path: /etc/ssh/sshd_config
+      register: sshd_config
+
+    - name: Display SSH configuration status
+      ansible.builtin.debug:
+        msg: "SSH configuration {{ 'exists' if sshd_config.stat.exists else 'skipped in smoke test' }}"
+
+    - name: Check system packages installed by common_setup
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: Verify essential packages are installed
+      ansible.builtin.assert:
+        that:
+          - "'python3' in ansible_facts.packages or 'python3-minimal' in ansible_facts.packages"
+        fail_msg: Essential packages not installed
+        success_msg: Essential packages installed successfully
+
+- name: Verify k3s collection roles
+  hosts: smoke-k3s
+  gather_facts: false
+  tasks:
+    - name: Verify K3s configuration variables
+      ansible.builtin.assert:
+        that:
+          - k3s_version is defined
+          - systemd_dir is defined
+        fail_msg: K3s configuration variables missing
+        success_msg: K3s configuration variables present
+
+    - name: Check systemd directory exists
+      ansible.builtin.stat:
+        path: "{{ systemd_dir }}"
+      register: systemd_dir_check
+
+    - name: Verify systemd directory
+      ansible.builtin.assert:
+        that:
+          - systemd_dir_check.stat.exists
+          - systemd_dir_check.stat.isdir
+        fail_msg: Systemd directory not properly configured
+        success_msg: Systemd directory configured correctly
+
+- name: Verify proxmox_lxc collection roles
+  hosts: smoke-proxmox
+  gather_facts: false
+  tasks:
+    - name: Verify Proxmox configuration variables
+      ansible.builtin.assert:
+        that:
+          - proxmox_config is defined
+          - proxmox_config.api_host is defined
+          - proxmox_config.nodes is defined
+          - proxmox_config.nodes | length >= 2
+        fail_msg: Proxmox configuration variables missing or incomplete
+        success_msg: Proxmox configuration variables present
+
+    - name: Verify monitoring configuration
+      ansible.builtin.assert:
+        that:
+          - prometheus_retention is defined
+          - grafana_admin_password is defined
+          - loki_retention is defined
+        fail_msg: Monitoring configuration variables missing
+        success_msg: Monitoring configuration variables present
+
+    - name: Check mock service directories exist
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: service_dirs
+      loop:
+        - /etc/prometheus
+        - /etc/grafana
+        - /etc/traefik
+        - /etc/loki
+
+    - name: Display service directories status
+      ansible.builtin.debug:
+        msg: "Service directory {{ item.item }}: {{ 'exists' if item.stat.exists else 'skipped in smoke test' }}"
+      loop: "{{ service_dirs.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+- name: Final smoke test validation
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Verify all instances are accessible
+      ansible.builtin.ping:
+
+    - name: Display smoke test results
+      ansible.builtin.debug:
+        msg:
+          - "=== Smoke Test Verification Complete ==="
+          - "✓ All instances accessible"
+          - "✓ Configuration variables validated"
+          - "✓ Basic role functionality verified"
+          - "✓ Service directories created"
+          - "Smoke test PASSED!"

@@ -1,0 +1,39 @@
+# Git files
+.git/
+.gitignore
+.github/
+
+# Documentation
+*.md
+docs/
+
+# Test files
+tests/
+molecule/
+.molecule/
+
+# Build artifacts
+*.tar.gz
+*.pyc
+__pycache__/
+.pytest_cache/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ansible files
+ansible.cfg
+inventory/
+*.retry
+
+# Logs
+*.log
+logs/
+
+# Temp files
+tmp/
+temp/
+.tmp/

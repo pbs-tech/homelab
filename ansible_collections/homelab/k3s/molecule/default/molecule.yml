@@ -1,0 +1,168 @@
+---
+dependency:
+  name: galaxy
+  options:
+    requirements-file: ../../requirements.yml
+
+driver:
+  name: docker
+
+platforms:
+  # K3s server node
+  # SECURITY NOTE: Docker test containers run privileged to support systemd and
+  # K3s requirements (kernel modules, networking). This is ONLY for testing.
+  # Production K3s nodes use standard security hardening.
+  - name: k3s-server-01
+    image: geerlingguy/docker-ubuntu2204-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      - /lib/modules:/lib/modules:ro
+    command: /lib/systemd/systemd
+    capabilities:
+      - SYS_ADMIN
+      - NET_ADMIN
+      - SYS_MODULE
+    tmpfs:
+      - /run
+      - /run/lock
+      - /tmp:exec,mode=1777
+    groups:
+      - k3s_cluster
+      - k3s_server
+      - molecule_test
+
+  # K3s agent nodes
+  - name: k3s-agent-01
+    image: geerlingguy/docker-ubuntu2204-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      - /lib/modules:/lib/modules:ro
+    command: /lib/systemd/systemd
+    capabilities:
+      - SYS_ADMIN
+      - NET_ADMIN
+      - SYS_MODULE
+    tmpfs:
+      - /run
+      - /run/lock
+      - /tmp:exec,mode=1777
+    groups:
+      - k3s_cluster
+      - k3s_agent
+      - molecule_test
+
+  - name: k3s-agent-02
+    image: geerlingguy/docker-ubuntu2204-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      - /lib/modules:/lib/modules:ro
+    command: /lib/systemd/systemd
+    capabilities:
+      - SYS_ADMIN
+      - NET_ADMIN
+      - SYS_MODULE
+    tmpfs:
+      - /run
+      - /run/lock
+      - /tmp:exec,mode=1777
+    groups:
+      - k3s_cluster
+      - k3s_agent
+      - molecule_test
+
+provisioner:
+  env:
+    ANSIBLE_REMOTE_TMP: /tmp/ansible-tmp
+  name: ansible
+  config_options:
+    defaults:
+      callbacks_enabled: profile_tasks,timer,yaml
+      stdout_callback: yaml
+      host_key_checking: false
+      remote_tmp: /tmp/ansible-tmp
+  inventory:
+    host_vars:
+      k3s-server-01:
+        ansible_user: root
+        ansible_connection: docker
+        # K3s server configuration
+        k3s_control_node: true
+        k3s_server_init: true
+      k3s-agent-01:
+        ansible_user: root
+        ansible_connection: docker
+      k3s-agent-02:
+        ansible_user: root
+        ansible_connection: docker
+    group_vars:
+      all:
+        # K3s version and basic configuration
+        k3s_version: v1.28.5+k3s1
+        k3s_become: true
+
+        # Cluster configuration
+        server_group: k3s_server
+        agent_group: k3s_agent
+        api_port: 6443
+        token: "molecule-test-token-{{ ansible_date_time.epoch }}"
+
+        # Network configuration
+        cluster_cidr: 10.42.0.0/16
+        service_cidr: 10.43.0.0/16
+        k3s_flannel_backend: host-gw
+
+        # Disable components for testing
+        extra_server_args: >-
+          --disable=traefik
+          --disable=servicelb
+          --disable=local-storage
+          --flannel-backend=host-gw
+          --write-kubeconfig-mode=644
+
+        # Agent configuration
+        extra_agent_args: ""
+
+        # System configuration
+        systemd_dir: /etc/systemd/system
+
+        # Kubectl configuration
+        user_kubectl: false
+        kubeconfig: /tmp/molecule-k3s-config
+
+        # Environment variables for installation
+        extra_install_envs:
+          INSTALL_K3S_SKIP_ENABLE: "false"
+
+        # Mock homelab configuration for testing
+        homelab_domain: molecule.test
+        homelab_network:
+          gateway_ip: 172.17.0.1
+          dns_servers: [8.8.8.8, 1.1.1.1]
+
+      k3s_server:
+        # Server-specific variables
+        api_endpoint: "{{ ansible_default_ipv4.address | default('127.0.0.1') }}"
+
+verifier:
+  name: ansible
+
+scenario:
+  test_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    - verify
+    - cleanup
+    - destroy
+  # Note: Idempotence test skipped for K3s due to dynamic token generation
+  # and state changes inherent to Kubernetes cluster management

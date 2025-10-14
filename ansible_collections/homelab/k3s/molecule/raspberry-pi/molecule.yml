@@ -16,7 +16,10 @@ platforms:
     privileged: true
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    cgroupns_mode: host
+    tmpfs:
+      - /tmp:exec,mode=1777
+      - /run
+      - /run/lock
     command: /lib/systemd/systemd
     capabilities:
       - SYS_ADMIN
@@ -25,6 +28,8 @@ platforms:
       - molecule_test
 
 provisioner:
+  env:
+    ANSIBLE_REMOTE_TMP: /tmp/ansible-tmp
   name: ansible
   config_options:
     defaults:
@@ -32,6 +37,7 @@ provisioner:
       stdout_callback: yaml
       host_key_checking: false
       remote_user: pbs
+      remote_tmp: /tmp/ansible-tmp
   inventory:
     host_vars:
       k3s-test-server:

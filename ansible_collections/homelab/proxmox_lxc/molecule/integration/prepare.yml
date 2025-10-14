@@ -1,0 +1,44 @@
+---
+# Prepare playbook for integration tests
+# Sets up basic requirements before running converge
+
+- name: Prepare all integration test nodes
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Wait for system to be ready
+      ansible.builtin.wait_for_connection:
+        timeout: 60
+
+    - name: Gather facts
+      ansible.builtin.setup:
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+
+    - name: Install basic packages
+      ansible.builtin.package:
+        name:
+          - python3
+          - python3-pip
+          - curl
+          - wget
+        state: present
+
+    - name: Create SSH key directory
+      ansible.builtin.file:
+        path: "{{ security_config.ssh_key_path | dirname }}"
+        state: directory
+        mode: '0700'
+
+    - name: Generate test SSH key
+      ansible.builtin.command:
+        cmd: ssh-keygen -t rsa -b 2048 -f {{ security_config.ssh_key_path }} -N ""
+        creates: "{{ security_config.ssh_key_path }}"
+
+    - name: Display preparation complete
+      ansible.builtin.debug:
+        msg: "Integration test environment prepared for {{ inventory_hostname }}"

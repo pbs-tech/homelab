@@ -12,7 +12,7 @@
 
   tasks:
     - name: Test Prometheus role with minimal config
-      include_role:
+      ansible.builtin.include_role:
         name: homelab.proxmox_lxc.prometheus
       vars:
         prometheus_storage_retention: "15m"  # Minimal retention for testing
