@@ -276,24 +276,36 @@ molecule test -s proxmox-integration
 
 #### CI/CD Integration
 
-Molecule tests are automatically executed in GitHub Actions CI pipeline via two workflows:
+Molecule tests are automatically executed in GitHub Actions CI pipeline via three workflows:
 
-**1. Smoke Test Workflow** (`.github/workflows/molecule-smoke.yml`)
+**1. Reusable Docker Build Workflow** (`.github/workflows/build-ci-image.yml`)
+- **Purpose:** Centralized Docker image building for all CI workflows
+- **Type:** Reusable workflow called by other workflows
+- **Outputs:** `image-tag` and `image-name` for consumption by dependent jobs
+- **Strategy:** SHA-based tagging for reproducibility, automatic caching
+- **Benefits:** Eliminates duplicate code, ensures consistent image usage
+
+**2. Smoke Test Workflow** (`.github/workflows/molecule-smoke.yml`)
 - **Purpose:** Fast validation of ALL roles across all collections
 - **Trigger:** Pull requests, pushes to main/molecule branches, workflow_dispatch
 - **Duration:** < 15 minutes total (typically 5-8 minutes)
 - **Strategy:** Single job testing all collections in one comprehensive smoke test
+- **Docker:** Calls reusable workflow, uses SHA-tagged image for all tests
 - **Optimal for:** Quick feedback on role changes, pre-commit validation
 
-**2. Standard Molecule Workflow** (`.github/workflows/ci.yml`)
-- **Purpose:** Comprehensive collection-specific testing
+**3. Standard CI Workflow** (`.github/workflows/ci.yml`)
+- **Purpose:** Comprehensive linting, collection validation, and testing
 - **Trigger:** Pull requests, pushes to main, manual workflow dispatch
 - **Strategy:** Matrix testing across all three collections in parallel
 - **Duration:** Typically 3-5 minutes per collection
+- **Docker:** Calls reusable workflow, uses SHA-tagged image across all jobs
 - **Requirements:** Python 3.12, Ansible 2.17+, Docker for container-based tests
 
-**CI Workflow highlights:**
+**CI Workflow Architecture:**
 
+- Reusable workflow builds Docker image once per commit
+- Image is tagged with `sha-${{ github.sha }}` for reproducibility
+- All workflows share the same cached image via workflow outputs
 - Smoke test runs first for fast feedback
 - Standard tests run after successful linting checks
 - Tests each collection independently with dependency resolution

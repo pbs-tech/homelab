@@ -303,13 +303,29 @@ make ci-status
 
 ## CI/CD Integration
 
-The GitHub Actions workflow (`.github/workflows/ci.yml`) provides automated validation:
+The GitHub Actions workflows provide automated validation with simplified Docker image management:
 
-**Workflow Jobs:**
-- **lint** - YAML, Ansible, and Markdown linting
-- **collections** - Galaxy collection build and validation
-- **molecule** - Collection-level automated testing
-- **secrets-scan** - TruffleHog secret detection (PRs only)
+**Workflow Architecture:**
+
+1. **Reusable Docker Build Workflow** (`.github/workflows/build-ci-image.yml`)
+   - Centralized Docker image building for all CI workflows
+   - Outputs `image-tag` and `image-name` for consumption by dependent jobs
+   - SHA-based tagging (`sha-${{ github.sha }}`) for reproducibility
+   - Automatic caching to skip rebuilds for existing commits
+   - Eliminates ~70 lines of duplicate code across workflows
+
+2. **CI Workflow** (`.github/workflows/ci.yml`)
+   - Calls reusable Docker build workflow
+   - Uses SHA-tagged image for all jobs
+   - **Jobs:** lint, collections (validation), secrets-scan (PRs only)
+   - **Strategy:** Parallel collection validation via matrix
+   - **Duration:** 5-8 minutes total
+
+3. **Molecule Smoke Test Workflow** (`.github/workflows/molecule-smoke.yml`)
+   - Calls reusable Docker build workflow
+   - Uses SHA-tagged image for smoke tests
+   - **Purpose:** Fast validation of ALL roles across all collections
+   - **Duration:** 5-8 minutes (< 15 min timeout)
 
 **Environment:**
 - Python 3.12
@@ -317,6 +333,7 @@ The GitHub Actions workflow (`.github/workflows/ci.yml`) provides automated vali
 - yamllint 1.35+
 - ansible-lint 24.0+
 - Molecule 6.0+
+- Docker for container-based tests
 
 **Trigger Conditions:**
 - Push to main branch
@@ -324,10 +341,13 @@ The GitHub Actions workflow (`.github/workflows/ci.yml`) provides automated vali
 - Manual workflow dispatch
 
 **Optimization:**
-- Dependency caching (pip, Ansible collections)
+- Reusable workflow for Docker builds (DRY principle)
+- SHA-tagged images shared across all jobs in a workflow
+- Dependency caching (pip, Ansible collections, Docker layers)
 - Parallel job execution
 - Fast failure for critical issues
 - Matrix testing for collections
+- Image caching across workflow runs for same commit
 
 ## Development Workflow
 

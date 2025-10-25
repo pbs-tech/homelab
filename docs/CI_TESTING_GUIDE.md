@@ -1,62 +1,134 @@
 # CI Pipeline Testing Guide
 
-This guide explains how to test the updated CI pipeline with Docker containers.
+This guide explains how to test the simplified CI pipeline with Docker containers and reusable workflows.
 
 ## Changes Made
 
-### 1. CI Workflow (`.github/workflows/ci.yml`)
-- ✅ **Builds Docker image first** as `build-docker-images` job
-- ✅ Fixed invalid SHA tag format (removed `{{branch}}` prefix)
-- ✅ `lint` job depends on `build-docker-images` (prevents race condition)
-- ✅ `lint` job uses `ghcr.io/pbs-tech/homelab-ci:<branch-name>`
-- ✅ `collections` job uses `ghcr.io/pbs-tech/homelab-ci:<branch-name>`
+### 1. Reusable Docker Build Workflow (`.github/workflows/build-ci-image.yml`)
+- ✅ **New centralized workflow** for Docker image building
+- ✅ **Outputs image tag and name** for consumption by calling workflows
+- ✅ SHA-based tagging (`sha-${{ github.sha }}`) for reproducibility
+- ✅ **Image caching**: Checks if SHA-tagged image exists before building
+- ✅ Eliminates duplicate Docker build code across workflows
+- ✅ Single source of truth for image building logic
+
+### 2. CI Workflow (`.github/workflows/ci.yml`)
+- ✅ **Uses reusable workflow** via `uses: ./.github/workflows/build-ci-image.yml`
+- ✅ **Fixed image references** using `${{ needs.build-docker-image.outputs.image-name }}`
+- ✅ `lint` job depends on `build-docker-image` (prevents race condition)
+- ✅ `collections` job depends on both `build-docker-image` and `lint`
 - ✅ Fixed collection installation to build first, then install
 - ✅ Added syntax checks for `tests/` and `playbooks/` directories
 
-### 2. Molecule Smoke Test Workflow (`.github/workflows/molecule-smoke.yml`)
-- ✅ **Builds Docker image first** as `build-docker-image` job
-- ✅ Fixed invalid SHA tag format (removed `{{branch}}` prefix)
+### 3. Molecule Smoke Test Workflow (`.github/workflows/molecule-smoke.yml`)
+- ✅ **Uses reusable workflow** via `uses: ./.github/workflows/build-ci-image.yml`
+- ✅ **Fixed image reference** using `${{ needs.build-docker-image.outputs.image-name }}`
 - ✅ `smoke-test` job depends on `build-docker-image` (prevents race condition)
-- ✅ Uses `ghcr.io/pbs-tech/homelab-ci:<branch-name>`
 - ✅ Added Docker socket mounting for Docker-in-Docker support
 - ✅ Removed redundant Python/Ansible installation steps
-- ✅ **Image caching**: Checks if SHA-tagged image exists before building
 
-### 3. Image Caching Strategy
-- ✅ Both workflows check if image exists for current commit SHA
+### 4. Image Caching Strategy
+- ✅ Reusable workflow checks if image exists for current commit SHA
 - ✅ If `sha-<commit>` image exists, skip build (saves ~2-3 minutes)
 - ✅ Multiple workflows on same commit reuse the same image
-- ✅ Separate `docker-build.yml` workflow removed (redundant)
+- ✅ All workflows share identical image via consistent SHA tagging
+- ✅ Workflow outputs ensure correct image tag propagation
 
-### 4. Documentation Updates
-- ✅ Updated `CLAUDE.md` with correct test file paths
-- ✅ Updated `TESTING.md` with correct test file paths
+### 5. Documentation Updates
+- ✅ Updated `CLAUDE.md` with reusable workflow information
+- ✅ Updated `TESTING.md` with simplified CI/CD section
+- ✅ Updated `CI_TESTING_GUIDE.md` with current architecture
 - ✅ Updated `.github/docker/README.md` with versioning info
 
-### 5. Docker Image Updates
+### 6. Docker Image Updates
 - ✅ Added version labels to `Dockerfile.ci`
 - ✅ Added OCI labels for better metadata
 
 ## Prerequisites
 
-**No manual setup required!** Docker images are built automatically by each workflow.
+**No manual setup required!** Docker images are built automatically by the reusable workflow.
 
 ### How It Works:
 
-1. **Automatic Image Building:**
-   - CI and Molecule workflows build their own images as the first job
-   - Images are tagged with commit SHA: `sha-<commit>`
+1. **Reusable Workflow Architecture:**
+   - `.github/workflows/build-ci-image.yml` is a reusable workflow called by other workflows
+   - Outputs `image-tag` and `image-name` for consumption by dependent jobs
+   - Centralizes all Docker build logic in one place
+   - Eliminates ~70 lines of duplicate code
+
+2. **Automatic Image Building:**
+   - CI and Molecule workflows call the reusable workflow as their first job
+   - Images are tagged with commit SHA: `sha-<commit>` for reproducibility
    - If image exists for current commit, build is skipped
+   - Workflow outputs propagate the exact image name to downstream jobs
 
-2. **First Run on New Commit:**
+3. **Image Sharing Across Jobs:**
+   - Reusable workflow outputs: `image-tag` (e.g., `sha-abc123`) and `image-name` (full registry path)
+   - Dependent jobs reference: `${{ needs.build-docker-image.outputs.image-name }}`
+   - All jobs in a workflow run use the exact same Docker image
+   - Multiple workflows on same commit reuse the same cached image
+
+4. **First Run on New Commit:**
    - First workflow to run builds the image (~3-5 minutes)
-   - Image is pushed to registry with multiple tags
+   - Image is pushed to registry with multiple tags (SHA, branch, version)
    - Subsequent workflows reuse the existing image (instant)
+   - GitHub Actions cache further speeds up repeated builds
 
-3. **Verify images were built:**
+5. **Verify images were built:**
    - Check CI workflow: https://github.com/pbs-tech/homelab/actions/workflows/ci.yml
    - Check Molecule workflow: https://github.com/pbs-tech/homelab/actions/workflows/molecule-smoke.yml
    - Verify images in registry: https://github.com/orgs/pbs-tech/packages
+
+## Workflow Architecture
+
+### File Structure
+
+```text
+.github/workflows/
+├── build-ci-image.yml      # Reusable workflow for Docker image building
+├── ci.yml                  # Main CI workflow (calls build-ci-image.yml)
+└── molecule-smoke.yml      # Molecule smoke test workflow (calls build-ci-image.yml)
+```
+
+### Reusable Workflow Pattern
+
+**build-ci-image.yml** (Reusable Workflow):
+```yaml
+on:
+  workflow_call:
+    outputs:
+      image-tag:        # e.g., "sha-abc123"
+      image-name:       # e.g., "ghcr.io/owner/homelab-ci:sha-abc123"
+
+jobs:
+  build:
+    outputs:
+      image-tag: ${{ steps.determine-tag.outputs.tag }}
+      image-name: ${{ steps.determine-tag.outputs.full-name }}
+```
+
+**ci.yml** (Calling Workflow):
+```yaml
+jobs:
+  build-docker-image:
+    uses: ./.github/workflows/build-ci-image.yml
+    permissions:
+      contents: read
+      packages: write
+
+  lint:
+    needs: build-docker-image
+    container:
+      image: ${{ needs.build-docker-image.outputs.image-name }}
+```
+
+### Benefits of This Architecture
+
+1. **DRY Principle**: Docker build logic exists in exactly one place
+2. **Type Safety**: Workflow outputs ensure correct image references
+3. **Maintainability**: Changes to Docker build process only need one update
+4. **Consistency**: All workflows use identical images for same commit
+5. **Debugging**: Single workflow to troubleshoot for image build issues
 
 ## Testing Steps
 
@@ -134,21 +206,39 @@ Compare CI run times:
 
 ## Fixed Issues
 
-### Issue 1: Invalid Tag Format
-**Problem:** Docker build failed with `invalid tag "ghcr.io/pbs-tech/homelab-ci:-e5c2987"`
+### Issue 1: Image Tag Mismatch
+**Problem:** Docker images were built with SHA tags (`sha-${{ github.sha }}`) but referenced with branch names (`${{ github.ref_name }}`), causing image pull failures.
 
-**Root Cause:** The `type=sha,prefix={{branch}}-` tag format used an invalid `{{branch}}` template variable that doesn't exist in docker/metadata-action.
+**Root Cause:**
+- Images built as: `ghcr.io/owner/homelab-ci:sha-abc123`
+- Jobs trying to pull: `ghcr.io/owner/homelab-ci:molecule`
+- Tag mismatch resulted in "image not found" errors
 
-**Fix:** Removed the `{{branch}}` prefix and used just `type=sha`, which creates valid SHA tags.
+**Fix:**
+1. Created reusable workflow that outputs the exact image name
+2. Dependent jobs now reference `${{ needs.build-docker-image.outputs.image-name }}`
+3. Ensures all jobs use the same SHA-tagged image built in the workflow
 
-### Issue 2: Race Condition
+### Issue 2: Duplicate Docker Build Code
+**Problem:** Both `ci.yml` and `molecule-smoke.yml` had ~70 lines of identical Docker build code, making maintenance difficult.
+
+**Root Cause:** No code reuse mechanism for common Docker build logic across workflows.
+
+**Fix:**
+1. Created `.github/workflows/build-ci-image.yml` as a reusable workflow
+2. Both CI and Molecule workflows now call this shared workflow
+3. Eliminated duplicate code and created single source of truth
+4. Changes to Docker build logic now only require one file update
+
+### Issue 3: Race Condition
 **Problem:** CI and Molecule workflows failed because they tried to pull images before they were built.
 
 **Root Cause:** The `docker-build.yml` and CI workflows ran in parallel, causing CI jobs to fail when pulling non-existent images.
 
-**Fix:** Integrated Docker image building directly into CI and Molecule workflows as the first job, with dependencies ensuring images are built before they're needed:
-- CI workflow: `lint` depends on `build-docker-images`
+**Fix:** Integrated Docker image building directly into CI and Molecule workflows via reusable workflow call:
+- CI workflow: `lint` depends on `build-docker-image`
 - Molecule workflow: `smoke-test` depends on `build-docker-image`
+- Reusable workflow ensures build completes before downstream jobs start
 
 ## Troubleshooting
 
