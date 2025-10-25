@@ -53,6 +53,8 @@ provisioner:
   name: ansible
   env:
     ANSIBLE_REMOTE_TMP: /tmp/ansible-tmp
+    ANSIBLE_SSH_RETRIES: 5
+    ANSIBLE_TIMEOUT: 60
   config_options:
     defaults:
       callbacks_enabled: profile_tasks,timer,yaml
@@ -60,6 +62,10 @@ provisioner:
       host_key_checking: false
       deprecation_warnings: false
       remote_tmp: /tmp/ansible-tmp
+      timeout: 60
+    ssh_connection:
+      pipelining: true
+      retries: 5
   inventory:
     group_vars:
       all:
