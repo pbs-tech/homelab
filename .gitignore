@@ -1,5 +1,7 @@
 /.claude/
 
+package-lock.json
+
 # Ansible build artifacts
 *.tar.gz
 *.retry
