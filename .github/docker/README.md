@@ -84,10 +84,22 @@ docker push ghcr.io/pbs-tech/homelab-molecule:latest
 
 ## Automated Builds
 
-A GitHub Actions workflow (`.github/workflows/docker-build.yml`) automatically builds and pushes these images when:
-- Changes are made to Dockerfiles in `.github/docker/`
-- Manual workflow dispatch is triggered
-- Weekly schedule (to keep dependencies up to date)
+Docker images are automatically built and pushed by CI workflows:
+
+**CI Workflow** (`.github/workflows/ci.yml`):
+- Builds image on every push/PR as the first job
+- Uses SHA-based caching to skip rebuilds when image exists
+- Tags: `<branch>`, `sha-<commit>`, `v1.0.0`, `latest` (main only)
+
+**Molecule Smoke Test Workflow** (`.github/workflows/molecule-smoke.yml`):
+- Builds image on every push/PR as the first job
+- Reuses existing SHA-tagged images if available
+- Tags: `<branch>`, `sha-<commit>`, `v1.0.0`, `latest` (main only)
+
+**Image Caching:**
+- Both workflows check if `sha-<commit>` image exists
+- If exists, skip build (saves ~2-3 minutes)
+- First workflow to run builds, subsequent workflows reuse
 
 ## Benefits
 

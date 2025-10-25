@@ -5,24 +5,28 @@ This guide explains how to test the updated CI pipeline with Docker containers.
 ## Changes Made
 
 ### 1. CI Workflow (`.github/workflows/ci.yml`)
-- ✅ Updated to use branch-specific Docker image tags: `${{ github.ref_name }}`
+- ✅ **Builds Docker image first** as `build-docker-images` job
+- ✅ Fixed invalid SHA tag format (removed `{{branch}}` prefix)
+- ✅ `lint` job depends on `build-docker-images` (prevents race condition)
 - ✅ `lint` job uses `ghcr.io/pbs-tech/homelab-ci:<branch-name>`
 - ✅ `collections` job uses `ghcr.io/pbs-tech/homelab-ci:<branch-name>`
 - ✅ Fixed collection installation to build first, then install
 - ✅ Added syntax checks for `tests/` and `playbooks/` directories
 
 ### 2. Molecule Smoke Test Workflow (`.github/workflows/molecule-smoke.yml`)
-- ✅ Updated to use branch-specific Docker image tag: `${{ github.ref_name }}`
+- ✅ **Builds Docker image first** as `build-docker-image` job
+- ✅ Fixed invalid SHA tag format (removed `{{branch}}` prefix)
+- ✅ `smoke-test` job depends on `build-docker-image` (prevents race condition)
 - ✅ Uses `ghcr.io/pbs-tech/homelab-ci:<branch-name>`
 - ✅ Added Docker socket mounting for Docker-in-Docker support
 - ✅ Removed redundant Python/Ansible installation steps
+- ✅ **Image caching**: Checks if SHA-tagged image exists before building
 
-### 3. Docker Build Workflow (`.github/workflows/docker-build.yml`)
-- ✅ Triggers on push to ANY branch (not just main/develop)
-- ✅ Creates branch-specific tags automatically (e.g., `molecule`, `main`, `develop`)
-- ✅ Added versioning with `v1.0.0` tag (on main branch only)
-- ✅ Added SHA-based tags for traceability
-- ✅ Configured to push both versioned and `latest` tags
+### 3. Image Caching Strategy
+- ✅ Both workflows check if image exists for current commit SHA
+- ✅ If `sha-<commit>` image exists, skip build (saves ~2-3 minutes)
+- ✅ Multiple workflows on same commit reuse the same image
+- ✅ Separate `docker-build.yml` workflow removed (redundant)
 
 ### 4. Documentation Updates
 - ✅ Updated `CLAUDE.md` with correct test file paths
@@ -35,22 +39,23 @@ This guide explains how to test the updated CI pipeline with Docker containers.
 
 ## Prerequisites
 
-Before testing, ensure the Docker images exist in the registry:
+**No manual setup required!** Docker images are built automatically by each workflow.
 
-1. **Build and push the Docker images:**
-   ```bash
-   # Option 1: Trigger via GitHub Actions UI
-   # Go to: https://github.com/pbs-tech/homelab/actions/workflows/docker-build.yml
-   # Click "Run workflow" -> Select branch -> Click "Run workflow"
+### How It Works:
 
-   # Option 2: Push a change to trigger automatic build
-   git add .github/docker/Dockerfile.ci
-   git commit -m "Trigger Docker image build"
-   git push origin molecule
-   ```
+1. **Automatic Image Building:**
+   - CI and Molecule workflows build their own images as the first job
+   - Images are tagged with commit SHA: `sha-<commit>`
+   - If image exists for current commit, build is skipped
 
-2. **Verify images were built:**
-   - Check workflow status: https://github.com/pbs-tech/homelab/actions/workflows/docker-build.yml
+2. **First Run on New Commit:**
+   - First workflow to run builds the image (~3-5 minutes)
+   - Image is pushed to registry with multiple tags
+   - Subsequent workflows reuse the existing image (instant)
+
+3. **Verify images were built:**
+   - Check CI workflow: https://github.com/pbs-tech/homelab/actions/workflows/ci.yml
+   - Check Molecule workflow: https://github.com/pbs-tech/homelab/actions/workflows/molecule-smoke.yml
    - Verify images in registry: https://github.com/orgs/pbs-tech/packages
 
 ## Testing Steps
@@ -127,19 +132,39 @@ Compare CI run times:
 - **After (with containers):** ~5-8 minutes
 - **Expected savings:** 2-5 minutes per job from pre-installed dependencies
 
+## Fixed Issues
+
+### Issue 1: Invalid Tag Format
+**Problem:** Docker build failed with `invalid tag "ghcr.io/pbs-tech/homelab-ci:-e5c2987"`
+
+**Root Cause:** The `type=sha,prefix={{branch}}-` tag format used an invalid `{{branch}}` template variable that doesn't exist in docker/metadata-action.
+
+**Fix:** Removed the `{{branch}}` prefix and used just `type=sha`, which creates valid SHA tags.
+
+### Issue 2: Race Condition
+**Problem:** CI and Molecule workflows failed because they tried to pull images before they were built.
+
+**Root Cause:** The `docker-build.yml` and CI workflows ran in parallel, causing CI jobs to fail when pulling non-existent images.
+
+**Fix:** Integrated Docker image building directly into CI and Molecule workflows as the first job, with dependencies ensuring images are built before they're needed:
+- CI workflow: `lint` depends on `build-docker-images`
+- Molecule workflow: `smoke-test` depends on `build-docker-image`
+
 ## Troubleshooting
 
-### Image Pull Failures
+### Image Pull Failures (Should No Longer Occur)
 
-If you see errors like:
+Previously, you might have seen errors like:
 ```
-Error: failed to pull image "ghcr.io/pbs-tech/homelab-ci:v1.0.0"
+Error: failed to pull image "ghcr.io/pbs-tech/homelab-ci:molecule"
 ```
 
-**Solution:**
-1. Ensure the docker-build workflow has completed successfully
-2. Check that images are public or workflow has proper authentication
-3. Verify the image tag exists in the registry
+**This is now fixed** because images are built within the same workflow before being used.
+
+If you still encounter this:
+1. Check the `build-docker-images` job succeeded
+2. Verify GitHub Actions has `packages: write` permission
+3. Check the image was pushed to the registry
 
 ### Collection Installation Failures
 
