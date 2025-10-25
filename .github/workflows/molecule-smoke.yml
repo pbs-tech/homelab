@@ -28,17 +28,17 @@ jobs:
   smoke-test:
     name: Smoke Test - All Collections
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/homelab-ci:v1.0.0
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --privileged -v /var/run/docker.sock:/var/run/docker.sock
     timeout-minutes: 15
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
 
       - name: Cache Ansible collections
         uses: actions/cache@v4
@@ -46,22 +46,6 @@ jobs:
           path: ~/.ansible/collections
           key: ansible-collections-${{ hashFiles('**/requirements.yml') }}
           restore-keys: ansible-collections-
-
-      - name: Install Molecule and dependencies
-        run: |
-          set -e
-          pip install "ansible-core${{ env.ANSIBLE_VERSION }}" || {
-            echo "ERROR: Failed to install ansible-core"
-            exit 1
-          }
-          pip install "molecule>=6.0" "molecule-plugins[docker]>=23.5.0" || {
-            echo "ERROR: Failed to install molecule and plugins"
-            exit 1
-          }
-          pip install docker || {
-            echo "ERROR: Failed to install docker python package"
-            exit 1
-          }
 
       - name: Install external Ansible collections
         run: |
@@ -136,35 +120,10 @@ jobs:
           docker --version
           python --version
 
-      - name: Start and verify Docker service
+      - name: Verify Docker access
         run: |
           set -e
-
-          echo "Starting Docker service..."
-          sudo systemctl start docker || {
-            echo "ERROR: Failed to start Docker service"
-            sudo systemctl status docker || true
-            exit 1
-          }
-
-          # Wait for Docker to be fully ready with retries
-          echo "Waiting for Docker to be ready..."
-          RETRY_COUNT=0
-          MAX_RETRIES=30
-          until docker info > /dev/null 2>&1; do
-            RETRY_COUNT=$((RETRY_COUNT + 1))
-            if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
-              echo "ERROR: Docker failed to become ready after ${MAX_RETRIES} attempts"
-              sudo systemctl status docker || true
-              docker info || true
-              exit 1
-            fi
-            echo "Waiting for Docker... (attempt $RETRY_COUNT/$MAX_RETRIES)"
-            sleep 1
-          done
-
-          # Verify Docker is operational
-          echo "Docker is ready. Verifying operation..."
+          echo "Verifying Docker access via socket..."
           docker info || {
             echo "ERROR: Docker info command failed"
             exit 1
@@ -173,8 +132,7 @@ jobs:
             echo "ERROR: Docker ps command failed"
             exit 1
           }
-
-          echo "Docker service is ready and operational"
+          echo "Docker is accessible and operational"
 
       - name: List smoke test scenario
         run: |

@@ -1,0 +1,21 @@
+To trigger the Docker image build, you need to either:
+
+1. Manual trigger via GitHub Actions UI:
+   - Go to: https://github.com/pbs-tech/homelab/actions/workflows/docker-build.yml
+   - Click "Run workflow"
+   - Select branch (main or develop)
+   - Click "Run workflow"
+
+2. Or push a change to the .github/docker/ directory:
+   - Any change to .github/docker/Dockerfile.ci or Dockerfile.molecule
+   - Will automatically trigger the build
+
+3. Or wait for the weekly schedule:
+   - Runs every Sunday at 2 AM UTC
+
+Current image references in workflows:
+- ghcr.io/pbs-tech/homelab-ci:latest
+- ghcr.io/pbs-tech/homelab-molecule:latest
+
+Note: Images are built and pushed to GitHub Container Registry (ghcr.io)
+when the workflow runs on main/develop branches (not on PRs).

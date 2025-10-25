@@ -1,11 +1,15 @@
 # Custom CI Docker image with pre-installed dependencies for homelab Ansible testing
 # This image significantly speeds up CI builds by pre-installing common dependencies
+# Updated: 2025-10-25 - Initial version for containerized CI workflows
 
 FROM ubuntu:22.04
 
 LABEL maintainer="homelab"
 LABEL description="CI image for homelab Ansible collections with pre-installed dependencies"
-LABEL version="1.0"
+LABEL version="1.0.0"
+LABEL org.opencontainers.image.source="https://github.com/pbs-tech/homelab"
+LABEL org.opencontainers.image.description="CI image for homelab Ansible collections"
+LABEL org.opencontainers.image.licenses="MIT"
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive

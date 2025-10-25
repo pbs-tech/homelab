@@ -24,7 +24,10 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/yourusername/homelab-ci:latest
+      image: ghcr.io/pbs-tech/homelab-ci:v1.0.0
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ### 2. Molecule Test Image (`Dockerfile.molecule`)
@@ -42,7 +45,7 @@ jobs:
 ```yaml
 platforms:
   - name: ubuntu-test
-    image: ghcr.io/yourusername/homelab-molecule:latest
+    image: ghcr.io/pbs-tech/homelab-molecule:v1.0.0
     privileged: true
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
@@ -54,25 +57,29 @@ platforms:
 
 ```bash
 # Build CI image
-docker build -f .github/docker/Dockerfile.ci -t homelab-ci:latest .
+docker build -f .github/docker/Dockerfile.ci -t homelab-ci:v1.0.0 .
 
 # Build Molecule image
-docker build -f .github/docker/Dockerfile.molecule -t homelab-molecule:latest .
+docker build -f .github/docker/Dockerfile.molecule -t homelab-molecule:v1.0.0 .
 ```
 
 ### Build and push to GitHub Container Registry
 
 ```bash
 # Login to GitHub Container Registry
-echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
+echo $GITHUB_TOKEN | docker login ghcr.io -u pbs-tech --password-stdin
 
-# Build and push CI image
-docker build -f .github/docker/Dockerfile.ci -t ghcr.io/USERNAME/homelab-ci:latest .
-docker push ghcr.io/USERNAME/homelab-ci:latest
+# Build and push CI image with version tag
+docker build -f .github/docker/Dockerfile.ci -t ghcr.io/pbs-tech/homelab-ci:v1.0.0 .
+docker tag ghcr.io/pbs-tech/homelab-ci:v1.0.0 ghcr.io/pbs-tech/homelab-ci:latest
+docker push ghcr.io/pbs-tech/homelab-ci:v1.0.0
+docker push ghcr.io/pbs-tech/homelab-ci:latest
 
-# Build and push Molecule image
-docker build -f .github/docker/Dockerfile.molecule -t ghcr.io/USERNAME/homelab-molecule:latest .
-docker push ghcr.io/USERNAME/homelab-molecule:latest
+# Build and push Molecule image with version tag
+docker build -f .github/docker/Dockerfile.molecule -t ghcr.io/pbs-tech/homelab-molecule:v1.0.0 .
+docker tag ghcr.io/pbs-tech/homelab-molecule:v1.0.0 ghcr.io/pbs-tech/homelab-molecule:latest
+docker push ghcr.io/pbs-tech/homelab-molecule:v1.0.0
+docker push ghcr.io/pbs-tech/homelab-molecule:latest
 ```
 
 ## Automated Builds
@@ -99,9 +106,15 @@ Images should be rebuilt and pushed when:
 - Security updates are needed
 
 Use semantic versioning for image tags:
-- `latest` - Latest stable build
-- `v1.0.0` - Specific version
+- `v1.0.0` - Specific version (recommended for production)
+- `latest` - Latest stable build (auto-updated from main branch)
+- `main` - Latest build from main branch
 - `develop` - Development/testing builds
+- `main-<sha>` - Specific commit from main branch
+
+**Current stable version:** `v1.0.0`
+
+**Recommendation:** Use specific version tags (e.g., `v1.0.0`) in workflows for reproducibility and stability.
 
 ## Security Considerations
 

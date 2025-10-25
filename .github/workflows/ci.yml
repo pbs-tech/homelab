@@ -23,7 +23,7 @@ jobs:
     name: Lint (YAML, Ansible, Markdown)
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository_owner }}/homelab-ci:latest
+      image: ghcr.io/${{ github.repository_owner }}/homelab-ci:v1.0.0
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
@@ -67,12 +67,42 @@ jobs:
           }
 
           echo "Building and installing local collections..."
-          for collection in common k3s proxmox_lxc; do
-            ansible-galaxy collection install ansible_collections/homelab/$collection/ --force || {
-              echo "ERROR: Failed to install homelab.$collection collection"
-              exit 1
-            }
-          done
+          # Build and install common collection (required by others)
+          cd ansible_collections/homelab/common
+          ansible-galaxy collection build --force || {
+            echo "ERROR: Failed to build homelab.common collection"
+            exit 1
+          }
+          ansible-galaxy collection install *.tar.gz --force || {
+            echo "ERROR: Failed to install homelab.common collection"
+            exit 1
+          }
+          cd ../../..
+
+          # Build and install k3s collection
+          cd ansible_collections/homelab/k3s
+          ansible-galaxy collection build --force || {
+            echo "ERROR: Failed to build homelab.k3s collection"
+            exit 1
+          }
+          ansible-galaxy collection install *.tar.gz --force || {
+            echo "ERROR: Failed to install homelab.k3s collection"
+            exit 1
+          }
+          cd ../../..
+
+          # Build and install proxmox_lxc collection
+          cd ansible_collections/homelab/proxmox_lxc
+          ansible-galaxy collection build --force || {
+            echo "ERROR: Failed to build homelab.proxmox_lxc collection"
+            exit 1
+          }
+          ansible-galaxy collection install *.tar.gz --force || {
+            echo "ERROR: Failed to install homelab.proxmox_lxc collection"
+            exit 1
+          }
+          cd ../../..
+
           echo "All collections installed successfully"
 
       - name: Ansible lint
@@ -86,7 +116,25 @@ jobs:
         run: |
           set -e
           echo "Checking root playbooks..."
-          for playbook in site.yml security-deploy.yml phase2-security.yml test-security-hardening.yml; do
+          for playbook in site.yml security-deploy.yml phase2-security.yml; do
+            echo "Checking $playbook..."
+            ansible-playbook --syntax-check $playbook || {
+              echo "ERROR: Syntax check failed for $playbook"
+              exit 1
+            }
+          done
+
+          echo "Checking test playbooks..."
+          for playbook in tests/*.yml; do
+            echo "Checking $playbook..."
+            ansible-playbook --syntax-check $playbook || {
+              echo "ERROR: Syntax check failed for $playbook"
+              exit 1
+            }
+          done
+
+          echo "Checking orchestration playbooks..."
+          for playbook in playbooks/*.yml; do
             echo "Checking $playbook..."
             ansible-playbook --syntax-check $playbook || {
               echo "ERROR: Syntax check failed for $playbook"
@@ -120,7 +168,7 @@ jobs:
     name: Validate Collections
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository_owner }}/homelab-ci:latest
+      image: ghcr.io/${{ github.repository_owner }}/homelab-ci:v1.0.0
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
@@ -144,10 +192,16 @@ jobs:
         if: matrix.collection != 'common'
         run: |
           set -e
-          ansible-galaxy collection install ansible_collections/homelab/common/ --force || {
+          cd ansible_collections/homelab/common
+          ansible-galaxy collection build --force || {
+            echo "ERROR: Failed to build homelab.common collection"
+            exit 1
+          }
+          ansible-galaxy collection install *.tar.gz --force || {
             echo "ERROR: Failed to install homelab.common collection dependency"
             exit 1
           }
+          cd ../../..
 
       - name: Clean build artifacts
         run: rm -f ansible_collections/homelab/${{ matrix.collection }}/*.tar.gz

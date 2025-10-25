@@ -47,13 +47,13 @@ ansible-playbook tests/validate-services.yml
 ./scripts/security-audit.sh
 
 # Test Proxmox API token authentication
-ansible-playbook test-proxmox-api-tokens.yml
+ansible-playbook tests/test-proxmox-api-tokens.yml
 
 # Validate Proxmox connectivity
 ansible-playbook -i inventory/proxmox.yml playbooks/validate-proxmox.yml --tags validation
 
 # Security hardening test playbook
-ansible-playbook test-security-hardening.yml
+ansible-playbook tests/test-security-hardening.yml
 ```
 
 ### Main Deployment Commands
@@ -94,7 +94,7 @@ ssh pbs@192.168.0.110
 ansible-playbook phase2-security.yml --tags "dns,security"
 
 # Security hardening test playbook
-ansible-playbook test-security-hardening.yml
+ansible-playbook tests/test-security-hardening.yml
 ```
 
 ### LXC Template Management
@@ -403,7 +403,6 @@ ansible-galaxy collection install *.tar.gz --force
 ├── requirements.yml                 # Consolidated collection and dependency requirements
 ├── security-deploy.yml              # Security-focused phased deployment
 ├── phase2-security.yml              # Phase 2 deployment (run from bastion)
-├── test-security-hardening.yml      # Security validation playbook
 ├── playbooks/                       # NEW: Improved orchestration structure
 │   ├── infrastructure.yml           # Main phased deployment orchestrator
 │   ├── foundation.yml               # Phase 1: Bastion and Proxmox setup
@@ -412,6 +411,9 @@ ansible-galaxy collection install *.tar.gz --force
 │   └── applications.yml             # Phase 4: Home automation, NAS services
 ├── tests/                           # Fast validation tests (< 5 min total)
 │   ├── quick-smoke-test.yml         # 30s validation of critical components
+│   ├── test-proxmox-api-tokens.yml  # Proxmox API authentication tests
+│   ├── test-security-hardening.yml  # Security validation playbook
+│   ├── test-template-download.yml   # LXC template download tests
 │   ├── validate-infrastructure.yml  # Infrastructure health checks
 │   ├── validate-security.yml        # Security hardening verification
 │   └── validate-services.yml        # Service functionality tests

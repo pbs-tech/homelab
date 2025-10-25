@@ -451,7 +451,7 @@ chmod 600 ~/.ansible_vault_pass
 # Test Proxmox API authentication
 make test-api
 # OR
-ansible-playbook test-proxmox-api-tokens.yml
+ansible-playbook tests/test-proxmox-api-tokens.yml
 ```
 
 #### For Molecule Testing
