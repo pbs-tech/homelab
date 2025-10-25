@@ -22,21 +22,13 @@ jobs:
   lint:
     name: Lint (YAML, Ansible, Markdown)
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/homelab-ci:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-
-      - name: Install linting tools
-        run: |
-          set -e
-          pip install "yamllint>=1.35" "ansible-core${{ env.ANSIBLE_VERSION }}" "ansible-lint>=24.0" pymarkdownlnt || {
-            echo "ERROR: Failed to install linting tools"
-            exit 1
-          }
 
       - name: YAML lint
         run: |
@@ -127,6 +119,11 @@ jobs:
   collections:
     name: Validate Collections
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/homelab-ci:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     needs: lint
     strategy:
       fail-fast: false  # Allow all collections to be tested even if one fails
@@ -134,19 +131,6 @@ jobs:
         collection: [common, k3s, proxmox_lxc]
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-
-      - name: Install tools
-        run: |
-          set -e
-          pip install "ansible-core${{ env.ANSIBLE_VERSION }}" galaxy-importer || {
-            echo "ERROR: Failed to install tools for collection validation"
-            exit 1
-          }
 
       - name: Install external dependencies
         run: |
