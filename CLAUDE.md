@@ -129,11 +129,18 @@ ansible-playbook site.yml --tags "homeassistant"
 # Install all required collections and dependencies
 ansible-galaxy install -r requirements.yml
 
+# Install only external collections (for CI/Molecule)
+ansible-galaxy install -r requirements-external.yml
+
 # Individual collection installation (if needed)
 ansible-galaxy collection install homelab.common
 ansible-galaxy collection install homelab.k3s
 ansible-galaxy collection install homelab.proxmox_lxc
 ```
+
+**Note on requirements files:**
+- `requirements.yml` - Full requirements including local collections (for local development)
+- `requirements-external.yml` - External collections only (for CI/CD and Molecule testing)
 
 ### Code Quality and Linting
 

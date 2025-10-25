@@ -62,11 +62,17 @@ RUN pip3 install --upgrade pip setuptools wheel && \
 
 # Pre-install common Ansible collections to speed up CI
 # These will be cached in the image
+# Using specific versions matching requirements-external.yml
 RUN mkdir -p /root/.ansible/collections && \
     ansible-galaxy collection install \
-        community.general \
-        community.docker \
-        ansible.posix \
+        "community.general>=7.0.0" \
+        "ansible.posix>=1.5.0" \
+        "community.proxmox>=1.3.0" \
+        "kubernetes.core>=2.4.0" \
+        "containers.podman>=1.10.0" \
+        "community.crypto>=2.0.0" \
+        "community.grafana>=2.3.0" \
+        "community.docker>=4.7.0" \
         --force
 
 # Create workspace directory

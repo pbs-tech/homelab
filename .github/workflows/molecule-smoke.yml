@@ -55,15 +55,15 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.ansible/collections
-          key: ansible-collections-${{ hashFiles('**/requirements.yml') }}
+          key: ansible-collections-${{ hashFiles('requirements-external.yml', '**/requirements.yml') }}
           restore-keys: ansible-collections-
 
       - name: Install external Ansible collections
         run: |
           set -e
-          echo "Installing main requirements..."
-          ansible-galaxy collection install -r requirements.yml --force || {
-            echo "ERROR: Failed to install main requirements.yml"
+          echo "Installing external collections..."
+          ansible-galaxy collection install -r requirements-external.yml --force || {
+            echo "ERROR: Failed to install external collections"
             exit 1
           }
 

@@ -1,0 +1,35 @@
+---
+# External Ansible collections required for homelab infrastructure
+# This file contains ONLY external collections (no local directory references)
+# Use this file for CI/CD and Molecule testing where local collections are built separately
+#
+# Install with: ansible-galaxy collection install -r requirements-external.yml
+
+collections:
+  # External collections from Ansible Galaxy
+  - name: community.general
+    version: ">=7.0.0"
+
+  - name: ansible.posix
+    version: ">=1.5.0"
+
+  - name: community.proxmox
+    version: ">=1.3.0"
+
+  - name: kubernetes.core
+    version: ">=2.4.0"
+
+  - name: containers.podman
+    version: ">=1.10.0"
+
+  - name: community.crypto
+    version: ">=2.0.0"
+
+  - name: community.grafana
+    version: ">=2.3.0"
+
+  - name: community.docker
+    version: ">=4.7.0"
+
+# Note: homelab.common, homelab.k3s, and homelab.proxmox_lxc are local collections
+# and should be built/installed separately in CI/Molecule workflows
