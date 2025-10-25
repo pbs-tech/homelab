@@ -23,7 +23,7 @@ jobs:
     name: Lint (YAML, Ansible, Markdown)
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository_owner }}/homelab-ci:v1.0.0
+      image: ghcr.io/${{ github.repository_owner }}/homelab-ci:${{ github.ref_name }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
@@ -168,7 +168,7 @@ jobs:
     name: Validate Collections
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository_owner }}/homelab-ci:v1.0.0
+      image: ghcr.io/${{ github.repository_owner }}/homelab-ci:${{ github.ref_name }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}

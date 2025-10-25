@@ -105,16 +105,42 @@ Images should be rebuilt and pushed when:
 - New dependencies are added to the project
 - Security updates are needed
 
-Use semantic versioning for image tags:
+## Tagging Strategy
+
+Images are automatically tagged based on the branch they're built from:
+
+**Branch-based tags (automatic):**
+- `main` - Latest build from main branch
+- `develop` - Latest build from develop branch
+- `molecule` - Latest build from molecule branch
+- `<branch-name>` - Latest build from any other branch
+- `<branch-name>-<sha>` - Specific commit from any branch
+
+**Version tags (on main branch only):**
 - `v1.0.0` - Specific version (recommended for production)
 - `latest` - Latest stable build (auto-updated from main branch)
-- `main` - Latest build from main branch
-- `develop` - Development/testing builds
-- `main-<sha>` - Specific commit from main branch
 
 **Current stable version:** `v1.0.0`
 
-**Recommendation:** Use specific version tags (e.g., `v1.0.0`) in workflows for reproducibility and stability.
+## Workflow Usage
+
+CI workflows automatically use the branch-specific tag:
+
+```yaml
+container:
+  image: ghcr.io/${{ github.repository_owner }}/homelab-ci:${{ github.ref_name }}
+```
+
+This means:
+- Running on `main` branch → uses `main` tag
+- Running on `molecule` branch → uses `molecule` tag
+- Running on `develop` branch → uses `develop` tag
+
+**Benefits:**
+- Each branch gets its own image tag
+- No conflicts between branches
+- Easy to test changes in feature branches
+- Production (main) has stable versioned images
 
 ## Security Considerations
 

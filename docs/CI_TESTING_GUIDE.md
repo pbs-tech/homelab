@@ -5,18 +5,22 @@ This guide explains how to test the updated CI pipeline with Docker containers.
 ## Changes Made
 
 ### 1. CI Workflow (`.github/workflows/ci.yml`)
-- ✅ Updated `lint` job to use `ghcr.io/pbs-tech/homelab-ci:v1.0.0`
-- ✅ Updated `collections` job to use `ghcr.io/pbs-tech/homelab-ci:v1.0.0`
+- ✅ Updated to use branch-specific Docker image tags: `${{ github.ref_name }}`
+- ✅ `lint` job uses `ghcr.io/pbs-tech/homelab-ci:<branch-name>`
+- ✅ `collections` job uses `ghcr.io/pbs-tech/homelab-ci:<branch-name>`
 - ✅ Fixed collection installation to build first, then install
 - ✅ Added syntax checks for `tests/` and `playbooks/` directories
 
 ### 2. Molecule Smoke Test Workflow (`.github/workflows/molecule-smoke.yml`)
-- ✅ Updated to use `ghcr.io/pbs-tech/homelab-ci:v1.0.0`
+- ✅ Updated to use branch-specific Docker image tag: `${{ github.ref_name }}`
+- ✅ Uses `ghcr.io/pbs-tech/homelab-ci:<branch-name>`
 - ✅ Added Docker socket mounting for Docker-in-Docker support
 - ✅ Removed redundant Python/Ansible installation steps
 
 ### 3. Docker Build Workflow (`.github/workflows/docker-build.yml`)
-- ✅ Added versioning with `v1.0.0` tag
+- ✅ Triggers on push to ANY branch (not just main/develop)
+- ✅ Creates branch-specific tags automatically (e.g., `molecule`, `main`, `develop`)
+- ✅ Added versioning with `v1.0.0` tag (on main branch only)
 - ✅ Added SHA-based tags for traceability
 - ✅ Configured to push both versioned and `latest` tags
 
@@ -51,33 +55,38 @@ Before testing, ensure the Docker images exist in the registry:
 
 ## Testing Steps
 
-### Step 1: Test Docker Image Build
+### Step 1: Push to Trigger Docker Image Build
+
+When you push changes to the Dockerfile or docker-build workflow, images are automatically built:
 
 ```bash
-# Trigger the docker-build workflow
-# This will create:
+# On molecule branch, this will create:
+# - ghcr.io/pbs-tech/homelab-ci:molecule
+# - ghcr.io/pbs-tech/homelab-ci:molecule-<sha>
+# - ghcr.io/pbs-tech/homelab-molecule:molecule
+# - ghcr.io/pbs-tech/homelab-molecule:molecule-<sha>
+
+# On main branch, this will additionally create:
 # - ghcr.io/pbs-tech/homelab-ci:v1.0.0
 # - ghcr.io/pbs-tech/homelab-ci:latest
-# - ghcr.io/pbs-tech/homelab-ci:main
 # - ghcr.io/pbs-tech/homelab-molecule:v1.0.0
 # - ghcr.io/pbs-tech/homelab-molecule:latest
-# - ghcr.io/pbs-tech/homelab-molecule:main
 ```
 
 ### Step 2: Test CI Workflow Locally (Optional)
 
 ```bash
-# Pull the CI image locally
-docker pull ghcr.io/pbs-tech/homelab-ci:v1.0.0
+# Pull the branch-specific CI image locally
+docker pull ghcr.io/pbs-tech/homelab-ci:molecule
 
 # Test linting in container
 docker run --rm -v $(pwd):/workspace -w /workspace \
-  ghcr.io/pbs-tech/homelab-ci:v1.0.0 \
+  ghcr.io/pbs-tech/homelab-ci:molecule \
   yamllint .
 
 # Test Ansible installation
 docker run --rm -v $(pwd):/workspace -w /workspace \
-  ghcr.io/pbs-tech/homelab-ci:v1.0.0 \
+  ghcr.io/pbs-tech/homelab-ci:molecule \
   ansible --version
 ```
 
