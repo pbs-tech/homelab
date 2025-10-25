@@ -1,9 +1,0 @@
----
-collections:
-  # homelab.common is installed locally - no remote source needed
-  - name: community.general
-    version: ">=7.0.0"
-  - name: ansible.posix
-    version: ">=1.5.0"
-  - name: kubernetes.core
-    version: ">=2.4.0"
