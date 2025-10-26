@@ -11,9 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions workflow for automated publishing to Ansible Galaxy
 - Comprehensive release documentation (RELEASING.md)
 - Semantic versioning strategy for all collections
+- Composite action for Galaxy collection polling (`.github/actions/wait-for-galaxy-collection`)
+- Galaxy REST API version validation to prevent race conditions
 
 ### Changed
 - Updated galaxy.yml files with correct GitHub repository URLs (pbs-tech/homelab)
+- **SECURITY**: Workflow now uses `ANSIBLE_GALAXY_TOKEN` environment variable instead of `--api-key` flag
+- Improved polling logic with Galaxy REST API checks for specific versions
+- Enhanced error handling for cancelled workflows in addition to failures
+- Eliminated code duplication in publishing workflow (72 lines reduced via composite action)
+
+### Fixed
+- Race condition in collection dependency installation (now validates specific versions via API)
+- Potential API key exposure through command line arguments
+- Missing version extraction from galaxy.yml files
+- Inconsistent error handling for cancelled jobs in summary
 
 ## [1.0.0] - 2025-10-26
 

@@ -31,6 +31,8 @@ jobs:
     if: |
       (github.event_name == 'release') ||
       (github.event_name == 'workflow_dispatch' && (inputs.collection == 'all' || inputs.collection == 'common'))
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -45,6 +47,13 @@ jobs:
         run: |
           pip install "ansible-core${{ env.ANSIBLE_VERSION }}"
 
+      - name: Get collection version
+        id: get-version
+        run: |
+          VERSION=$(grep "^version:" ansible_collections/homelab/common/galaxy.yml | awk '{print $2}' | tr -d '"')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Collection version: $VERSION"
+
       - name: Install external dependencies
         run: |
           ansible-galaxy collection install -r requirements.yml --force
@@ -58,9 +67,11 @@ jobs:
           ansible-galaxy collection build
 
       - name: Publish to Galaxy
+        env:
+          ANSIBLE_GALAXY_TOKEN: ${{ secrets.GALAXY_API_KEY }}
         run: |
           cd ansible_collections/homelab/common
-          ansible-galaxy collection publish *.tar.gz --api-key="${{ secrets.GALAXY_API_KEY }}"
+          ansible-galaxy collection publish *.tar.gz
 
   publish-k3s:
     name: Publish homelab.k3s
@@ -83,47 +94,24 @@ jobs:
         run: |
           pip install "ansible-core${{ env.ANSIBLE_VERSION }}"
 
+      - name: Get collection version
+        id: get-version
+        run: |
+          VERSION=$(grep "^version:" ansible_collections/homelab/k3s/galaxy.yml | awk '{print $2}' | tr -d '"')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Collection version: $VERSION"
+
       - name: Install external dependencies
         run: |
           ansible-galaxy collection install -r requirements.yml --force
 
       - name: Install homelab.common (dependency)
-        run: |
-          # Poll Galaxy for the common collection if just published
-          if [ "${{ github.event_name }}" == "release" ]; then
-            echo "Polling Galaxy for homelab.common availability..."
-            MAX_ATTEMPTS=12
-            ATTEMPT=1
-            WAIT_TIME=10
-
-            while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-              echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: Checking if homelab.common is available on Galaxy..."
-
-              if ansible-galaxy collection install homelab.common --force 2>&1 | tee /tmp/galaxy-install.log; then
-                echo "✓ Successfully installed homelab.common from Galaxy"
-                exit 0
-              fi
-
-              if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
-                echo "  Collection not yet available, waiting ${WAIT_TIME}s before retry..."
-                sleep $WAIT_TIME
-              fi
-
-              ATTEMPT=$((ATTEMPT + 1))
-            done
-
-            echo "⚠ Galaxy polling timed out after $((MAX_ATTEMPTS * WAIT_TIME))s"
-            echo "Falling back to local collection installation..."
-            ansible-galaxy collection install ansible_collections/homelab/common/ --force
-          else
-            echo "Manual workflow dispatch - trying Galaxy first, then local fallback..."
-            if ansible-galaxy collection install homelab.common --force; then
-              echo "✓ Installed homelab.common from Galaxy"
-            else
-              echo "⚠ Galaxy installation failed, using local collection"
-              ansible-galaxy collection install ansible_collections/homelab/common/ --force
-            fi
-          fi
+        uses: ./.github/actions/wait-for-galaxy-collection
+        with:
+          collection: 'homelab.common'
+          version: ${{ needs.publish-common.outputs.version }}
+          fallback_path: 'ansible_collections/homelab/common/'
+          is_release: ${{ github.event_name == 'release' }}
 
       - name: Clean build artifacts
         run: rm -f ansible_collections/homelab/k3s/*.tar.gz
@@ -134,9 +122,11 @@ jobs:
           ansible-galaxy collection build
 
       - name: Publish to Galaxy
+        env:
+          ANSIBLE_GALAXY_TOKEN: ${{ secrets.GALAXY_API_KEY }}
         run: |
           cd ansible_collections/homelab/k3s
-          ansible-galaxy collection publish *.tar.gz --api-key="${{ secrets.GALAXY_API_KEY }}"
+          ansible-galaxy collection publish *.tar.gz
 
   publish-proxmox-lxc:
     name: Publish homelab.proxmox_lxc
@@ -159,47 +149,24 @@ jobs:
         run: |
           pip install "ansible-core${{ env.ANSIBLE_VERSION }}"
 
+      - name: Get collection version
+        id: get-version
+        run: |
+          VERSION=$(grep "^version:" ansible_collections/homelab/proxmox_lxc/galaxy.yml | awk '{print $2}' | tr -d '"')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Collection version: $VERSION"
+
       - name: Install external dependencies
         run: |
           ansible-galaxy collection install -r requirements.yml --force
 
       - name: Install homelab.common (dependency)
-        run: |
-          # Poll Galaxy for the common collection if just published
-          if [ "${{ github.event_name }}" == "release" ]; then
-            echo "Polling Galaxy for homelab.common availability..."
-            MAX_ATTEMPTS=12
-            ATTEMPT=1
-            WAIT_TIME=10
-
-            while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-              echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: Checking if homelab.common is available on Galaxy..."
-
-              if ansible-galaxy collection install homelab.common --force 2>&1 | tee /tmp/galaxy-install.log; then
-                echo "✓ Successfully installed homelab.common from Galaxy"
-                exit 0
-              fi
-
-              if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
-                echo "  Collection not yet available, waiting ${WAIT_TIME}s before retry..."
-                sleep $WAIT_TIME
-              fi
-
-              ATTEMPT=$((ATTEMPT + 1))
-            done
-
-            echo "⚠ Galaxy polling timed out after $((MAX_ATTEMPTS * WAIT_TIME))s"
-            echo "Falling back to local collection installation..."
-            ansible-galaxy collection install ansible_collections/homelab/common/ --force
-          else
-            echo "Manual workflow dispatch - trying Galaxy first, then local fallback..."
-            if ansible-galaxy collection install homelab.common --force; then
-              echo "✓ Installed homelab.common from Galaxy"
-            else
-              echo "⚠ Galaxy installation failed, using local collection"
-              ansible-galaxy collection install ansible_collections/homelab/common/ --force
-            fi
-          fi
+        uses: ./.github/actions/wait-for-galaxy-collection
+        with:
+          collection: 'homelab.common'
+          version: ${{ needs.publish-common.outputs.version }}
+          fallback_path: 'ansible_collections/homelab/common/'
+          is_release: ${{ github.event_name == 'release' }}
 
       - name: Clean build artifacts
         run: rm -f ansible_collections/homelab/proxmox_lxc/*.tar.gz
@@ -210,9 +177,11 @@ jobs:
           ansible-galaxy collection build
 
       - name: Publish to Galaxy
+        env:
+          ANSIBLE_GALAXY_TOKEN: ${{ secrets.GALAXY_API_KEY }}
         run: |
           cd ansible_collections/homelab/proxmox_lxc
-          ansible-galaxy collection publish *.tar.gz --api-key="${{ secrets.GALAXY_API_KEY }}"
+          ansible-galaxy collection publish *.tar.gz
 
   summary:
     name: Publishing Summary
@@ -230,7 +199,7 @@ jobs:
           echo "  Proxmox LXC: ${{ needs.publish-proxmox-lxc.result }}"
           echo "================================"
 
-          # Check if any job failed
+          # Check if any job failed or was cancelled
           if [[ "${{ needs.publish-common.result }}" == "failure" ]] || \
              [[ "${{ needs.publish-k3s.result }}" == "failure" ]] || \
              [[ "${{ needs.publish-proxmox-lxc.result }}" == "failure" ]]; then
@@ -238,10 +207,24 @@ jobs:
             exit 1
           fi
 
-          # Check if any job was skipped unexpectedly
-          if [[ "${{ needs.publish-common.result }}" == "skipped" ]] && \
-             [[ "${{ github.event_name }}" == "release" ]]; then
-            echo "⚠ Warning: Common collection was skipped during release"
+          if [[ "${{ needs.publish-common.result }}" == "cancelled" ]] || \
+             [[ "${{ needs.publish-k3s.result }}" == "cancelled" ]] || \
+             [[ "${{ needs.publish-proxmox-lxc.result }}" == "cancelled" ]]; then
+            echo "⚠ One or more collections were cancelled"
+            exit 1
+          fi
+
+          # Check if any job was skipped unexpectedly during release
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            if [[ "${{ needs.publish-common.result }}" == "skipped" ]]; then
+              echo "⚠ Warning: Common collection was skipped during release"
+            fi
+            if [[ "${{ needs.publish-k3s.result }}" == "skipped" ]]; then
+              echo "⚠ Warning: K3s collection was skipped during release"
+            fi
+            if [[ "${{ needs.publish-proxmox-lxc.result }}" == "skipped" ]]; then
+              echo "⚠ Warning: Proxmox LXC collection was skipped during release"
+            fi
           fi
 
           echo "✓ All scheduled collections published successfully"

@@ -154,11 +154,25 @@ gh release create v1.1.0 \
 
 Once the release is published, the GitHub Actions workflow will automatically:
 
-1. Build all three collections
-2. Publish `homelab.common` to Galaxy
-3. Wait for common to be processed
-4. Publish `homelab.k3s` to Galaxy
-5. Publish `homelab.proxmox_lxc` to Galaxy
+1. **Extract versions** from galaxy.yml files for validation
+2. **Build and publish** `homelab.common` to Galaxy
+3. **Poll Galaxy API** with intelligent retry logic to verify common collection availability
+   - Checks Galaxy REST API for the specific version
+   - Retries up to 12 times with 10-second intervals (120s total)
+   - Falls back to local installation if Galaxy is unavailable
+4. **Build and publish** `homelab.k3s` to Galaxy (after common is available)
+5. **Build and publish** `homelab.proxmox_lxc` to Galaxy (after common is available)
+6. **Validate results** and fail the workflow if any collection publishing fails
+
+**Security Features:**
+- Uses `ANSIBLE_GALAXY_TOKEN` environment variable (not exposed in logs)
+- API key never appears in command line arguments or shell history
+
+**Reliability Features:**
+- Version-specific validation prevents race conditions
+- Galaxy REST API polling ensures collections are actually published
+- Graceful fallback to local installation if Galaxy is temporarily unavailable
+- Proper handling of failed, cancelled, and skipped jobs
 
 Monitor the workflow at: https://github.com/pbs-tech/homelab/actions
 
@@ -186,17 +200,25 @@ ansible-galaxy collection build
 ### Publish to Galaxy
 
 ```bash
+# Set the API token as an environment variable (more secure than --api-key)
+export ANSIBLE_GALAXY_TOKEN="your_api_token_here"
+
 # Publish common first (dependency for others)
 cd ansible_collections/homelab/common
-ansible-galaxy collection publish *.tar.gz --api-key=YOUR_API_KEY
+ansible-galaxy collection publish *.tar.gz
 
 # Wait a minute for Galaxy to process, then publish others
 cd ../k3s
-ansible-galaxy collection publish *.tar.gz --api-key=YOUR_API_KEY
+ansible-galaxy collection publish *.tar.gz
 
 cd ../proxmox_lxc
-ansible-galaxy collection publish *.tar.gz --api-key=YOUR_API_KEY
+ansible-galaxy collection publish *.tar.gz
+
+# Unset the token when done
+unset ANSIBLE_GALAXY_TOKEN
 ```
+
+**Security Note:** Using the `ANSIBLE_GALAXY_TOKEN` environment variable is more secure than passing the API key via `--api-key` command line argument, as command line arguments may be visible in process listings and shell history.
 
 ### Using Workflow Dispatch
 
