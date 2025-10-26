@@ -1,0 +1,174 @@
+---
+name: Publish to Ansible Galaxy
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      collection:
+        description: 'Collection to publish (common, k3s, proxmox_lxc, or all)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - common
+          - k3s
+          - proxmox_lxc
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: '3.12'
+  ANSIBLE_VERSION: '>=2.17'
+
+jobs:
+  publish-common:
+    name: Publish homelab.common
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'release') ||
+      (github.event_name == 'workflow_dispatch' && (inputs.collection == 'all' || inputs.collection == 'common'))
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install Ansible
+        run: |
+          pip install "ansible-core${{ env.ANSIBLE_VERSION }}"
+
+      - name: Install external dependencies
+        run: |
+          ansible-galaxy collection install -r requirements.yml --force
+
+      - name: Clean build artifacts
+        run: rm -f ansible_collections/homelab/common/*.tar.gz
+
+      - name: Build collection
+        run: |
+          cd ansible_collections/homelab/common
+          ansible-galaxy collection build
+
+      - name: Publish to Galaxy
+        run: |
+          cd ansible_collections/homelab/common
+          ansible-galaxy collection publish *.tar.gz --api-key="${{ secrets.GALAXY_API_KEY }}"
+
+  publish-k3s:
+    name: Publish homelab.k3s
+    runs-on: ubuntu-latest
+    needs: publish-common
+    if: |
+      (github.event_name == 'release') ||
+      (github.event_name == 'workflow_dispatch' && (inputs.collection == 'all' || inputs.collection == 'k3s'))
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install Ansible
+        run: |
+          pip install "ansible-core${{ env.ANSIBLE_VERSION }}"
+
+      - name: Install external dependencies
+        run: |
+          ansible-galaxy collection install -r requirements.yml --force
+
+      - name: Install homelab.common (dependency)
+        run: |
+          # Wait a bit for Galaxy to process the common collection if just published
+          if [ "${{ github.event_name }}" == "release" ]; then
+            echo "Waiting 60 seconds for Galaxy to process homelab.common..."
+            sleep 60
+          fi
+          # Try to install from Galaxy first, fallback to local if not available
+          ansible-galaxy collection install homelab.common --force || \
+          ansible-galaxy collection install ansible_collections/homelab/common/ --force
+
+      - name: Clean build artifacts
+        run: rm -f ansible_collections/homelab/k3s/*.tar.gz
+
+      - name: Build collection
+        run: |
+          cd ansible_collections/homelab/k3s
+          ansible-galaxy collection build
+
+      - name: Publish to Galaxy
+        run: |
+          cd ansible_collections/homelab/k3s
+          ansible-galaxy collection publish *.tar.gz --api-key="${{ secrets.GALAXY_API_KEY }}"
+
+  publish-proxmox-lxc:
+    name: Publish homelab.proxmox_lxc
+    runs-on: ubuntu-latest
+    needs: publish-common
+    if: |
+      (github.event_name == 'release') ||
+      (github.event_name == 'workflow_dispatch' && (inputs.collection == 'all' || inputs.collection == 'proxmox_lxc'))
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install Ansible
+        run: |
+          pip install "ansible-core${{ env.ANSIBLE_VERSION }}"
+
+      - name: Install external dependencies
+        run: |
+          ansible-galaxy collection install -r requirements.yml --force
+
+      - name: Install homelab.common (dependency)
+        run: |
+          # Wait a bit for Galaxy to process the common collection if just published
+          if [ "${{ github.event_name }}" == "release" ]; then
+            echo "Waiting 60 seconds for Galaxy to process homelab.common..."
+            sleep 60
+          fi
+          # Try to install from Galaxy first, fallback to local if not available
+          ansible-galaxy collection install homelab.common --force || \
+          ansible-galaxy collection install ansible_collections/homelab/common/ --force
+
+      - name: Clean build artifacts
+        run: rm -f ansible_collections/homelab/proxmox_lxc/*.tar.gz
+
+      - name: Build collection
+        run: |
+          cd ansible_collections/homelab/proxmox_lxc
+          ansible-galaxy collection build
+
+      - name: Publish to Galaxy
+        run: |
+          cd ansible_collections/homelab/proxmox_lxc
+          ansible-galaxy collection publish *.tar.gz --api-key="${{ secrets.GALAXY_API_KEY }}"
+
+  summary:
+    name: Publishing Summary
+    runs-on: ubuntu-latest
+    needs: [publish-common, publish-k3s, publish-proxmox-lxc]
+    if: always()
+    steps:
+      - name: Check results
+        run: |
+          echo "Publishing workflow completed"
+          echo "Common: ${{ needs.publish-common.result }}"
+          echo "K3s: ${{ needs.publish-k3s.result }}"
+          echo "Proxmox LXC: ${{ needs.publish-proxmox-lxc.result }}"
