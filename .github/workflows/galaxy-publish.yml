@@ -89,14 +89,41 @@ jobs:
 
       - name: Install homelab.common (dependency)
         run: |
-          # Wait a bit for Galaxy to process the common collection if just published
+          # Poll Galaxy for the common collection if just published
           if [ "${{ github.event_name }}" == "release" ]; then
-            echo "Waiting 60 seconds for Galaxy to process homelab.common..."
-            sleep 60
+            echo "Polling Galaxy for homelab.common availability..."
+            MAX_ATTEMPTS=12
+            ATTEMPT=1
+            WAIT_TIME=10
+
+            while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+              echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: Checking if homelab.common is available on Galaxy..."
+
+              if ansible-galaxy collection install homelab.common --force 2>&1 | tee /tmp/galaxy-install.log; then
+                echo "✓ Successfully installed homelab.common from Galaxy"
+                exit 0
+              fi
+
+              if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
+                echo "  Collection not yet available, waiting ${WAIT_TIME}s before retry..."
+                sleep $WAIT_TIME
+              fi
+
+              ATTEMPT=$((ATTEMPT + 1))
+            done
+
+            echo "⚠ Galaxy polling timed out after $((MAX_ATTEMPTS * WAIT_TIME))s"
+            echo "Falling back to local collection installation..."
+            ansible-galaxy collection install ansible_collections/homelab/common/ --force
+          else
+            echo "Manual workflow dispatch - trying Galaxy first, then local fallback..."
+            if ansible-galaxy collection install homelab.common --force; then
+              echo "✓ Installed homelab.common from Galaxy"
+            else
+              echo "⚠ Galaxy installation failed, using local collection"
+              ansible-galaxy collection install ansible_collections/homelab/common/ --force
+            fi
           fi
-          # Try to install from Galaxy first, fallback to local if not available
-          ansible-galaxy collection install homelab.common --force || \
-          ansible-galaxy collection install ansible_collections/homelab/common/ --force
 
       - name: Clean build artifacts
         run: rm -f ansible_collections/homelab/k3s/*.tar.gz
@@ -138,14 +165,41 @@ jobs:
 
       - name: Install homelab.common (dependency)
         run: |
-          # Wait a bit for Galaxy to process the common collection if just published
+          # Poll Galaxy for the common collection if just published
           if [ "${{ github.event_name }}" == "release" ]; then
-            echo "Waiting 60 seconds for Galaxy to process homelab.common..."
-            sleep 60
+            echo "Polling Galaxy for homelab.common availability..."
+            MAX_ATTEMPTS=12
+            ATTEMPT=1
+            WAIT_TIME=10
+
+            while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+              echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: Checking if homelab.common is available on Galaxy..."
+
+              if ansible-galaxy collection install homelab.common --force 2>&1 | tee /tmp/galaxy-install.log; then
+                echo "✓ Successfully installed homelab.common from Galaxy"
+                exit 0
+              fi
+
+              if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
+                echo "  Collection not yet available, waiting ${WAIT_TIME}s before retry..."
+                sleep $WAIT_TIME
+              fi
+
+              ATTEMPT=$((ATTEMPT + 1))
+            done
+
+            echo "⚠ Galaxy polling timed out after $((MAX_ATTEMPTS * WAIT_TIME))s"
+            echo "Falling back to local collection installation..."
+            ansible-galaxy collection install ansible_collections/homelab/common/ --force
+          else
+            echo "Manual workflow dispatch - trying Galaxy first, then local fallback..."
+            if ansible-galaxy collection install homelab.common --force; then
+              echo "✓ Installed homelab.common from Galaxy"
+            else
+              echo "⚠ Galaxy installation failed, using local collection"
+              ansible-galaxy collection install ansible_collections/homelab/common/ --force
+            fi
           fi
-          # Try to install from Galaxy first, fallback to local if not available
-          ansible-galaxy collection install homelab.common --force || \
-          ansible-galaxy collection install ansible_collections/homelab/common/ --force
 
       - name: Clean build artifacts
         run: rm -f ansible_collections/homelab/proxmox_lxc/*.tar.gz
@@ -169,6 +223,25 @@ jobs:
       - name: Check results
         run: |
           echo "Publishing workflow completed"
-          echo "Common: ${{ needs.publish-common.result }}"
-          echo "K3s: ${{ needs.publish-k3s.result }}"
-          echo "Proxmox LXC: ${{ needs.publish-proxmox-lxc.result }}"
+          echo "================================"
+          echo "Results:"
+          echo "  Common: ${{ needs.publish-common.result }}"
+          echo "  K3s: ${{ needs.publish-k3s.result }}"
+          echo "  Proxmox LXC: ${{ needs.publish-proxmox-lxc.result }}"
+          echo "================================"
+
+          # Check if any job failed
+          if [[ "${{ needs.publish-common.result }}" == "failure" ]] || \
+             [[ "${{ needs.publish-k3s.result }}" == "failure" ]] || \
+             [[ "${{ needs.publish-proxmox-lxc.result }}" == "failure" ]]; then
+            echo "❌ One or more collections failed to publish"
+            exit 1
+          fi
+
+          # Check if any job was skipped unexpectedly
+          if [[ "${{ needs.publish-common.result }}" == "skipped" ]] && \
+             [[ "${{ github.event_name }}" == "release" ]]; then
+            echo "⚠ Warning: Common collection was skipped during release"
+          fi
+
+          echo "✓ All scheduled collections published successfully"

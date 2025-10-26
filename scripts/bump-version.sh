@@ -86,9 +86,47 @@ echo -e "${GREEN}Homelab Collections Version Bumper${NC}"
 echo "===================================="
 echo
 
-# Check if we're in the right directory
+# Check if we're in the right directory and all galaxy.yml files exist
 if [[ ! -f "$COMMON_GALAXY" ]]; then
     echo -e "${RED}Error: Must be run from repository root${NC}"
+    echo "Could not find: $COMMON_GALAXY"
+    exit 1
+fi
+
+# Validate all required galaxy.yml files exist
+MISSING_FILES=()
+for file in "$COMMON_GALAXY" "$K3S_GALAXY" "$PROXMOX_GALAXY"; do
+    if [[ ! -f "$file" ]]; then
+        MISSING_FILES+=("$file")
+    fi
+done
+
+if [[ ${#MISSING_FILES[@]} -gt 0 ]]; then
+    echo -e "${RED}Error: Missing required galaxy.yml files:${NC}"
+    for file in "${MISSING_FILES[@]}"; do
+        echo "  - $file"
+    done
+    echo
+    echo "Expected collection structure:"
+    echo "  ansible_collections/homelab/common/galaxy.yml"
+    echo "  ansible_collections/homelab/k3s/galaxy.yml"
+    echo "  ansible_collections/homelab/proxmox_lxc/galaxy.yml"
+    exit 1
+fi
+
+# Verify all files are writable
+READONLY_FILES=()
+for file in "$COMMON_GALAXY" "$K3S_GALAXY" "$PROXMOX_GALAXY"; do
+    if [[ ! -w "$file" ]]; then
+        READONLY_FILES+=("$file")
+    fi
+done
+
+if [[ ${#READONLY_FILES[@]} -gt 0 ]]; then
+    echo -e "${RED}Error: The following files are not writable:${NC}"
+    for file in "${READONLY_FILES[@]}"; do
+        echo "  - $file"
+    done
     exit 1
 fi
 

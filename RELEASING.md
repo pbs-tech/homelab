@@ -229,6 +229,174 @@ ansible-galaxy collection install homelab.proxmox_lxc --force
 ansible-galaxy collection list homelab
 ```
 
+## Testing the Publishing Workflow
+
+Before creating an actual release, it's recommended to test the publishing workflow to ensure everything is configured correctly.
+
+### Pre-Release Workflow Testing
+
+**Option 1: Manual Workflow Dispatch (Recommended for Testing)**
+
+Test the workflow without creating a release:
+
+1. **Prepare a test version:**
+   ```bash
+   # Bump to a test version (e.g., 1.0.0-rc1)
+   ./scripts/bump-version.sh 1.0.0-rc1
+   git add ansible_collections/*/galaxy.yml
+   git commit -m "Test version bump for workflow validation"
+   git push origin your-branch
+   ```
+
+2. **Trigger the workflow manually:**
+   ```bash
+   # Using GitHub CLI
+   gh workflow run galaxy-publish.yml -f collection=common
+
+   # Or via the web interface:
+   # Go to: https://github.com/pbs-tech/homelab/actions/workflows/galaxy-publish.yml
+   # Click "Run workflow"
+   # Select branch and collection to test
+   ```
+
+3. **Monitor the workflow:**
+   ```bash
+   # Watch the workflow run
+   gh run watch
+
+   # Or view in browser:
+   # https://github.com/pbs-tech/homelab/actions
+   ```
+
+4. **Verify the test collection on Galaxy:**
+   ```bash
+   # Check if the test version appears on Galaxy
+   ansible-galaxy collection install homelab.common:1.0.0-rc1
+
+   # Clean up the test version (if needed)
+   # Note: Galaxy doesn't allow deleting versions easily
+   # Use yank feature if absolutely necessary
+   ```
+
+5. **Revert the test version:**
+   ```bash
+   # Revert to the actual version
+   ./scripts/bump-version.sh 1.0.0
+   git add ansible_collections/*/galaxy.yml
+   git commit -m "Revert test version bump"
+   git push
+   ```
+
+**Option 2: Dry-Run Build Validation (Local Testing)**
+
+Test the build process locally without publishing:
+
+```bash
+# Install dependencies
+pip install "ansible-core>=2.17" galaxy-importer
+
+# Install external dependencies
+ansible-galaxy collection install -r requirements.yml --force
+
+# Build each collection
+for collection in common k3s proxmox_lxc; do
+  echo "Building homelab.$collection..."
+  cd ansible_collections/homelab/$collection
+
+  # Clean old builds
+  rm -f *.tar.gz
+
+  # Build the collection
+  ansible-galaxy collection build
+
+  # Validate with galaxy-importer
+  echo "Validating homelab.$collection..."
+  python -m galaxy_importer.main *.tar.gz
+
+  if [ $? -eq 0 ]; then
+    echo "✓ homelab.$collection validated successfully"
+  else
+    echo "✗ homelab.$collection validation failed"
+    exit 1
+  fi
+
+  cd ../../..
+done
+
+echo "All collections built and validated successfully!"
+```
+
+**Option 3: Fork Testing (Safest for First-Time Setup)**
+
+If you're setting up the workflow for the first time:
+
+1. Create a test namespace on Galaxy (e.g., `homelab_test`)
+2. Fork the repository or create a test branch
+3. Update galaxy.yml files to use the test namespace
+4. Create a test release (e.g., v0.0.1-test)
+5. Verify the workflow completes successfully
+6. Revert changes and proceed with actual release
+
+### Workflow Testing Checklist
+
+Before your first production release, verify:
+
+- [ ] `GALAXY_API_KEY` secret is set in GitHub repository settings
+- [ ] API key has publishing permissions for the `homelab` namespace
+- [ ] All three galaxy.yml files have correct metadata:
+  - [ ] Correct namespace (`homelab`)
+  - [ ] Valid version format (X.Y.Z)
+  - [ ] Correct repository URLs
+  - [ ] Valid license identifiers
+- [ ] CI/CD pipeline passes (linting, molecule tests, collection validation)
+- [ ] Local build and validation succeeds for all collections
+- [ ] Test workflow dispatch completes without errors
+- [ ] Collections install correctly from Galaxy after test publish
+- [ ] Dependency resolution works (k3s and proxmox_lxc can find homelab.common)
+
+### Common Testing Issues
+
+**Issue: Workflow fails with "Invalid API key"**
+- Solution: Verify the secret name is exactly `GALAXY_API_KEY`
+- Verify the API key is valid on Galaxy
+- Check that the key has publishing permissions
+
+**Issue: Collection not found during dependency installation**
+- Solution: This is expected during testing if common hasn't been published yet
+- The workflow will automatically fall back to local installation
+- Check logs for: "✓ Installed homelab.common from Galaxy" or "⚠ Galaxy installation failed, using local collection"
+
+**Issue: Galaxy importer validation fails**
+- Solution: Check galaxy.yml metadata format
+- Verify all required files are present (README.md, roles/, etc.)
+- Run galaxy-importer locally for detailed error messages
+
+**Issue: Namespace not found**
+- Solution: Ensure you have publishing rights to the `homelab` namespace on Galaxy
+- Contact namespace owner or create the namespace if it doesn't exist
+
+### Monitoring Published Collections
+
+After publishing, monitor for issues:
+
+```bash
+# Check collection page on Galaxy
+open https://galaxy.ansible.com/homelab/common
+
+# Verify version appears correctly
+ansible-galaxy collection install homelab.common --force
+
+# Check download stats and version history
+# Visit: https://galaxy.ansible.com/homelab/common/versions
+
+# Test installation in a clean environment
+docker run -it --rm python:3.12 bash -c "
+  pip install ansible-core>=2.17 && \
+  ansible-galaxy collection install homelab.common homelab.k3s homelab.proxmox_lxc && \
+  ansible-galaxy collection list homelab
+"
+```
+
 ## Troubleshooting
 
 ### Publishing Fails with "Namespace not found"
@@ -240,6 +408,62 @@ Ensure you have access to the `homelab` namespace on Galaxy. Contact the namespa
 - Verify the `GALAXY_API_KEY` secret is set correctly in GitHub
 - Generate a new API key from Galaxy and update the secret
 - Ensure the API key has publishing permissions
+
+### API Key Rotation
+
+For security best practices, rotate your Galaxy API key periodically:
+
+**Recommended Rotation Schedule:**
+- Regular rotation: Every 90 days
+- After team member changes: Immediately
+- After suspected compromise: Immediately
+
+**Rotation Procedure:**
+
+1. **Generate a new API key from Galaxy:**
+   - Go to: https://galaxy.ansible.com/me/preferences
+   - Click "API Key" → "Show" to reveal current key (optional: save for rollback)
+   - Click "Reset" to generate a new key
+   - Copy the new API key immediately (it won't be shown again)
+
+2. **Update GitHub Secret:**
+   - Go to: https://github.com/pbs-tech/homelab/settings/secrets/actions
+   - Click on `GALAXY_API_KEY`
+   - Click "Update secret"
+   - Paste the new API key
+   - Click "Update secret"
+
+3. **Test the new key:**
+   ```bash
+   # Test publishing (dry-run not available, use a test collection if possible)
+   # Or trigger a manual workflow dispatch with a single collection
+   gh workflow run galaxy-publish.yml -f collection=common
+   ```
+
+4. **Monitor the workflow:**
+   - Go to: https://github.com/pbs-tech/homelab/actions
+   - Verify the publishing workflow completes successfully
+   - If it fails with authentication errors, verify the key was copied correctly
+
+5. **Document the rotation:**
+   - Record rotation date in your security log
+   - Note the reason for rotation (scheduled, team change, etc.)
+
+**Rollback Procedure (if new key fails):**
+
+If the new API key doesn't work and you saved the old key:
+
+1. Revert the GitHub secret to the old key
+2. Verify the old key still works on Galaxy
+3. Investigate why the new key failed
+4. Try generating another new key
+
+**Best Practices:**
+- Use a password manager to securely store the API key temporarily during rotation
+- Never commit API keys to the repository
+- Limit API key access to necessary team members only
+- Monitor Galaxy for unusual publishing activity
+- Consider using separate API keys for different automation workflows if Galaxy supports it
 
 ### Collection Build Fails
 
