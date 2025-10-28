@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - GitHub Actions workflow for automated publishing to Ansible Galaxy
 - Comprehensive release documentation (RELEASING.md)
 - Semantic versioning strategy for all collections
@@ -15,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Galaxy REST API version validation to prevent race conditions
 
 ### Changed
+
 - Updated galaxy.yml files with correct GitHub repository URLs (pbs-tech/homelab)
 - **SECURITY**: Workflow now uses `ANSIBLE_GALAXY_TOKEN` environment variable instead of `--api-key` flag
 - Improved polling logic with Galaxy REST API checks for specific versions
@@ -22,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Eliminated code duplication in publishing workflow (72 lines reduced via composite action)
 
 ### Fixed
+
 - Race condition in collection dependency installation (now validates specific versions via API)
 - Potential API key exposure through command line arguments
 - Missing version extraction from galaxy.yml files
@@ -30,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2025-10-26
 
 ### Added
+
 - Initial release of three homelab Ansible collections
 - **homelab.common**: Shared utilities and roles for infrastructure management
   - `common_setup` role for base system configuration
@@ -52,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Security-first deployment approach with bastion hosts
 
 ### Infrastructure
+
 - Comprehensive CI/CD pipeline with GitHub Actions
   - YAML, Ansible, and Markdown linting
   - Molecule testing with smoke tests
@@ -63,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pre-commit hooks for code quality
 
 ### Documentation
+
 - Comprehensive README with architecture overview
 - Collection-specific documentation for each major component
 - Testing procedures (TESTING.md)
@@ -71,6 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLAUDE.md for AI-assisted development guidance
 
 ### Security
+
 - Multi-layered security with bastion host architecture
 - SSH key-based authentication across all services
 - Container security with unprivileged LXC containers
@@ -81,17 +88,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Release Notes
 
 ### homelab.common v1.0.0
+
 Initial release with shared infrastructure roles and utilities. Provides foundation for K3s and Proxmox LXC collections.
 
 ### homelab.k3s v1.0.0
+
 Initial release with K3s cluster deployment for Raspberry Pi. Includes security hardening and monitoring integration.
 
 ### homelab.proxmox_lxc v1.0.0
+
 Initial release with comprehensive LXC service management for Proxmox. Includes monitoring, networking, security, and application services.
 
 ## Future Plans
 
 ### Planned Features
+
 - [ ] Backup and disaster recovery automation
 - [ ] Enhanced monitoring with custom Grafana dashboards
 - [ ] Additional media management integrations
@@ -101,6 +112,7 @@ Initial release with comprehensive LXC service management for Proxmox. Includes 
 - [ ] Enhanced security scanning and compliance checks
 
 ### Potential Breaking Changes
+
 - Migration from static to dynamic inventory (planned for v2.0.0)
 - Restructuring of role dependencies (TBD)
 - Python 3.13+ requirement (future consideration)
@@ -108,6 +120,7 @@ Initial release with comprehensive LXC service management for Proxmox. Includes 
 ## How to Upgrade
 
 ### From v1.0.0 to v1.1.0 (when released)
+
 No breaking changes expected. Standard upgrade process:
 
 ```bash
@@ -117,7 +130,9 @@ ansible-galaxy collection install homelab.proxmox_lxc --upgrade
 ```
 
 ### Future Major Version Upgrades
+
 Major version upgrades may require:
+
 - Configuration changes
 - Inventory restructuring
 - Manual migration steps
