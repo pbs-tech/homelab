@@ -43,14 +43,15 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
 
-      - name: Install Ansible
+      - name: Install Ansible and yq
         run: |
           pip install "ansible-core${{ env.ANSIBLE_VERSION }}"
+          pip install yq
 
       - name: Get collection version
         id: get-version
         run: |
-          VERSION=$(grep "^version:" ansible_collections/homelab/common/galaxy.yml | awk '{print $2}' | tr -d '"')
+          VERSION=$(yq -r '.version' ansible_collections/homelab/common/galaxy.yml)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Collection version: $VERSION"
 
@@ -59,7 +60,9 @@ jobs:
           ansible-galaxy collection install -r requirements.yml --force
 
       - name: Clean build artifacts
-        run: rm -f ansible_collections/homelab/common/*.tar.gz
+        run: |
+          find ansible_collections/homelab/common -name "*.tar.gz" -type f -delete
+          echo "✓ Cleaned build artifacts from ansible_collections/homelab/common"
 
       - name: Build collection
         run: |
@@ -90,14 +93,15 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
 
-      - name: Install Ansible
+      - name: Install Ansible and yq
         run: |
           pip install "ansible-core${{ env.ANSIBLE_VERSION }}"
+          pip install yq
 
       - name: Get collection version
         id: get-version
         run: |
-          VERSION=$(grep "^version:" ansible_collections/homelab/k3s/galaxy.yml | awk '{print $2}' | tr -d '"')
+          VERSION=$(yq -r '.version' ansible_collections/homelab/k3s/galaxy.yml)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Collection version: $VERSION"
 
@@ -114,7 +118,9 @@ jobs:
           is_release: ${{ github.event_name == 'release' }}
 
       - name: Clean build artifacts
-        run: rm -f ansible_collections/homelab/k3s/*.tar.gz
+        run: |
+          find ansible_collections/homelab/k3s -name "*.tar.gz" -type f -delete
+          echo "✓ Cleaned build artifacts from ansible_collections/homelab/k3s"
 
       - name: Build collection
         run: |
@@ -145,14 +151,15 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
 
-      - name: Install Ansible
+      - name: Install Ansible and yq
         run: |
           pip install "ansible-core${{ env.ANSIBLE_VERSION }}"
+          pip install yq
 
       - name: Get collection version
         id: get-version
         run: |
-          VERSION=$(grep "^version:" ansible_collections/homelab/proxmox_lxc/galaxy.yml | awk '{print $2}' | tr -d '"')
+          VERSION=$(yq -r '.version' ansible_collections/homelab/proxmox_lxc/galaxy.yml)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Collection version: $VERSION"
 
@@ -169,7 +176,9 @@ jobs:
           is_release: ${{ github.event_name == 'release' }}
 
       - name: Clean build artifacts
-        run: rm -f ansible_collections/homelab/proxmox_lxc/*.tar.gz
+        run: |
+          find ansible_collections/homelab/proxmox_lxc -name "*.tar.gz" -type f -delete
+          echo "✓ Cleaned build artifacts from ansible_collections/homelab/proxmox_lxc"
 
       - name: Build collection
         run: |

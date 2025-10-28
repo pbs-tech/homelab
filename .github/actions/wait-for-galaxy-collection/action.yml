@@ -45,8 +45,26 @@ runs:
 
           echo "Checking Galaxy API for $namespace.$name version $version..."
 
-          # Query Galaxy API for collection versions
-          local response=$(curl -s "https://galaxy.ansible.com/api/v3/plugin/ansible/content/published/collections/index/$namespace/$name/versions/?limit=100")
+          # Query Galaxy API for collection versions with HTTP status validation
+          local http_code
+          local response
+          local api_url="https://galaxy.ansible.com/api/v3/plugin/ansible/content"
+          api_url="$api_url/published/collections/index/$namespace/$name/versions/?limit=100"
+          response=$(curl -s -w "\n%{http_code}" "$api_url")
+          http_code=$(echo "$response" | tail -n1)
+          response=$(echo "$response" | sed '$d')
+
+          # Validate HTTP response
+          if [ "$http_code" != "200" ]; then
+            echo "  API request failed with HTTP status: $http_code"
+            return 1
+          fi
+
+          # Validate response is not empty
+          if [ -z "$response" ]; then
+            echo "  API returned empty response"
+            return 1
+          fi
 
           # Check if the specific version exists in the response
           if echo "$response" | grep -q "\"version\":\"$version\""; then
@@ -74,11 +92,16 @@ runs:
               echo "Attempting to install $COLLECTION:$VERSION from Galaxy..."
 
               # Try to install the specific version
-              if ansible-galaxy collection install "$COLLECTION:$VERSION" --force 2>&1 | tee /tmp/galaxy-install.log; then
+              if ansible-galaxy collection install "$COLLECTION:$VERSION" --force \
+                 2>&1 | tee /tmp/galaxy-install.log; then
                 # Verify the installed version matches
-                INSTALLED_VERSION=$(ansible-galaxy collection list "$COLLECTION" 2>/dev/null | grep "$COLLECTION" | awk '{print $2}')
+                INSTALLED_VERSION=$(ansible-galaxy collection list "$COLLECTION" \
+                  2>/dev/null | grep "$COLLECTION" | awk '{print $2}')
 
-                if [ "$INSTALLED_VERSION" == "$VERSION" ]; then
+                # Validate version extraction succeeded
+                if [ -z "$INSTALLED_VERSION" ]; then
+                  echo "⚠ Failed to extract installed version"
+                elif [ "$INSTALLED_VERSION" = "$VERSION" ]; then
                   echo "✓ Successfully installed $COLLECTION:$VERSION from Galaxy"
                   exit 0
                 else
@@ -123,10 +146,16 @@ runs:
 
           if ansible-galaxy collection install "$COLLECTION:$VERSION" --force 2>&1; then
             # Verify version
-            INSTALLED_VERSION=$(ansible-galaxy collection list "$COLLECTION" 2>/dev/null | grep "$COLLECTION" | awk '{print $2}')
-            if [ "$INSTALLED_VERSION" == "$VERSION" ]; then
+            INSTALLED_VERSION=$(ansible-galaxy collection list "$COLLECTION" \
+              2>/dev/null | grep "$COLLECTION" | awk '{print $2}')
+            # Validate version extraction succeeded
+            if [ -z "$INSTALLED_VERSION" ]; then
+              echo "⚠ Failed to extract installed version"
+            elif [ "$INSTALLED_VERSION" = "$VERSION" ]; then
               echo "✓ Installed $COLLECTION:$VERSION from Galaxy"
               exit 0
+            else
+              echo "⚠ Version mismatch: expected $VERSION, got $INSTALLED_VERSION"
             fi
           fi
 
