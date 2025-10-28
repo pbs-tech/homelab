@@ -32,7 +32,7 @@ jobs:
       (github.event_name == 'release') ||
       (github.event_name == 'workflow_dispatch' && (inputs.collection == 'all' || inputs.collection == 'common'))
     outputs:
-      version: ${{ steps.get-version.outputs.version }}
+      version: ${{ steps.build-publish.outputs.version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -43,38 +43,16 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
 
-      - name: Install Ansible and yq
-        run: |
-          pip install "ansible-core${{ env.ANSIBLE_VERSION }}"
-          pip install yq
-
-      - name: Get collection version
-        id: get-version
-        run: |
-          VERSION=$(yq -r '.version' ansible_collections/homelab/common/galaxy.yml)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Collection version: $VERSION"
-
-      - name: Install external dependencies
-        run: |
-          ansible-galaxy collection install -r requirements.yml --force
-
-      - name: Clean build artifacts
-        run: |
-          find ansible_collections/homelab/common -name "*.tar.gz" -type f -delete
-          echo "✓ Cleaned build artifacts from ansible_collections/homelab/common"
-
-      - name: Build collection
-        run: |
-          cd ansible_collections/homelab/common
-          ansible-galaxy collection build
-
-      - name: Publish to Galaxy
-        env:
-          ANSIBLE_GALAXY_TOKEN: ${{ secrets.GALAXY_API_KEY }}
-        run: |
-          cd ansible_collections/homelab/common
-          ansible-galaxy collection publish *.tar.gz
+      - name: Build and publish collection
+        id: build-publish
+        uses: ./.github/actions/build-publish-collection
+        with:
+          collection_path: 'ansible_collections/homelab/common'
+          collection_name: 'homelab.common'
+          galaxy_token: ${{ secrets.GALAXY_API_KEY }}
+          python_version: ${{ env.PYTHON_VERSION }}
+          ansible_version: ${{ env.ANSIBLE_VERSION }}
+          is_release: ${{ github.event_name == 'release' }}
 
   publish-k3s:
     name: Publish homelab.k3s
@@ -93,46 +71,16 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
 
-      - name: Install Ansible and yq
-        run: |
-          pip install "ansible-core${{ env.ANSIBLE_VERSION }}"
-          pip install yq
-
-      - name: Get collection version
-        id: get-version
-        run: |
-          VERSION=$(yq -r '.version' ansible_collections/homelab/k3s/galaxy.yml)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Collection version: $VERSION"
-
-      - name: Install external dependencies
-        run: |
-          ansible-galaxy collection install -r requirements.yml --force
-
-      - name: Install homelab.common (dependency)
-        uses: ./.github/actions/wait-for-galaxy-collection
+      - name: Build and publish collection
+        uses: ./.github/actions/build-publish-collection
         with:
-          collection: 'homelab.common'
-          version: ${{ needs.publish-common.outputs.version }}
-          fallback_path: 'ansible_collections/homelab/common/'
+          collection_path: 'ansible_collections/homelab/k3s'
+          collection_name: 'homelab.k3s'
+          galaxy_token: ${{ secrets.GALAXY_API_KEY }}
+          python_version: ${{ env.PYTHON_VERSION }}
+          ansible_version: ${{ env.ANSIBLE_VERSION }}
+          common_version: ${{ needs.publish-common.outputs.version }}
           is_release: ${{ github.event_name == 'release' }}
-
-      - name: Clean build artifacts
-        run: |
-          find ansible_collections/homelab/k3s -name "*.tar.gz" -type f -delete
-          echo "✓ Cleaned build artifacts from ansible_collections/homelab/k3s"
-
-      - name: Build collection
-        run: |
-          cd ansible_collections/homelab/k3s
-          ansible-galaxy collection build
-
-      - name: Publish to Galaxy
-        env:
-          ANSIBLE_GALAXY_TOKEN: ${{ secrets.GALAXY_API_KEY }}
-        run: |
-          cd ansible_collections/homelab/k3s
-          ansible-galaxy collection publish *.tar.gz
 
   publish-proxmox-lxc:
     name: Publish homelab.proxmox_lxc
@@ -151,46 +99,16 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
 
-      - name: Install Ansible and yq
-        run: |
-          pip install "ansible-core${{ env.ANSIBLE_VERSION }}"
-          pip install yq
-
-      - name: Get collection version
-        id: get-version
-        run: |
-          VERSION=$(yq -r '.version' ansible_collections/homelab/proxmox_lxc/galaxy.yml)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Collection version: $VERSION"
-
-      - name: Install external dependencies
-        run: |
-          ansible-galaxy collection install -r requirements.yml --force
-
-      - name: Install homelab.common (dependency)
-        uses: ./.github/actions/wait-for-galaxy-collection
+      - name: Build and publish collection
+        uses: ./.github/actions/build-publish-collection
         with:
-          collection: 'homelab.common'
-          version: ${{ needs.publish-common.outputs.version }}
-          fallback_path: 'ansible_collections/homelab/common/'
+          collection_path: 'ansible_collections/homelab/proxmox_lxc'
+          collection_name: 'homelab.proxmox_lxc'
+          galaxy_token: ${{ secrets.GALAXY_API_KEY }}
+          python_version: ${{ env.PYTHON_VERSION }}
+          ansible_version: ${{ env.ANSIBLE_VERSION }}
+          common_version: ${{ needs.publish-common.outputs.version }}
           is_release: ${{ github.event_name == 'release' }}
-
-      - name: Clean build artifacts
-        run: |
-          find ansible_collections/homelab/proxmox_lxc -name "*.tar.gz" -type f -delete
-          echo "✓ Cleaned build artifacts from ansible_collections/homelab/proxmox_lxc"
-
-      - name: Build collection
-        run: |
-          cd ansible_collections/homelab/proxmox_lxc
-          ansible-galaxy collection build
-
-      - name: Publish to Galaxy
-        env:
-          ANSIBLE_GALAXY_TOKEN: ${{ secrets.GALAXY_API_KEY }}
-        run: |
-          cd ansible_collections/homelab/proxmox_lxc
-          ansible-galaxy collection publish *.tar.gz
 
   summary:
     name: Publishing Summary

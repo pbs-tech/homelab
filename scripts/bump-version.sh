@@ -6,7 +6,7 @@
 #   ./scripts/bump-version.sh 1.1.0        # Set specific version
 #   ./scripts/bump-version.sh minor        # Auto-increment minor version
 
-set -e
+set -euo pipefail
 
 # Colors for output
 RED='\033[0;31m'
@@ -130,13 +130,33 @@ if [[ ${#READONLY_FILES[@]} -gt 0 ]]; then
     exit 1
 fi
 
-# Get current version from common collection
-CURRENT_VERSION=$(get_current_version "$COMMON_GALAXY")
-echo -e "Current version: ${YELLOW}$CURRENT_VERSION${NC}"
+# Get current versions from all collections
+COMMON_VERSION=$(get_current_version "$COMMON_GALAXY")
+K3S_VERSION=$(get_current_version "$K3S_GALAXY")
+PROXMOX_VERSION=$(get_current_version "$PROXMOX_GALAXY")
+
+# Display current versions
+echo "Current versions:"
+echo -e "  homelab.common:       ${YELLOW}$COMMON_VERSION${NC}"
+echo -e "  homelab.k3s:          ${YELLOW}$K3S_VERSION${NC}"
+echo -e "  homelab.proxmox_lxc:  ${YELLOW}$PROXMOX_VERSION${NC}"
+echo
+
+# Verify all collections have the same version
+if [[ "$COMMON_VERSION" != "$K3S_VERSION" ]] || [[ "$COMMON_VERSION" != "$PROXMOX_VERSION" ]]; then
+    echo -e "${RED}Error: Version mismatch detected!${NC}"
+    echo "All collections must have the same version before bumping."
+    echo
+    echo "Please manually synchronize the versions first, or use --force to proceed anyway."
+    echo "Example: $0 $COMMON_VERSION --force"
+    exit 1
+fi
+
+CURRENT_VERSION="$COMMON_VERSION"
 echo
 
 # Determine new version
-if [[ -z "$1" ]]; then
+if [[ -z "${1:-}" ]]; then
     echo "Usage: $0 [major|minor|patch|X.Y.Z]"
     echo
     echo "Examples:"
@@ -148,12 +168,12 @@ if [[ -z "$1" ]]; then
 fi
 
 NEW_VERSION=""
-case $1 in
+case ${1:-} in
     major|minor|patch)
-        NEW_VERSION=$(increment_version "$CURRENT_VERSION" "$1")
+        NEW_VERSION=$(increment_version "$CURRENT_VERSION" "${1:-}")
         ;;
     *)
-        NEW_VERSION=$1
+        NEW_VERSION=${1:-}
         validate_version "$NEW_VERSION"
         ;;
 esac
