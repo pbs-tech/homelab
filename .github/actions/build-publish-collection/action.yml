@@ -1,0 +1,88 @@
+---
+name: 'Build and Publish Ansible Collection'
+description: 'Builds and publishes an Ansible collection to Galaxy with dependency management'
+inputs:
+  collection_path:
+    description: 'Path to collection directory (e.g., ansible_collections/homelab/common)'
+    required: true
+  collection_name:
+    description: 'Collection name (e.g., homelab.common)'
+    required: true
+  galaxy_token:
+    description: 'Ansible Galaxy API token for publishing'
+    required: true
+  python_version:
+    description: 'Python version to use'
+    required: false
+    default: '3.12'
+  ansible_version:
+    description: 'Ansible version constraint'
+    required: false
+    default: '>=2.17'
+  common_version:
+    description: 'Version of homelab.common dependency (if required)'
+    required: false
+    default: ''
+  is_release:
+    description: 'Whether this is a release event (enables polling for dependencies)'
+    required: false
+    default: 'false'
+outputs:
+  version:
+    description: 'Version of the published collection'
+    value: ${{ steps.get-version.outputs.version }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install Ansible and yq
+      shell: bash
+      run: |
+        pip install "ansible-core${{ inputs.ansible_version }}"
+        pip install yq
+        echo "✓ Installed Ansible and yq"
+
+    - name: Get collection version
+      id: get-version
+      shell: bash
+      run: |
+        VERSION=$(yq -r '.version' "${{ inputs.collection_path }}/galaxy.yml")
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Collection version: $VERSION"
+
+    - name: Install external dependencies
+      shell: bash
+      run: |
+        ansible-galaxy collection install -r requirements.yml --force
+        echo "✓ Installed external dependencies"
+
+    - name: Install homelab.common dependency
+      if: inputs.common_version != ''
+      uses: ./.github/actions/wait-for-galaxy-collection
+      with:
+        collection: 'homelab.common'
+        version: ${{ inputs.common_version }}
+        fallback_path: 'ansible_collections/homelab/common/'
+        is_release: ${{ inputs.is_release }}
+
+    - name: Clean build artifacts
+      shell: bash
+      run: |
+        find "${{ inputs.collection_path }}" -name "*.tar.gz" -type f -delete
+        echo "✓ Cleaned build artifacts from ${{ inputs.collection_path }}"
+
+    - name: Build collection
+      shell: bash
+      run: |
+        cd "${{ inputs.collection_path }}"
+        ansible-galaxy collection build
+        echo "✓ Built collection: ${{ inputs.collection_name }}"
+
+    - name: Publish to Galaxy
+      shell: bash
+      env:
+        ANSIBLE_GALAXY_TOKEN: ${{ inputs.galaxy_token }}
+      run: |
+        cd "${{ inputs.collection_path }}"
+        ansible-galaxy collection publish *.tar.gz
+        echo "✓ Published ${{ inputs.collection_name }} to Ansible Galaxy"

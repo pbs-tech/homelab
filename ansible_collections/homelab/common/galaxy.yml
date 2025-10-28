@@ -26,10 +26,10 @@ dependencies:
   community.crypto: ">=2.0.0"
   kubernetes.core: ">=2.4.0"
   community.proxmox: ">=1.3.0"
-repository: https://github.com/your-org/homelab-ansible
-documentation: https://github.com/your-org/homelab-ansible/tree/main/ansible_collections/homelab/common
-homepage: https://github.com/your-org/homelab-ansible
-issues: https://github.com/your-org/homelab-ansible/issues
+repository: https://github.com/pbs-tech/homelab
+documentation: https://github.com/pbs-tech/homelab/tree/main/ansible_collections/homelab/common
+homepage: https://github.com/pbs-tech/homelab
+issues: https://github.com/pbs-tech/homelab/issues
 build_ignore:
   - "*.tar.gz"
   - molecule/

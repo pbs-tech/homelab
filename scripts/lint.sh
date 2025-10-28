@@ -54,6 +54,10 @@ install_dependencies() {
         missing_deps+=("pymarkdownlnt")
     fi
 
+    if ! command_exists shellcheck; then
+        missing_deps+=("shellcheck")
+    fi
+
     if [ ${#missing_deps[@]} -gt 0 ]; then
         log_warning "Missing dependencies: ${missing_deps[*]}"
         log_info "Installing missing dependencies..."
@@ -115,6 +119,33 @@ run_markdownlint() {
     fi
 }
 
+# Run shellcheck
+run_shellcheck() {
+    log_info "Running shellcheck..."
+
+    # Find all shell scripts and check them
+    local shell_files
+    shell_files=$(find . -type f -name "*.sh" \
+        -not -path "*/venv/*" \
+        -not -path "*/.venv/*" \
+        -not -path "*/node_modules/*" \
+        -not -path "*/.git/*")
+
+    if [ -z "$shell_files" ]; then
+        log_warning "No shell scripts found to check"
+        return 0
+    fi
+
+    # shellcheck disable=SC2086
+    if echo "$shell_files" | xargs shellcheck --severity=warning; then
+        log_success "shellcheck passed"
+        return 0
+    else
+        log_error "shellcheck failed"
+        return 1
+    fi
+}
+
 # Main function
 main() {
     cd "$PROJECT_ROOT"
@@ -127,6 +158,7 @@ main() {
     local run_yamllint=true
     local run_ansible=true
     local run_markdown=true
+    local run_shellcheck=true
     local install_deps=false
 
     while [[ $# -gt 0 ]]; do
@@ -134,16 +166,25 @@ main() {
             --yaml-only)
                 run_ansible=false
                 run_markdown=false
+                run_shellcheck=false
                 shift
                 ;;
             --ansible-only)
                 run_yamllint=false
                 run_markdown=false
+                run_shellcheck=false
                 shift
                 ;;
             --markdown-only)
                 run_yamllint=false
                 run_ansible=false
+                run_shellcheck=false
+                shift
+                ;;
+            --shellcheck-only)
+                run_yamllint=false
+                run_ansible=false
+                run_markdown=false
                 shift
                 ;;
             --install-deps)
@@ -156,6 +197,7 @@ main() {
                 echo "  --yaml-only      Run only yamllint"
                 echo "  --ansible-only   Run only ansible-lint"
                 echo "  --markdown-only  Run only pymarkdownlnt"
+                echo "  --shellcheck-only Run only shellcheck"
                 echo "  --install-deps   Install missing dependencies"
                 echo "  --help           Show this help message"
                 exit 0
@@ -183,6 +225,10 @@ main() {
 
     if $run_markdown; then
         run_markdownlint || failed_checks+=("markdownlint")
+    fi
+
+    if $run_shellcheck; then
+        run_shellcheck || failed_checks+=("shellcheck")
     fi
 
     # Summary

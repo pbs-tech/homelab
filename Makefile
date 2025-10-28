@@ -59,6 +59,10 @@ lint-markdown: ## Run Markdown linting with pymarkdownlnt
 	@echo "$(YELLOW)Running Markdown linting with pymarkdownlnt...$(NC)"
 	@./scripts/lint.sh --markdown-only
 
+lint-shellcheck: ## Run shellcheck on shell scripts
+	@echo "$(YELLOW)Running shellcheck on shell scripts...$(NC)"
+	@./scripts/lint.sh --shellcheck-only
+
 lint-fix: ## Attempt to auto-fix linting issues where possible
 	@echo "$(YELLOW)Auto-fixing linting issues...$(NC)"
 	yamllint . --format parsable | head -20 || true

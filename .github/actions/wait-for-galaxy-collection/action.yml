@@ -1,0 +1,244 @@
+name: 'Wait for Galaxy Collection'
+description: 'Polls Ansible Galaxy for collection availability with retry logic'
+inputs:
+  collection:
+    description: 'Collection name (e.g., homelab.common)'
+    required: true
+  version:
+    description: 'Collection version to wait for'
+    required: true
+  max_attempts:
+    description: 'Maximum polling attempts'
+    required: false
+    default: '18'
+  wait_time:
+    description: 'Wait time between attempts in seconds'
+    required: false
+    default: '10'
+  fallback_path:
+    description: 'Path to local collection for fallback installation'
+    required: false
+    default: ''
+  is_release:
+    description: 'Whether this is a release event (enables polling)'
+    required: false
+    default: 'false'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install collection with polling
+      shell: bash
+      run: |
+        COLLECTION="${{ inputs.collection }}"
+        VERSION="${{ inputs.version }}"
+        MAX_ATTEMPTS="${{ inputs.max_attempts }}"
+        WAIT_TIME="${{ inputs.wait_time }}"
+        FALLBACK_PATH="${{ inputs.fallback_path }}"
+        IS_RELEASE="${{ inputs.is_release }}"
+
+        # Function to extract installed version using ansible-galaxy JSON output
+        get_installed_version() {
+          local collection="$1"
+          local version
+
+          # Use JSON format for reliable parsing
+          version=$(ansible-galaxy collection list --format=json "$collection" 2>/dev/null | \
+            jq -r --arg collection "$collection" \
+            'to_entries[] | select(.key | contains($collection)) | .value.version // empty' | \
+            head -n1)
+
+          echo "$version"
+        }
+
+        # Function to check if specific version exists on Galaxy via API
+        check_galaxy_version() {
+          local namespace="${1%%.*}"
+          local name="${1#*.}"
+          local version="$2"
+
+          echo "Checking Galaxy API for $namespace.$name version $version..."
+
+          # Query Galaxy API for collection versions with pagination support
+          local base_url="https://galaxy.ansible.com/api/v3/plugin/ansible/content"
+          base_url="$base_url/published/collections/index/$namespace/$name/versions/"
+          local api_url="$base_url?limit=100"
+          local page=1
+          local max_pages=10  # Safety limit to prevent infinite loops
+
+          while [ -n "$api_url" ] && [ $page -le $max_pages ]; do
+            echo "  Checking page $page..."
+
+            # Fetch with timeout and retry for network resilience
+            local http_code
+            local response
+            response=$(curl -s -w "\n%{http_code}" \
+              --max-time 30 \
+              --retry 2 \
+              --retry-delay 5 \
+              "$api_url")
+            http_code=$(echo "$response" | tail -n1)
+            response=$(echo "$response" | sed '$d')
+
+            # Validate HTTP response
+            if [ "$http_code" != "200" ]; then
+              echo "  API request failed with HTTP status: $http_code"
+              return 1
+            fi
+
+            # Validate response is not empty
+            if [ -z "$response" ]; then
+              echo "  API returned empty response"
+              return 1
+            fi
+
+            # Validate JSON structure
+            if ! echo "$response" | jq -e . >/dev/null 2>&1; then
+              echo "  API returned invalid JSON"
+              return 1
+            fi
+
+            # Check if the specific version exists in this page using proper JSON parsing
+            if echo "$response" | jq -e --arg version "$version" \
+               '.data[]? | select(.version == $version)' >/dev/null 2>&1; then
+              echo "✓ Version $version found on Galaxy API (page $page)"
+              return 0
+            fi
+
+            # Get next page URL from pagination links
+            local next_url
+            next_url=$(echo "$response" | jq -r '.links.next // empty')
+
+            if [ -n "$next_url" ] && [ "$next_url" != "null" ]; then
+              api_url="$next_url"
+              page=$((page + 1))
+            else
+              # No more pages
+              break
+            fi
+          done
+
+          if [ $page -gt $max_pages ]; then
+            echo "  Reached maximum page limit ($max_pages), version not found"
+          else
+            echo "  Version $version not found after checking $page page(s)"
+          fi
+          return 1
+        }
+
+        # For release events, poll Galaxy for the collection
+        if [ "$IS_RELEASE" = "true" ]; then
+          echo "::group::Polling Galaxy for $COLLECTION version $VERSION"
+          echo "Max attempts: $MAX_ATTEMPTS, Wait time: ${WAIT_TIME}s"
+          echo "Total timeout: $((MAX_ATTEMPTS * WAIT_TIME))s"
+
+          ATTEMPT=1
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo ""
+            echo "::group::Attempt $ATTEMPT/$MAX_ATTEMPTS"
+
+            # First check if version exists via API
+            if check_galaxy_version "$COLLECTION" "$VERSION"; then
+              echo "Attempting to install $COLLECTION:$VERSION from Galaxy..."
+
+              # Try to install the specific version
+              if ansible-galaxy collection install "$COLLECTION:$VERSION" --force \
+                 2>&1 | tee /tmp/galaxy-install.log; then
+                # Verify the installed version matches using JSON parsing
+                INSTALLED_VERSION=$(get_installed_version "$COLLECTION")
+
+                # Validate version extraction succeeded
+                if [ -z "$INSTALLED_VERSION" ]; then
+                  echo "⚠ Failed to extract installed version"
+                elif [ "$INSTALLED_VERSION" = "$VERSION" ]; then
+                  echo "✓ Successfully installed $COLLECTION:$VERSION from Galaxy"
+                  echo "::endgroup::"
+                  echo "::endgroup::"
+                  exit 0
+                else
+                  echo "⚠ Version mismatch: expected $VERSION, got $INSTALLED_VERSION"
+                fi
+              else
+                echo "  Installation attempt failed"
+              fi
+            fi
+
+            echo "::endgroup::"
+
+            # Wait before next attempt (except on last attempt)
+            if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
+              echo "Waiting ${WAIT_TIME}s before retry..."
+              sleep $WAIT_TIME
+            fi
+
+            ATTEMPT=$((ATTEMPT + 1))
+          done
+
+          echo "::endgroup::"
+          echo ""
+          echo "::warning::Galaxy polling timed out after $((MAX_ATTEMPTS * WAIT_TIME))s"
+
+          # Fallback to local installation if path provided
+          if [ -n "$FALLBACK_PATH" ]; then
+            echo "::group::Fallback to local installation"
+            echo "Installing from: $FALLBACK_PATH"
+            if ansible-galaxy collection install "$FALLBACK_PATH" --force; then
+              echo "✓ Successfully installed from local path"
+              echo "::endgroup::"
+              exit 0
+            else
+              echo "❌ Local installation failed"
+              echo "::endgroup::"
+              exit 1
+            fi
+          else
+            echo "::error::No fallback path provided, cannot continue"
+            exit 1
+          fi
+        else
+          # Manual workflow dispatch - try Galaxy first, then local fallback
+          echo "::group::Manual workflow dispatch - Installing $COLLECTION"
+
+          echo "Attempting to install $COLLECTION:$VERSION from Galaxy..."
+          if ansible-galaxy collection install "$COLLECTION:$VERSION" --force 2>&1; then
+            # Verify version using JSON parsing
+            INSTALLED_VERSION=$(get_installed_version "$COLLECTION")
+            # Validate version extraction succeeded
+            if [ -z "$INSTALLED_VERSION" ]; then
+              echo "⚠ Failed to extract installed version"
+            elif [ "$INSTALLED_VERSION" = "$VERSION" ]; then
+              echo "✓ Installed $COLLECTION:$VERSION from Galaxy"
+              echo "::endgroup::"
+              exit 0
+            else
+              echo "⚠ Version mismatch: expected $VERSION, got $INSTALLED_VERSION"
+            fi
+          fi
+
+          # Try without version constraint
+          echo "Trying to install latest version from Galaxy..."
+          if ansible-galaxy collection install "$COLLECTION" --force 2>&1; then
+            echo "✓ Installed $COLLECTION from Galaxy (latest version)"
+            echo "::endgroup::"
+            exit 0
+          fi
+
+          # Fallback to local if Galaxy fails
+          if [ -n "$FALLBACK_PATH" ]; then
+            echo "::warning::Galaxy installation failed, using local collection"
+            echo "Installing from: $FALLBACK_PATH"
+            if ansible-galaxy collection install "$FALLBACK_PATH" --force; then
+              echo "✓ Successfully installed from local path"
+              echo "::endgroup::"
+              exit 0
+            else
+              echo "❌ Local installation failed"
+              echo "::endgroup::"
+              exit 1
+            fi
+          else
+            echo "::error::No fallback path provided and Galaxy installation failed"
+            echo "::endgroup::"
+            exit 1
+          fi
+        fi

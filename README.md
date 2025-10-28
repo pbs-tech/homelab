@@ -74,10 +74,45 @@ This repository implements a layered homelab infrastructure using three core Ans
 
 ### Installation
 
+#### Option 1: Install from Ansible Galaxy (Recommended)
+
+Install the collections directly from Ansible Galaxy:
+
+```bash
+# Install all three homelab collections
+ansible-galaxy collection install homelab.common
+ansible-galaxy collection install homelab.k3s
+ansible-galaxy collection install homelab.proxmox_lxc
+
+# Or install all at once
+ansible-galaxy collection install homelab.common homelab.k3s homelab.proxmox_lxc
+```
+
+Then use the collections in your playbooks:
+
+```yaml
+---
+- name: Deploy homelab infrastructure
+  hosts: all
+  collections:
+    - homelab.common
+    - homelab.k3s
+    - homelab.proxmox_lxc
+  tasks:
+    - import_role:
+        name: security_hardening
+```
+
+See the [Galaxy Collection Pages](https://galaxy.ansible.com/homelab) for version information and documentation.
+
+#### Option 2: Install from Source
+
+For development or customization, clone the repository:
+
 1. **Clone the repository:**
 
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/pbs-tech/homelab.git
    cd homelab
    ```
 
@@ -433,6 +468,46 @@ kubectl --kubeconfig=/tmp/k3s.yaml get pods --all-namespaces
 - **Testing Issues**: [TESTING.md](TESTING.md) - Test troubleshooting procedures
 - **Community**: Check [Issues](../../issues) for known problems
 - **Debug Mode**: Use `ansible-playbook -vvv` for verbose output
+
+## 📦 Releases and Versioning
+
+This repository follows [Semantic Versioning 2.0.0](https://semver.org/) for all collections:
+
+- **MAJOR.X.X** - Breaking changes and incompatible API changes
+- **X.MINOR.X** - New features and functionality (backwards-compatible)
+- **X.X.PATCH** - Bug fixes and minor improvements (backwards-compatible)
+
+### Latest Release
+
+**v1.0.0** - Initial release with complete homelab infrastructure automation
+
+- homelab.common v1.0.0
+- homelab.k3s v1.0.0
+- homelab.proxmox_lxc v1.0.0
+
+See [CHANGELOG.md](CHANGELOG.md) for detailed release notes and version history.
+
+### Installing Specific Versions
+
+```bash
+# Install specific version
+ansible-galaxy collection install homelab.common:1.0.0
+
+# Install latest version
+ansible-galaxy collection install homelab.common
+
+# Upgrade to latest version
+ansible-galaxy collection install homelab.common --upgrade
+```
+
+### Release Process
+
+For maintainers and contributors, see [RELEASING.md](RELEASING.md) for:
+
+- Creating new releases
+- Publishing to Ansible Galaxy
+- Version management strategy
+- Automated publishing with GitHub Actions
 
 ## 📄 License
 
