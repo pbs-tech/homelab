@@ -272,7 +272,7 @@ Test the workflow without creating a release:
    ```
 
 2. **Trigger the workflow manually:**
-   
+
    ```bash
    # Using GitHub CLI
    gh workflow run galaxy-publish.yml -f collection=common
@@ -284,7 +284,7 @@ Test the workflow without creating a release:
    ```
 
 3. **Monitor the workflow:**
-   
+
    ```bash
    # Watch the workflow run
    gh run watch
@@ -294,7 +294,7 @@ Test the workflow without creating a release:
    ```
 
 4. **Verify the test collection on Galaxy:**
-   
+
    ```bash
    # Check if the test version appears on Galaxy
    ansible-galaxy collection install homelab.common:1.0.0-rc1
@@ -305,7 +305,7 @@ Test the workflow without creating a release:
    ```
 
 5. **Revert the test version:**
-   
+
    ```bash
    # Revert to the actual version
    ./scripts/bump-version.sh 1.0.0
@@ -461,7 +461,7 @@ For security best practices, rotate your Galaxy API key periodically:
    - Click "Update secret"
 
 3. **Test the new key:**
-   
+
    ```bash
    # Test publishing (dry-run not available, use a test collection if possible)
    # Or trigger a manual workflow dispatch with a single collection
