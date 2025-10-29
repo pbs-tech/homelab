@@ -2,6 +2,8 @@
 
 This guide covers multiple methods for installing the homelab Ansible collections.
 
+> **📌 Private Repository Access**: If your repository is private, see [PRIVATE_REPO_ACCESS.md](PRIVATE_REPO_ACCESS.md) for detailed authentication setup using SSH keys or Personal Access Tokens.
+
 ## Quick Start
 
 ### Method 1: Git-Based Installation (Recommended for Development)
@@ -83,6 +85,62 @@ ansible-galaxy collection install build/collections/*.tar.gz --force
 | **Git** | Development, testing | Fast updates, no publishing | Requires Git |
 | **Galaxy** | Production, stable releases | Official, versioned | Requires publishing |
 | **Local** | Offline, air-gapped | No dependencies | Manual distribution |
+
+---
+
+## Installing from Private Repositories
+
+If your repository is private, you'll need to configure authentication. See [PRIVATE_REPO_ACCESS.md](PRIVATE_REPO_ACCESS.md) for complete details.
+
+### Quick Start for Private Repos
+
+**Option 1: SSH Authentication (Recommended)**
+
+```bash
+# Setup (one-time)
+ssh-keygen -t ed25519 -f ~/.ssh/homelab_github
+# Add public key to GitHub → Settings → SSH keys
+
+# Install using SSH URL
+GIT_REPO="git@github.com:pbs-tech/homelab.git" ./scripts/install-from-git.sh
+
+# Or manually
+ansible-galaxy collection install \
+  git+git@github.com:pbs-tech/homelab.git#/ansible_collections/homelab/common,main \
+  --force
+```
+
+**Option 2: Personal Access Token**
+
+```bash
+# Setup (one-time)
+# Generate token at GitHub → Settings → Developer settings → Personal access tokens
+# Scope: repo (Full control of private repositories)
+
+# Install using token
+export GITHUB_TOKEN="ghp_your_token_here"
+./scripts/install-from-git.sh
+
+# Or manually
+ansible-galaxy collection install \
+  git+https://${GITHUB_TOKEN}@github.com/pbs-tech/homelab.git#/ansible_collections/homelab/common,main \
+  --force
+```
+
+**Option 3: Git Credential Helper**
+
+```bash
+# Setup (one-time)
+git config --global credential.helper store
+
+# First install prompts for credentials
+ansible-galaxy collection install \
+  git+https://github.com/pbs-tech/homelab.git#/ansible_collections/homelab/common,main \
+  --force
+# Enter: username and token (NOT password)
+
+# Subsequent installs use stored credentials automatically
+```
 
 ---
 

@@ -116,17 +116,25 @@ ansible-galaxy collection install \
 
 **For Private Repos**:
 ```bash
-# Using SSH authentication
+# Using SSH authentication (recommended)
 ansible-galaxy collection install \
   git+git@github.com:pbs-tech/homelab.git#/ansible_collections/homelab/common,main
+
+# Using Personal Access Token
+export GITHUB_TOKEN="ghp_your_token"
+ansible-galaxy collection install \
+  git+https://${GITHUB_TOKEN}@github.com/pbs-tech/homelab.git#/ansible_collections/homelab/common,main
 
 # Or configure Git credentials
 git config --global credential.helper store
 ```
 
+> **📌 For detailed private repository authentication**, see [PRIVATE_REPO_ACCESS.md](PRIVATE_REPO_ACCESS.md) which covers SSH keys, Personal Access Tokens, credential helpers, multi-host deployment, CI/CD integration, and troubleshooting.
+
 #### Current Status
 ✅ Already functional (no changes needed)
 ✅ Works with current repository structure
+✅ Comprehensive private repo authentication documented
 
 ---
 

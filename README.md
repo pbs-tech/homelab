@@ -129,7 +129,16 @@ ansible-galaxy collection install \
 - ✅ Access to development branches
 - ✅ No Galaxy account needed
 
-See [docs/COLLECTION_INSTALLATION.md](docs/COLLECTION_INSTALLATION.md) for more installation methods.
+**For Private Repositories:**
+```bash
+# SSH (recommended)
+GIT_REPO="git@github.com:pbs-tech/homelab.git" ./scripts/install-from-git.sh
+
+# Or with Personal Access Token
+GITHUB_TOKEN="ghp_your_token" ./scripts/install-from-git.sh
+```
+
+See [docs/COLLECTION_INSTALLATION.md](docs/COLLECTION_INSTALLATION.md) for more installation methods and [docs/PRIVATE_REPO_ACCESS.md](docs/PRIVATE_REPO_ACCESS.md) for detailed private repository authentication.
 
 #### Option 3: Install from Source
 
@@ -355,6 +364,7 @@ See [SECURITY-ARCHITECTURE.md](SECURITY-ARCHITECTURE.md) and [.github/SECURITY.m
 
 - [INSTALLATION.md](INSTALLATION.md) - Complete step-by-step installation guide
 - [docs/COLLECTION_INSTALLATION.md](docs/COLLECTION_INSTALLATION.md) - Collection installation methods and best practices
+- [docs/PRIVATE_REPO_ACCESS.md](docs/PRIVATE_REPO_ACCESS.md) - Authentication for private GitHub repositories
 - [CLAUDE.md](CLAUDE.md) - Repository guidance and key commands
 - [API.md](API.md) - Comprehensive API documentation for all services
 
