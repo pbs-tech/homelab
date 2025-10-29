@@ -105,7 +105,33 @@ Then use the collections in your playbooks:
 
 See the [Galaxy Collection Pages](https://galaxy.ansible.com/homelab) for version information and documentation.
 
-#### Option 2: Install from Source
+#### Option 2: Install from Git (Recommended for Development)
+
+Install collections directly from GitHub without cloning:
+
+```bash
+# Using the install script
+git clone https://github.com/pbs-tech/homelab.git
+cd homelab
+./scripts/install-from-git.sh
+
+# Or manually install each collection
+ansible-galaxy collection install \
+  git+https://github.com/pbs-tech/homelab.git#/ansible_collections/homelab/common,main \
+  git+https://github.com/pbs-tech/homelab.git#/ansible_collections/homelab/k3s,main \
+  git+https://github.com/pbs-tech/homelab.git#/ansible_collections/homelab/proxmox_lxc,main \
+  --force
+```
+
+**Benefits:**
+- ✅ Fast updates without publishing delays
+- ✅ Works with private repositories
+- ✅ Access to development branches
+- ✅ No Galaxy account needed
+
+See [docs/COLLECTION_INSTALLATION.md](docs/COLLECTION_INSTALLATION.md) for more installation methods.
+
+#### Option 3: Install from Source
 
 For development or customization, clone the repository:
 
@@ -328,6 +354,7 @@ See [SECURITY-ARCHITECTURE.md](SECURITY-ARCHITECTURE.md) and [.github/SECURITY.m
 ### Getting Started
 
 - [INSTALLATION.md](INSTALLATION.md) - Complete step-by-step installation guide
+- [docs/COLLECTION_INSTALLATION.md](docs/COLLECTION_INSTALLATION.md) - Collection installation methods and best practices
 - [CLAUDE.md](CLAUDE.md) - Repository guidance and key commands
 - [API.md](API.md) - Comprehensive API documentation for all services
 
@@ -350,6 +377,7 @@ See [SECURITY-ARCHITECTURE.md](SECURITY-ARCHITECTURE.md) and [.github/SECURITY.m
 
 ### Specialized Guides
 
+- [docs/COLLECTION_SHARING_ALTERNATIVES.md](docs/COLLECTION_SHARING_ALTERNATIVES.md) - Collection publishing and sharing alternatives
 - [CLIENT-VPN-SETUP.md](CLIENT-VPN-SETUP.md) - VPN client configuration
 - [Dynamic Inventory Setup](ansible_collections/homelab/proxmox_lxc/DYNAMIC_INVENTORY_SETUP.md) - Proxmox dynamic inventory
 - [DEVOPS_ASSESSMENT.md](DEVOPS_ASSESSMENT.md) - DevOps practices assessment
