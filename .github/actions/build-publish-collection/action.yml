@@ -84,5 +84,5 @@ runs:
         ANSIBLE_GALAXY_TOKEN: ${{ inputs.galaxy_token }}
       run: |
         cd "${{ inputs.collection_path }}"
-        ansible-galaxy collection publish *.tar.gz
+        ansible-galaxy collection publish *.tar.gz --secret ${{ env.ANSIBLE_GALAXY_TOKEN }}
         echo "✓ Published ${{ inputs.collection_name }} to Ansible Galaxy"
