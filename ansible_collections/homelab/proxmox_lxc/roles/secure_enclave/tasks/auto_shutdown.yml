@@ -1,0 +1,154 @@
+---
+# Auto-Shutdown Configuration
+# Automatically shuts down vulnerable VMs when idle for safety
+
+- name: Install idle monitoring tools
+  ansible.builtin.apt:
+    name:
+      - bc
+      - jq
+    state: present
+  delegate_to: "{{ enclave_bastion.hostname }}"
+  tags:
+    - safety
+    - auto-shutdown
+
+- name: Create idle detection script
+  ansible.builtin.copy:
+    dest: /usr/local/bin/enclave-idle-check
+    content: |
+      #!/bin/bash
+      # Check if enclave VMs have been idle and shutdown if needed
+
+      IDLE_HOURS={{ enclave_auto_shutdown.idle_timeout_hours }}
+      IDLE_SECONDS=$((IDLE_HOURS * 3600))
+      PROXMOX_NODE="{{ proxmox_config[enclave_proxmox_node].node }}"
+      VM_IDS="{{ enclave_attacker.vm_id }} {% for vm in enclave_vulnerable_vms %}{{ vm.vm_id }} {% endfor %}"
+
+      LOG_FILE="/var/log/enclave-auto-shutdown.log"
+
+      log() {
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"
+      }
+
+      check_vm_activity() {
+        local vm_id=$1
+        local vm_type=$2  # qemu or lxc
+
+        # Check if VM is running
+        local status=$(pvesh get /nodes/$PROXMOX_NODE/$vm_type/$vm_id/status/current 2>/dev/null | jq -r .status)
+
+        if [ "$status" != "running" ]; then
+          return 0  # Not running, skip
+        fi
+
+        # Get VM uptime
+        local uptime=$(pvesh get /nodes/$PROXMOX_NODE/$vm_type/$vm_id/status/current 2>/dev/null | jq -r .uptime)
+
+        # Check for active network connections (using enclave bridge)
+        local connections=$(netstat -an | grep -c "{{ enclave_network.isolated_subnet.split('/')[0] }}" || echo "0")
+
+        # Check SSH sessions to enclave
+        local ssh_sessions=$(who | grep -c "{{ enclave_bastion.ip_address }}" || echo "0")
+
+        # If no connections and uptime > idle threshold
+        if [ "$connections" -eq 0 ] && [ "$ssh_sessions" -eq 0 ] && [ "$uptime" -gt "$IDLE_SECONDS" ]; then
+          log "VM/CT $vm_id has been idle for ${IDLE_HOURS}h with no active sessions. Shutting down..."
+          pvesh create /nodes/$PROXMOX_NODE/$vm_type/$vm_id/status/shutdown 2>&1 | tee -a "$LOG_FILE"
+          return 1  # Shutdown performed
+        fi
+
+        return 0  # Still active or not idle long enough
+      }
+
+      # Main execution
+      log "Starting idle check for enclave VMs..."
+
+      for vm_id in $VM_IDS; do
+        # Try as QEMU VM first, then LXC
+        check_vm_activity "$vm_id" "qemu" 2>/dev/null || check_vm_activity "$vm_id" "lxc" 2>/dev/null
+      done
+
+      log "Idle check completed."
+    mode: '0755'
+  delegate_to: "{{ enclave_bastion.hostname }}"
+  tags:
+    - safety
+    - auto-shutdown
+
+- name: Create scheduled shutdown script
+  ansible.builtin.copy:
+    dest: /usr/local/bin/enclave-scheduled-shutdown
+    content: |
+      #!/bin/bash
+      # Scheduled shutdown of all enclave VMs
+
+      PROXMOX_NODE="{{ proxmox_config[enclave_proxmox_node].node }}"
+      VM_IDS="{{ enclave_attacker.vm_id }} {% for vm in enclave_vulnerable_vms %}{{ vm.vm_id }} {% endfor %}"
+
+      LOG_FILE="/var/log/enclave-auto-shutdown.log"
+
+      log() {
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"
+      }
+
+      log "Scheduled shutdown triggered..."
+
+      for vm_id in $VM_IDS; do
+        log "Stopping VM/CT $vm_id..."
+        pvesh create /nodes/$PROXMOX_NODE/qemu/$vm_id/status/shutdown 2>&1 | tee -a "$LOG_FILE" || \
+        pvesh create /nodes/$PROXMOX_NODE/lxc/$vm_id/status/shutdown 2>&1 | tee -a "$LOG_FILE"
+      done
+
+      log "All enclave VMs scheduled for shutdown."
+    mode: '0755'
+  delegate_to: "{{ enclave_bastion.hostname }}"
+  tags:
+    - safety
+    - auto-shutdown
+
+- name: Create cron job for idle checking
+  ansible.builtin.cron:
+    name: "Enclave idle check"
+    minute: "*/30"  # Check every 30 minutes
+    hour: "*"
+    job: "/usr/local/bin/enclave-idle-check >> /var/log/enclave-auto-shutdown.log 2>&1"
+    user: root
+  delegate_to: "{{ enclave_bastion.hostname }}"
+  tags:
+    - safety
+    - auto-shutdown
+    - cron
+
+- name: Create cron job for scheduled shutdown
+  ansible.builtin.cron:
+    name: "Enclave scheduled shutdown"
+    minute: "{{ enclave_auto_shutdown.shutdown_schedule.split()[0] }}"
+    hour: "{{ enclave_auto_shutdown.shutdown_schedule.split()[1] }}"
+    day: "{{ enclave_auto_shutdown.shutdown_schedule.split()[2] }}"
+    month: "{{ enclave_auto_shutdown.shutdown_schedule.split()[3] }}"
+    weekday: "{{ enclave_auto_shutdown.shutdown_schedule.split()[4] }}"
+    job: "/usr/local/bin/enclave-scheduled-shutdown >> /var/log/enclave-auto-shutdown.log 2>&1"
+    user: root
+  delegate_to: "{{ enclave_bastion.hostname }}"
+  tags:
+    - safety
+    - auto-shutdown
+    - cron
+
+- name: Create manual shutdown wrapper
+  ansible.builtin.copy:
+    dest: /usr/local/bin/enclave-shutdown-now
+    content: |
+      #!/bin/bash
+      # Manual emergency shutdown of all enclave VMs
+
+      echo "Emergency shutdown of all enclave VMs..."
+      /usr/local/bin/enclave-scheduled-shutdown
+      echo "Shutdown commands sent to all VMs."
+      echo "Check status with: enclave-status"
+    mode: '0755'
+  delegate_to: "{{ enclave_bastion.hostname }}"
+  tags:
+    - safety
+    - scripts

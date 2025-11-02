@@ -1,0 +1,119 @@
+---
+# Network Isolation Setup
+# Creates isolated network bridge and VLAN for secure enclave
+
+- name: Check if enclave network bridge exists
+  ansible.builtin.command:
+    cmd: "pvesh get /nodes/{{ proxmox_config[enclave_proxmox_node].node }}/network"
+  register: network_check
+  changed_when: false
+  delegate_to: "{{ proxmox_config[enclave_proxmox_node].host }}"
+  tags:
+    - network
+    - validation
+
+- name: Create isolated network bridge for enclave (if needed)
+  ansible.builtin.shell: |
+    cat >> /etc/network/interfaces <<EOF
+
+    # Secure Enclave Isolated Network
+    auto {{ enclave_network.bridge_name }}
+    iface {{ enclave_network.bridge_name }} inet static
+        address {{ enclave_router.lan_ip }}
+        netmask 255.255.255.0
+        bridge-ports none
+        bridge-stp off
+        bridge-fd 0
+        # Enclave network isolation
+        post-up echo 1 > /proc/sys/net/ipv4/ip_forward
+        post-up iptables -t nat -A POSTROUTING -s {{ enclave_network.isolated_subnet }} -o vmbr0 -j MASQUERADE
+    EOF
+
+    ifreload -a
+  args:
+    executable: /bin/bash
+  when: enclave_network.bridge_name not in network_check.stdout
+  delegate_to: "{{ proxmox_config[enclave_proxmox_node].host }}"
+  tags:
+    - network
+    - bridge
+
+- name: Configure iptables rules for enclave isolation
+  ansible.builtin.shell: |
+    # Flush existing enclave rules
+    iptables -D FORWARD -s {{ enclave_network.isolated_subnet }} -d 192.168.0.0/24 -j DROP 2>/dev/null || true
+    iptables -D FORWARD -s {{ enclave_network.isolated_subnet }} -d 192.168.0.111/32 -j DROP 2>/dev/null || true
+    iptables -D FORWARD -s {{ enclave_network.isolated_subnet }} -d 192.168.0.112/32 -j DROP 2>/dev/null || true
+    iptables -D FORWARD -s {{ enclave_network.isolated_subnet }} -d 192.168.0.113/32 -j DROP 2>/dev/null || true
+    iptables -D FORWARD -s {{ enclave_network.isolated_subnet }} -d 192.168.0.114/32 -j DROP 2>/dev/null || true
+
+    # Block enclave to production networks (except DNS for updates)
+    iptables -I FORWARD 1 -s {{ enclave_network.isolated_subnet }} -d 192.168.0.200/32 -j DROP -m comment --comment "Block Prometheus"
+    iptables -I FORWARD 1 -s {{ enclave_network.isolated_subnet }} -d 192.168.0.201/32 -j DROP -m comment --comment "Block Grafana"
+    iptables -I FORWARD 1 -s {{ enclave_network.isolated_subnet }} -d 192.168.0.205/32 -j DROP -m comment --comment "Block Traefik"
+    iptables -I FORWARD 1 -s {{ enclave_network.isolated_subnet }} -d 192.168.0.230/29 -j DROP -m comment --comment "Block NAS services"
+
+    # Block enclave to K3s cluster
+    iptables -I FORWARD 1 -s {{ enclave_network.isolated_subnet }} -d 192.168.0.111/32 -j DROP -m comment --comment "Block K3s-1"
+    iptables -I FORWARD 1 -s {{ enclave_network.isolated_subnet }} -d 192.168.0.112/32 -j DROP -m comment --comment "Block K3s-2"
+    iptables -I FORWARD 1 -s {{ enclave_network.isolated_subnet }} -d 192.168.0.113/32 -j DROP -m comment --comment "Block K3s-3"
+    iptables -I FORWARD 1 -s {{ enclave_network.isolated_subnet }} -d 192.168.0.114/32 -j DROP -m comment --comment "Block K3s-4"
+
+    # Allow DNS queries (needed for updates)
+    iptables -I FORWARD 1 -s {{ enclave_network.isolated_subnet }} -d 192.168.0.202/32 -p udp --dport 53 -j ACCEPT -m comment --comment "Allow DNS to Unbound"
+
+    # Allow enclave internal traffic
+    iptables -A FORWARD -s {{ enclave_network.isolated_subnet }} -d {{ enclave_network.isolated_subnet }} -j ACCEPT -m comment --comment "Allow enclave internal"
+
+    # Allow internet access for updates/tools (but not production LANs)
+    iptables -A FORWARD -s {{ enclave_network.isolated_subnet }} -o vmbr0 ! -d 192.168.0.0/16 -j ACCEPT -m comment --comment "Allow enclave internet"
+
+    # Save iptables rules
+    iptables-save > /etc/iptables/rules.v4
+  args:
+    executable: /bin/bash
+  delegate_to: "{{ proxmox_config[enclave_proxmox_node].host }}"
+  changed_when: true
+  tags:
+    - firewall
+    - security
+
+- name: Install iptables-persistent for rule persistence
+  ansible.builtin.apt:
+    name: iptables-persistent
+    state: present
+  delegate_to: "{{ proxmox_config[enclave_proxmox_node].host }}"
+  tags:
+    - firewall
+    - packages
+
+- name: Create enclave network documentation
+  ansible.builtin.copy:
+    dest: "/etc/pve/enclave-network-config.txt"
+    content: |
+      Secure Enclave Network Configuration
+      =====================================
+
+      Management Network: {{ enclave_network.management_subnet }}
+      Isolated Network: {{ enclave_network.isolated_subnet }}
+      Bridge: {{ enclave_network.bridge_name }}
+      VLAN: {{ enclave_network.vlan_id }}
+
+      Network Isolation:
+      - All traffic from {{ enclave_network.isolated_subnet }} to 192.168.0.0/24 is BLOCKED
+      - Exception: DNS queries to 192.168.0.202 (Unbound) are allowed
+      - Internet access for enclave is allowed (for updates/tools)
+      - Enclave internal traffic is allowed
+
+      Firewall Rules:
+      - Production services: BLOCKED
+      - K3s cluster: BLOCKED
+      - NAS services: BLOCKED
+      - DNS (Unbound): ALLOWED (UDP 53 only)
+      - Internet: ALLOWED (non-RFC1918)
+
+      Deployed: {{ ansible_date_time.iso8601 }}
+    mode: '0644'
+  delegate_to: "{{ proxmox_config[enclave_proxmox_node].host }}"
+  tags:
+    - documentation

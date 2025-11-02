@@ -1,0 +1,170 @@
+---
+# Monitoring and Audit Configuration
+# Tracks enclave access and activity
+
+- name: Install audit logging packages
+  ansible.builtin.apt:
+    name:
+      - auditd
+      - audispd-plugins
+    state: present
+    update_cache: true
+  delegate_to: "{{ enclave_bastion.hostname }}"
+  tags:
+    - monitoring
+    - audit
+
+- name: Configure audit rules for enclave access
+  ansible.builtin.copy:
+    dest: /etc/audit/rules.d/enclave-audit.rules
+    content: |
+      # Enclave Audit Rules
+      # Monitor all access and activity in the enclave
+
+      # Monitor SSH access
+      -w /var/log/auth.log -p wa -k enclave_ssh_access
+      -w /etc/ssh/sshd_config -p wa -k enclave_ssh_config
+
+      # Monitor network connections
+      -a always,exit -F arch=b64 -S connect -k enclave_network_connect
+      -a always,exit -F arch=b32 -S connect -k enclave_network_connect
+
+      # Monitor privileged commands
+      -a always,exit -F arch=b64 -S execve -F euid=0 -k enclave_root_commands
+      -a always,exit -F arch=b32 -S execve -F euid=0 -k enclave_root_commands
+
+      # Monitor file access in sensitive directories
+      -w /etc/ -p wa -k enclave_etc_changes
+      -w /usr/local/bin/ -p wa -k enclave_bin_changes
+
+      # Make configuration immutable
+      -e 2
+    mode: '0640'
+  delegate_to: "{{ enclave_bastion.hostname }}"
+  notify: restart auditd
+  tags:
+    - monitoring
+    - audit
+
+- name: Create audit log directory
+  ansible.builtin.file:
+    path: "{{ enclave_monitoring.audit_log_path | dirname }}"
+    state: directory
+    mode: '0750'
+  delegate_to: "{{ enclave_bastion.hostname }}"
+  tags:
+    - monitoring
+    - audit
+
+- name: Configure rsyslog for enclave logging
+  ansible.builtin.copy:
+    dest: /etc/rsyslog.d/50-enclave.conf
+    content: |
+      # Enclave logging configuration
+
+      # Log all enclave activity to dedicated file
+      :programname, contains, "enclave" {{ enclave_monitoring.audit_log_path }}
+
+      # Log SSH activity
+      :programname, isequal, "sshd" {{ enclave_monitoring.audit_log_path }}
+
+      # Log sudo activity
+      :programname, isequal, "sudo" {{ enclave_monitoring.audit_log_path }}
+
+      # Rotate logs
+      $outchannel log_rotation,{{ enclave_monitoring.audit_log_path }},52428800,/usr/sbin/logrotate /etc/logrotate.conf
+    mode: '0644'
+  delegate_to: "{{ enclave_bastion.hostname }}"
+  notify: restart rsyslog
+  tags:
+    - monitoring
+    - logging
+
+- name: Install node_exporter for metrics
+  when: enclave_monitoring.metrics_enabled | default(true)
+  block:
+    - name: Download node_exporter
+      ansible.builtin.get_url:
+        url: "https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-amd64.tar.gz"
+        dest: /tmp/node_exporter.tar.gz
+        mode: '0644'
+      delegate_to: "{{ enclave_bastion.hostname }}"
+
+    - name: Extract node_exporter
+      ansible.builtin.unarchive:
+        src: /tmp/node_exporter.tar.gz
+        dest: /tmp
+        remote_src: true
+      delegate_to: "{{ enclave_bastion.hostname }}"
+
+    - name: Install node_exporter binary
+      ansible.builtin.copy:
+        src: /tmp/node_exporter-1.7.0.linux-amd64/node_exporter
+        dest: /usr/local/bin/node_exporter
+        mode: '0755'
+        remote_src: true
+      delegate_to: "{{ enclave_bastion.hostname }}"
+
+    - name: Create node_exporter systemd service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/node_exporter.service
+        content: |
+          [Unit]
+          Description=Node Exporter
+          After=network.target
+
+          [Service]
+          Type=simple
+          User=nobody
+          ExecStart=/usr/local/bin/node_exporter --web.listen-address=:{{ enclave_monitoring.metrics_port }}
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+        mode: '0644'
+      delegate_to: "{{ enclave_bastion.hostname }}"
+
+    - name: Enable and start node_exporter
+      ansible.builtin.systemd:
+        name: node_exporter
+        state: started
+        enabled: true
+        daemon_reload: true
+      delegate_to: "{{ enclave_bastion.hostname }}"
+
+  tags:
+    - monitoring
+    - metrics
+
+- name: Create monitoring dashboard script
+  ansible.builtin.copy:
+    dest: /usr/local/bin/enclave-monitor
+    content: |
+      #!/bin/bash
+      # Real-time enclave monitoring dashboard
+
+      echo "=== Secure Enclave Monitoring Dashboard ==="
+      echo ""
+      echo "Active SSH Sessions:"
+      who
+      echo ""
+      echo "Recent Authentication Attempts:"
+      tail -20 /var/log/auth.log | grep -E "sshd|sudo" | tail -10
+      echo ""
+      echo "Network Connections to Isolated Network:"
+      netstat -an | grep "{{ enclave_network.isolated_subnet.split('/')[0] }}" || echo "  None"
+      echo ""
+      echo "Recent Audit Events:"
+      ausearch -k enclave_network_connect -ts recent 2>/dev/null | tail -5 || echo "  No recent events"
+      echo ""
+      echo "Enclave VM Status:"
+      for vm_id in {{ enclave_attacker.vm_id }} {% for vm in enclave_vulnerable_vms %}{{ vm.vm_id }} {% endfor %}; do
+        status=$(pvesh get /nodes/{{ proxmox_config[enclave_proxmox_node].node }}/qemu/$vm_id/status/current 2>/dev/null | jq -r .status || \
+                 pvesh get /nodes/{{ proxmox_config[enclave_proxmox_node].node }}/lxc/$vm_id/status/current 2>/dev/null | jq -r .status || echo "unknown")
+        echo "  VM/CT $vm_id: $status"
+      done
+    mode: '0755'
+  delegate_to: "{{ enclave_bastion.hostname }}"
+  tags:
+    - monitoring
+    - scripts
