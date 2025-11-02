@@ -33,6 +33,11 @@ enclave_router:
   # Network interfaces
   wan_ip: 192.168.0.251
   lan_ip: 10.10.0.1
+  # Router capabilities (unprivileged container)
+  capabilities:
+    - NET_ADMIN
+    - NET_RAW
+    - NET_BIND_SERVICE
 
 # Attacker VM configuration (Kali Linux)
 enclave_attacker:
@@ -149,6 +154,20 @@ enclave_storage:
   lxc_storage: local-lvm
   vm_storage: local-lvm
   iso_storage: local
+
+# Path configuration (parameterized for flexibility)
+enclave_paths:
+  bin: /usr/local/bin
+  log: /var/log
+  audit_log: /var/log/enclave-audit.log
+  auto_shutdown_log: /var/log/enclave-auto-shutdown.log
+  etc: /etc
+  iptables_rules: /etc/iptables/rules.v4
+  proxmox_pve: /etc/pve
+  network_interfaces: /etc/network/interfaces
+  iso_storage: /var/lib/vz/template/iso
+  opt: /opt
+  root: /root
 
 # Common pentesting tools to install on attacker VM
 enclave_pentesting_tools:

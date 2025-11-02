@@ -7,112 +7,219 @@
     name:
       - bc
       - jq
+      - curl
     state: present
+    update_cache: true
   delegate_to: "{{ enclave_bastion.hostname }}"
   tags:
     - safety
     - auto-shutdown
 
-- name: Create idle detection script
+- name: Create idle detection script with error handling
   ansible.builtin.copy:
-    dest: /usr/local/bin/enclave-idle-check
+    dest: "{{ enclave_paths.bin }}/enclave-idle-check"
     content: |
       #!/bin/bash
       # Check if enclave VMs have been idle and shutdown if needed
+      # Includes comprehensive error handling and logging
 
+      set -euo pipefail
+
+      # Configuration
       IDLE_HOURS={{ enclave_auto_shutdown.idle_timeout_hours }}
       IDLE_SECONDS=$((IDLE_HOURS * 3600))
       PROXMOX_NODE="{{ proxmox_config[enclave_proxmox_node].node }}"
       VM_IDS="{{ enclave_attacker.vm_id }} {% for vm in enclave_vulnerable_vms %}{{ vm.vm_id }} {% endfor %}"
+      LOG_FILE="{{ enclave_paths.auto_shutdown_log }}"
 
-      LOG_FILE="/var/log/enclave-auto-shutdown.log"
+      # Ensure log directory exists
+      mkdir -p "$(dirname "$LOG_FILE")"
 
+      # Logging function with timestamp
       log() {
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"
       }
 
+      # Error handler
+      error_handler() {
+        log "ERROR: Script failed at line $1"
+        exit 1
+      }
+
+      trap 'error_handler $LINENO' ERR
+
+      # Check if pvesh is available
+      if ! command -v pvesh &> /dev/null; then
+        log "ERROR: pvesh command not found. Please ensure Proxmox API tools are installed."
+        exit 1
+      fi
+
+      # Check VM activity with error handling
       check_vm_activity() {
         local vm_id=$1
         local vm_type=$2  # qemu or lxc
 
-        # Check if VM is running
-        local status=$(pvesh get /nodes/$PROXMOX_NODE/$vm_type/$vm_id/status/current 2>/dev/null | jq -r .status)
+        # Check if VM exists and is running
+        local status
+        status=$(pvesh get "/nodes/$PROXMOX_NODE/$vm_type/$vm_id/status/current" 2>/dev/null | jq -r '.status // "unknown"') || {
+          log "DEBUG: VM/CT $vm_id not found as $vm_type"
+          return 0
+        }
 
         if [ "$status" != "running" ]; then
-          return 0  # Not running, skip
+          log "DEBUG: VM/CT $vm_id is not running (status: $status)"
+          return 0
         fi
 
-        # Get VM uptime
-        local uptime=$(pvesh get /nodes/$PROXMOX_NODE/$vm_type/$vm_id/status/current 2>/dev/null | jq -r .uptime)
+        # Get VM uptime with error handling
+        local uptime
+        uptime=$(pvesh get "/nodes/$PROXMOX_NODE/$vm_type/$vm_id/status/current" 2>/dev/null | jq -r '.uptime // 0') || {
+          log "WARNING: Could not get uptime for VM/CT $vm_id"
+          return 0
+        }
 
-        # Check for active network connections (using enclave bridge)
-        local connections=$(netstat -an | grep -c "{{ enclave_network.isolated_subnet.split('/')[0] }}" || echo "0")
+        # Validate uptime is a number
+        if ! [[ "$uptime" =~ ^[0-9]+$ ]]; then
+          log "WARNING: Invalid uptime value for VM/CT $vm_id: $uptime"
+          return 0
+        fi
+
+        # Check for active network connections
+        local connections
+        connections=$(netstat -an 2>/dev/null | grep -c "{{ enclave_network.isolated_subnet.split('/')[0] }}" || echo "0")
 
         # Check SSH sessions to enclave
-        local ssh_sessions=$(who | grep -c "{{ enclave_bastion.ip_address }}" || echo "0")
+        local ssh_sessions
+        ssh_sessions=$(who 2>/dev/null | grep -c "{{ enclave_bastion.ip_address }}" || echo "0")
 
-        # If no connections and uptime > idle threshold
+        log "DEBUG: VM/CT $vm_id - uptime: ${uptime}s, connections: $connections, ssh: $ssh_sessions"
+
+        # Shutdown if idle
         if [ "$connections" -eq 0 ] && [ "$ssh_sessions" -eq 0 ] && [ "$uptime" -gt "$IDLE_SECONDS" ]; then
-          log "VM/CT $vm_id has been idle for ${IDLE_HOURS}h with no active sessions. Shutting down..."
-          pvesh create /nodes/$PROXMOX_NODE/$vm_type/$vm_id/status/shutdown 2>&1 | tee -a "$LOG_FILE"
-          return 1  # Shutdown performed
+          log "INFO: VM/CT $vm_id has been idle for ${IDLE_HOURS}h. Initiating shutdown..."
+          if pvesh create "/nodes/$PROXMOX_NODE/$vm_type/$vm_id/status/shutdown" 2>&1 | tee -a "$LOG_FILE"; then
+            log "SUCCESS: Shutdown command sent to VM/CT $vm_id"
+            return 1
+          else
+            log "ERROR: Failed to shutdown VM/CT $vm_id"
+            return 0
+          fi
         fi
 
-        return 0  # Still active or not idle long enough
+        return 0
       }
 
       # Main execution
-      log "Starting idle check for enclave VMs..."
+      log "INFO: Starting idle check for enclave VMs..."
 
       for vm_id in $VM_IDS; do
+        log "INFO: Checking VM/CT $vm_id..."
         # Try as QEMU VM first, then LXC
-        check_vm_activity "$vm_id" "qemu" 2>/dev/null || check_vm_activity "$vm_id" "lxc" 2>/dev/null
+        if ! check_vm_activity "$vm_id" "qemu" 2>/dev/null; then
+          check_vm_activity "$vm_id" "lxc" 2>/dev/null || true
+        fi
       done
 
-      log "Idle check completed."
+      log "INFO: Idle check completed."
+      exit 0
     mode: '0755'
   delegate_to: "{{ enclave_bastion.hostname }}"
   tags:
     - safety
     - auto-shutdown
 
-- name: Create scheduled shutdown script
+- name: Create scheduled shutdown script with error handling
   ansible.builtin.copy:
-    dest: /usr/local/bin/enclave-scheduled-shutdown
+    dest: "{{ enclave_paths.bin }}/enclave-scheduled-shutdown"
     content: |
       #!/bin/bash
       # Scheduled shutdown of all enclave VMs
+      # Includes comprehensive error handling and logging
 
+      set -euo pipefail
+
+      # Configuration
       PROXMOX_NODE="{{ proxmox_config[enclave_proxmox_node].node }}"
       VM_IDS="{{ enclave_attacker.vm_id }} {% for vm in enclave_vulnerable_vms %}{{ vm.vm_id }} {% endfor %}"
+      LOG_FILE="{{ enclave_paths.auto_shutdown_log }}"
 
-      LOG_FILE="/var/log/enclave-auto-shutdown.log"
+      # Ensure log directory exists
+      mkdir -p "$(dirname "$LOG_FILE")"
 
+      # Logging function
       log() {
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"
       }
 
-      log "Scheduled shutdown triggered..."
+      # Error handler
+      error_handler() {
+        log "ERROR: Script failed at line $1"
+        exit 1
+      }
+
+      trap 'error_handler $LINENO' ERR
+
+      # Check if pvesh is available
+      if ! command -v pvesh &> /dev/null; then
+        log "ERROR: pvesh command not found"
+        exit 1
+      fi
+
+      log "INFO: Scheduled shutdown triggered..."
+
+      success_count=0
+      failure_count=0
 
       for vm_id in $VM_IDS; do
-        log "Stopping VM/CT $vm_id..."
-        pvesh create /nodes/$PROXMOX_NODE/qemu/$vm_id/status/shutdown 2>&1 | tee -a "$LOG_FILE" || \
-        pvesh create /nodes/$PROXMOX_NODE/lxc/$vm_id/status/shutdown 2>&1 | tee -a "$LOG_FILE"
+        log "INFO: Attempting to shutdown VM/CT $vm_id..."
+
+        # Try QEMU first
+        if pvesh create "/nodes/$PROXMOX_NODE/qemu/$vm_id/status/shutdown" 2>&1 | tee -a "$LOG_FILE"; then
+          log "SUCCESS: Shutdown command sent to QEMU VM $vm_id"
+          ((success_count++))
+        elif pvesh create "/nodes/$PROXMOX_NODE/lxc/$vm_id/status/shutdown" 2>&1 | tee -a "$LOG_FILE"; then
+          log "SUCCESS: Shutdown command sent to LXC CT $vm_id"
+          ((success_count++))
+        else
+          log "WARNING: Failed to shutdown VM/CT $vm_id (may not exist or already stopped)"
+          ((failure_count++))
+        fi
       done
 
-      log "All enclave VMs scheduled for shutdown."
+      log "INFO: Shutdown complete. Success: $success_count, Failures: $failure_count"
+      exit 0
     mode: '0755'
   delegate_to: "{{ enclave_bastion.hostname }}"
   tags:
     - safety
     - auto-shutdown
+
+- name: Create log rotation configuration for auto-shutdown logs
+  ansible.builtin.copy:
+    dest: /etc/logrotate.d/enclave-auto-shutdown
+    content: |
+      {{ enclave_paths.auto_shutdown_log }} {
+        daily
+        rotate 7
+        compress
+        delaycompress
+        missingok
+        notifempty
+        create 0640 root root
+      }
+    mode: '0644'
+  delegate_to: "{{ enclave_bastion.hostname }}"
+  tags:
+    - safety
+    - auto-shutdown
+    - logging
 
 - name: Create cron job for idle checking
   ansible.builtin.cron:
     name: "Enclave idle check"
     minute: "*/30"  # Check every 30 minutes
     hour: "*"
-    job: "/usr/local/bin/enclave-idle-check >> /var/log/enclave-auto-shutdown.log 2>&1"
+    job: "{{ enclave_paths.bin }}/enclave-idle-check >> {{ enclave_paths.auto_shutdown_log }} 2>&1"
     user: root
   delegate_to: "{{ enclave_bastion.hostname }}"
   tags:
@@ -128,7 +235,7 @@
     day: "{{ enclave_auto_shutdown.shutdown_schedule.split()[2] }}"
     month: "{{ enclave_auto_shutdown.shutdown_schedule.split()[3] }}"
     weekday: "{{ enclave_auto_shutdown.shutdown_schedule.split()[4] }}"
-    job: "/usr/local/bin/enclave-scheduled-shutdown >> /var/log/enclave-auto-shutdown.log 2>&1"
+    job: "{{ enclave_paths.bin }}/enclave-scheduled-shutdown >> {{ enclave_paths.auto_shutdown_log }} 2>&1"
     user: root
   delegate_to: "{{ enclave_bastion.hostname }}"
   tags:
@@ -138,13 +245,14 @@
 
 - name: Create manual shutdown wrapper
   ansible.builtin.copy:
-    dest: /usr/local/bin/enclave-shutdown-now
+    dest: "{{ enclave_paths.bin }}/enclave-shutdown-now"
     content: |
       #!/bin/bash
       # Manual emergency shutdown of all enclave VMs
 
       echo "Emergency shutdown of all enclave VMs..."
-      /usr/local/bin/enclave-scheduled-shutdown
+      {{ enclave_paths.bin }}/enclave-scheduled-shutdown
+      echo ""
       echo "Shutdown commands sent to all VMs."
       echo "Check status with: enclave-status"
     mode: '0755'

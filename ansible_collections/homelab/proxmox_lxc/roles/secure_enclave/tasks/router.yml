@@ -29,7 +29,7 @@
     nameserver: "{{ homelab_network.dns_servers | join(' ') }}"
     searchdomain: "{{ homelab_domain }}"
     onboot: true
-    unprivileged: false  # Need privileged for routing/iptables
+    unprivileged: true  # Run as unprivileged with capabilities
 
     features:
       - nesting=1
@@ -40,6 +40,24 @@
   tags:
     - router
     - lxc
+
+- name: Configure container capabilities for unprivileged router
+  ansible.builtin.shell: |
+    # Add capabilities to container config for networking
+    if ! grep -q "lxc.cap.keep" {{ enclave_paths.proxmox_pve }}/lxc/{{ enclave_router.container_id }}.conf; then
+      cat >> {{ enclave_paths.proxmox_pve }}/lxc/{{ enclave_router.container_id }}.conf <<EOF
+    # Network capabilities for unprivileged router
+    lxc.cap.keep: NET_ADMIN NET_RAW NET_BIND_SERVICE
+    EOF
+    fi
+  args:
+    executable: /bin/bash
+  delegate_to: "{{ proxmox_config[enclave_proxmox_node].host }}"
+  when: router_result is changed
+  changed_when: true
+  tags:
+    - router
+    - capabilities
 
 - name: Start enclave router container
   community.general.proxmox:
@@ -53,6 +71,10 @@
     state: started
   delegate_to: localhost
   when: router_result is changed
+  register: router_start_result
+  retries: 3
+  delay: 5
+  until: router_start_result is succeeded
   tags:
     - router
 
@@ -133,7 +155,10 @@
 
 - name: Save iptables rules on router
   ansible.builtin.shell: |
-    iptables-save > /etc/iptables/rules.v4
+    set -e
+    iptables-save > {{ enclave_paths.iptables_rules }}
+  args:
+    executable: /bin/bash
   delegate_to: "{{ enclave_router.hostname }}"
   changed_when: true
   tags:
@@ -142,7 +167,7 @@
 
 - name: Create router status script
   ansible.builtin.copy:
-    dest: /usr/local/bin/router-status
+    dest: "{{ enclave_paths.bin }}/router-status"
     content: |
       #!/bin/bash
       # Display router status and firewall rules
