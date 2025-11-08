@@ -84,25 +84,57 @@
           return 0
         fi
 
-        # Check for active network connections
-        local connections
-        connections=$(netstat -an 2>/dev/null | grep -c "{{ enclave_network.isolated_subnet.split('/')[0] }}" || echo "0")
+        # Check actual VM activity via Proxmox API stats
+        # Get CPU usage (as percentage)
+        local cpu_usage
+        cpu_usage=$(pvesh get "/nodes/$PROXMOX_NODE/$vm_type/$vm_id/status/current" 2>/dev/null | jq -r '.cpu // 0') || {
+          log "WARNING: Could not get CPU stats for VM/CT $vm_id"
+          cpu_usage="0"
+        }
 
-        # Check SSH sessions to enclave
-        local ssh_sessions
-        ssh_sessions=$(who 2>/dev/null | grep -c "{{ enclave_bastion.ip_address }}" || echo "0")
+        # Get network stats (bytes in/out per second)
+        local net_in net_out
+        if [ "$vm_type" = "qemu" ]; then
+          # For VMs, check netout from current stats
+          net_out=$(pvesh get "/nodes/$PROXMOX_NODE/$vm_type/$vm_id/status/current" 2>/dev/null | jq -r '.netout // 0') || echo "0"
+          net_in=$(pvesh get "/nodes/$PROXMOX_NODE/$vm_type/$vm_id/status/current" 2>/dev/null | jq -r '.netin // 0') || echo "0"
+        else
+          # For LXC, use different stat path
+          net_out=$(pvesh get "/nodes/$PROXMOX_NODE/$vm_type/$vm_id/status/current" 2>/dev/null | jq -r '.netout // 0') || echo "0"
+          net_in=$(pvesh get "/nodes/$PROXMOX_NODE/$vm_type/$vm_id/status/current" 2>/dev/null | jq -r '.netin // 0') || echo "0"
+        fi
 
-        log "DEBUG: VM/CT $vm_id - uptime: ${uptime}s, connections: $connections, ssh: $ssh_sessions"
+        # Calculate total network activity (in + out, in bytes)
+        local net_total=$((net_in + net_out))
 
-        # Shutdown if idle
-        if [ "$connections" -eq 0 ] && [ "$ssh_sessions" -eq 0 ] && [ "$uptime" -gt "$IDLE_SECONDS" ]; then
-          log "INFO: VM/CT $vm_id has been idle for ${IDLE_HOURS}h. Initiating shutdown..."
+        # CPU usage threshold (consider idle if < 5%)
+        local cpu_threshold="0.05"
+        # Network threshold (consider idle if < 1KB/s total)
+        local net_threshold=1024
+
+        log "DEBUG: VM/CT $vm_id - uptime: ${uptime}s, CPU: ${cpu_usage}, net_in: ${net_in}B, net_out: ${net_out}B"
+
+        # Convert CPU to comparable format (bc handles floating point)
+        local is_cpu_idle
+        is_cpu_idle=$(echo "$cpu_usage < $cpu_threshold" | bc -l)
+
+        # Check if VM is truly idle (low CPU AND low network AND uptime exceeded)
+        if [ "$is_cpu_idle" -eq 1 ] && [ "$net_total" -lt "$net_threshold" ] && [ "$uptime" -gt "$IDLE_SECONDS" ]; then
+          log "INFO: VM/CT $vm_id has been idle for ${IDLE_HOURS}h (CPU: ${cpu_usage}, Network: ${net_total}B/s). Initiating shutdown..."
           if pvesh create "/nodes/$PROXMOX_NODE/$vm_type/$vm_id/status/shutdown" 2>&1 | tee -a "$LOG_FILE"; then
             log "SUCCESS: Shutdown command sent to VM/CT $vm_id"
             return 1
           else
             log "ERROR: Failed to shutdown VM/CT $vm_id"
             return 0
+          fi
+        else
+          if [ "$is_cpu_idle" -eq 0 ]; then
+            log "DEBUG: VM/CT $vm_id is active (CPU: ${cpu_usage} >= ${cpu_threshold})"
+          elif [ "$net_total" -ge "$net_threshold" ]; then
+            log "DEBUG: VM/CT $vm_id has network activity (${net_total}B/s >= ${net_threshold}B/s)"
+          else
+            log "DEBUG: VM/CT $vm_id uptime ${uptime}s < threshold ${IDLE_SECONDS}s"
           fi
         fi
 

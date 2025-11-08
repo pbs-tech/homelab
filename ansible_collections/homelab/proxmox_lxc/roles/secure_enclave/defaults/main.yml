@@ -39,6 +39,14 @@ enclave_router:
     - NET_RAW
     - NET_BIND_SERVICE
 
+# Kali Linux version configuration
+# Update quarterly when new Kali releases are available (Jan, Apr, Jul, Oct)
+# See README.md Maintenance section for update procedures
+enclave_kali_version: "2024.3"
+enclave_kali_iso_checksums:
+  "2024.3": "sha256:c5cf31f246fb34a5080e2be5827e8c6eb1f86c7c63ffea67fbcd9cad4b1a8fb0"
+  "2024.4": "sha256:UPDATE_WHEN_AVAILABLE"  # Placeholder for next release
+
 # Attacker VM configuration (Kali Linux)
 enclave_attacker:
   vm_id: 252
@@ -49,8 +57,10 @@ enclave_attacker:
   cores: 4
   memory: 4096
   disk_size: 50
-  iso_url: "https://cdimage.kali.org/kali-2024.3/kali-linux-2024.3-installer-amd64.iso"
-  iso_checksum: "sha256:c5cf31f246fb34a5080e2be5827e8c6eb1f86c7c63ffea67fbcd9cad4b1a8fb0"
+  # Dynamic ISO URL based on configured version
+  iso_url: "https://cdimage.kali.org/kali-{{ enclave_kali_version }}/kali-linux-{{ enclave_kali_version }}-installer-amd64.iso"
+  # Dynamic checksum lookup based on version
+  iso_checksum: "{{ enclave_kali_iso_checksums[enclave_kali_version] }}"
 
 # Vulnerable VM templates
 enclave_vulnerable_vms:

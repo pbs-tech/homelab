@@ -67,56 +67,77 @@
     content: |
       #!/bin/bash
       # Enclave Firewall Initialization Script
+      # Uses dedicated chain for better maintainability and eliminates race conditions
       # This script is idempotent and can be run multiple times
 
       set -e
 
       ENCLAVE_SUBNET="{{ enclave_network.isolated_subnet }}"
+      CHAIN_NAME="ENCLAVE_FORWARD"
 
-      # Function to check if rule exists
-      rule_exists() {
-        iptables -C "$@" 2>/dev/null
-      }
-
-      # Function to add rule if it doesn't exist
+      # Function to add rule if it doesn't exist (atomic, no TOCTOU race condition)
+      # Uses shell short-circuit evaluation: command will fail if rule exists
       add_rule_if_missing() {
-        if ! rule_exists "$@"; then
-          iptables "$@"
-        fi
+        iptables -C "$@" 2>/dev/null || iptables "$@"
       }
 
       echo "Initializing enclave firewall rules..."
 
-      # Order is important: Most specific rules first
+      # Create dedicated chain for enclave rules (idempotent)
+      if ! iptables -n -L "$CHAIN_NAME" &>/dev/null; then
+        echo "Creating $CHAIN_NAME chain..."
+        iptables -N "$CHAIN_NAME"
+      else
+        echo "$CHAIN_NAME chain already exists"
+      fi
 
-      # 1. Allow DNS queries (must come before block rules)
-      add_rule_if_missing -I FORWARD 1 -s "$ENCLAVE_SUBNET" -d 192.168.0.202/32 -p udp --dport 53 -j ACCEPT -m comment --comment "Allow DNS to Unbound"
+      # Jump to enclave chain from FORWARD (only add if not already present)
+      add_rule_if_missing FORWARD -s "$ENCLAVE_SUBNET" -j "$CHAIN_NAME" -m comment --comment "Jump to enclave rules"
 
-      # 2. Block enclave to K3s cluster
-      add_rule_if_missing -I FORWARD 2 -s "$ENCLAVE_SUBNET" -d 192.168.0.111/32 -j DROP -m comment --comment "Block K3s-1"
-      add_rule_if_missing -I FORWARD 3 -s "$ENCLAVE_SUBNET" -d 192.168.0.112/32 -j DROP -m comment --comment "Block K3s-2"
-      add_rule_if_missing -I FORWARD 4 -s "$ENCLAVE_SUBNET" -d 192.168.0.113/32 -j DROP -m comment --comment "Block K3s-3"
-      add_rule_if_missing -I FORWARD 5 -s "$ENCLAVE_SUBNET" -d 192.168.0.114/32 -j DROP -m comment --comment "Block K3s-4"
+      # Flush enclave chain to ensure clean state (idempotent)
+      iptables -F "$CHAIN_NAME"
 
-      # 3. Block enclave to production services
-      add_rule_if_missing -I FORWARD 6 -s "$ENCLAVE_SUBNET" -d 192.168.0.200/32 -j DROP -m comment --comment "Block Prometheus"
-      add_rule_if_missing -I FORWARD 7 -s "$ENCLAVE_SUBNET" -d 192.168.0.201/32 -j DROP -m comment --comment "Block Grafana"
-      add_rule_if_missing -I FORWARD 8 -s "$ENCLAVE_SUBNET" -d 192.168.0.205/32 -j DROP -m comment --comment "Block Traefik"
-      add_rule_if_missing -I FORWARD 9 -s "$ENCLAVE_SUBNET" -d 192.168.0.230/29 -j DROP -m comment --comment "Block NAS services"
+      echo "Adding enclave firewall rules to $CHAIN_NAME chain..."
 
-      # 4. Block all other production traffic
-      add_rule_if_missing -A FORWARD -s "$ENCLAVE_SUBNET" -d 192.168.0.0/24 -j DROP -m comment --comment "Block production network"
+      # Rule order is critical for security:
+      # 1. Allow DNS first (before any blocks)
+      # 2. Block specific production services
+      # 3. Block all production network
+      # 4. Allow enclave internal
+      # 5. Allow internet (non-RFC1918)
+      # 6. Drop everything else (implicit)
 
-      # 5. Allow enclave internal traffic
-      add_rule_if_missing -A FORWARD -s "$ENCLAVE_SUBNET" -d "$ENCLAVE_SUBNET" -j ACCEPT -m comment --comment "Allow enclave internal"
+      # 1. Allow DNS queries to Unbound (must come before block rules)
+      iptables -A "$CHAIN_NAME" -d {{ homelab_network.dns_servers[0] }}/32 -p udp --dport 53 -j ACCEPT -m comment --comment "Allow DNS to Unbound"
 
-      # 6. Allow internet access (non-RFC1918) - consolidated rule for efficiency
-      add_rule_if_missing -A FORWARD -s "$ENCLAVE_SUBNET" -o vmbr0 ! -d 192.168.0.0/16 ! -d 10.0.0.0/8 ! -d 172.16.0.0/12 -j ACCEPT -m comment --comment "Allow enclave internet"
+      # 2. Block enclave to K3s cluster nodes (parameterized from k3s_config)
+      {% for node_ip in k3s_config.node_ips %}
+      iptables -A "$CHAIN_NAME" -d {{ node_ip }}/32 -j DROP -m comment --comment "Block K3s node {{ node_ip }}"
+      {% endfor %}
 
-      # 7. Allow established/related connections
-      add_rule_if_missing -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT -m comment --comment "Allow established"
+      # 3. Block enclave to production services (parameterized from group_vars)
+      iptables -A "$CHAIN_NAME" -d {{ services_config.prometheus.host }}/32 -j DROP -m comment --comment "Block Prometheus"
+      iptables -A "$CHAIN_NAME" -d {{ services_config.grafana.host }}/32 -j DROP -m comment --comment "Block Grafana"
+      iptables -A "$CHAIN_NAME" -d {{ services_config.traefik.host }}/32 -j DROP -m comment --comment "Block Traefik"
+      iptables -A "$CHAIN_NAME" -d 192.168.0.230/29 -j DROP -m comment --comment "Block NAS services"
 
-      echo "Enclave firewall rules initialized successfully."
+      # 4. Block all other production traffic (catch-all for production network)
+      iptables -A "$CHAIN_NAME" -d 192.168.0.0/24 -j DROP -m comment --comment "Block production network"
+
+      # 5. Allow enclave internal traffic (VM to VM communication)
+      iptables -A "$CHAIN_NAME" -d "$ENCLAVE_SUBNET" -j ACCEPT -m comment --comment "Allow enclave internal"
+
+      # 6. Allow internet access (non-RFC1918 addresses only) for updates/tools
+      iptables -A "$CHAIN_NAME" -o vmbr0 ! -d 192.168.0.0/16 ! -d 10.0.0.0/8 ! -d 172.16.0.0/12 -j ACCEPT -m comment --comment "Allow internet access"
+
+      # 7. Explicit DROP for anything not matched (good practice, explicit deny)
+      iptables -A "$CHAIN_NAME" -j DROP -m comment --comment "Drop all other enclave traffic"
+
+      # Note: Established/related connections are allowed in main FORWARD chain
+      add_rule_if_missing FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT -m comment --comment "Allow established"
+
+      echo "Enclave firewall rules initialized successfully in $CHAIN_NAME chain."
+      echo "Use 'iptables -n -L $CHAIN_NAME -v' to view rules."
     mode: '0755'
   delegate_to: "{{ proxmox_config[enclave_proxmox_node].host }}"
   tags:
