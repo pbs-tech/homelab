@@ -110,10 +110,8 @@
       # 5. Allow enclave internal traffic
       add_rule_if_missing -A FORWARD -s "$ENCLAVE_SUBNET" -d "$ENCLAVE_SUBNET" -j ACCEPT -m comment --comment "Allow enclave internal"
 
-      # 6. Allow internet access (non-RFC1918)
-      add_rule_if_missing -A FORWARD -s "$ENCLAVE_SUBNET" -o vmbr0 ! -d 192.168.0.0/16 -j ACCEPT -m comment --comment "Allow enclave internet"
-      add_rule_if_missing -A FORWARD -s "$ENCLAVE_SUBNET" -o vmbr0 ! -d 10.0.0.0/8 -j ACCEPT -m comment --comment "Allow enclave internet"
-      add_rule_if_missing -A FORWARD -s "$ENCLAVE_SUBNET" -o vmbr0 ! -d 172.16.0.0/12 -j ACCEPT -m comment --comment "Allow enclave internet"
+      # 6. Allow internet access (non-RFC1918) - consolidated rule for efficiency
+      add_rule_if_missing -A FORWARD -s "$ENCLAVE_SUBNET" -o vmbr0 ! -d 192.168.0.0/16 ! -d 10.0.0.0/8 ! -d 172.16.0.0/12 -j ACCEPT -m comment --comment "Allow enclave internet"
 
       # 7. Allow established/related connections
       add_rule_if_missing -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT -m comment --comment "Allow established"

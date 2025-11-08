@@ -17,7 +17,7 @@
           - "═══════════════════════════════════════════════════"
           - "Secure Enclave Network Isolation Tests"
           - "═══════════════════════════════════════════════════"
-          - "Testing network isolation from attacker VM (10.10.0.10)"
+          - "Testing network isolation from attacker VM ({{ enclave_attacker.isolated_ip }})"
           - "Expected Results:"
           - "  ✓ DNS to 192.168.0.202: PASS (allowed)"
           - "  ✗ Prometheus (192.168.0.200): FAIL (blocked)"
@@ -28,7 +28,7 @@
 
     - name: Test 1 - Verify attacker VM is accessible
       ansible.builtin.wait_for:
-        host: 10.10.0.10
+        host: "{{ enclave_attacker.isolated_ip }}"
         port: 22
         timeout: 10
       register: attacker_reachable
@@ -39,7 +39,7 @@
 
     - name: Display attacker VM status
       ansible.builtin.debug:
-        msg: "Test 1: Attacker VM (10.10.0.10) - {{ 'ONLINE ✓' if attacker_reachable is succeeded else 'OFFLINE ✗ (Start VM first)' }}"
+        msg: "Test 1: Attacker VM ({{ enclave_attacker.isolated_ip }}) - {{ 'ONLINE ✓' if attacker_reachable is succeeded else 'OFFLINE ✗ (Start VM first)' }}"
       tags:
         - test
 
@@ -47,7 +47,7 @@
       ansible.builtin.command:
         cmd: >
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5
-          root@10.10.0.10
+          root@{{ enclave_attacker.isolated_ip }}
           'timeout 5 nc -zv 192.168.0.202 53 2>&1'
       register: dns_test
       failed_when: false
@@ -68,7 +68,7 @@
       ansible.builtin.command:
         cmd: >
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5
-          root@10.10.0.10
+          root@{{ enclave_attacker.isolated_ip }}
           'timeout 5 nc -zv 192.168.0.200 9090 2>&1'
       register: prometheus_test
       failed_when: false
@@ -89,7 +89,7 @@
       ansible.builtin.command:
         cmd: >
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5
-          root@10.10.0.10
+          root@{{ enclave_attacker.isolated_ip }}
           'timeout 5 nc -zv 192.168.0.201 3000 2>&1'
       register: grafana_test
       failed_when: false
@@ -110,7 +110,7 @@
       ansible.builtin.command:
         cmd: >
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5
-          root@10.10.0.10
+          root@{{ enclave_attacker.isolated_ip }}
           'timeout 5 nc -zv 192.168.0.111 22 2>&1'
       register: k3s_test
       failed_when: false
@@ -131,7 +131,7 @@
       ansible.builtin.command:
         cmd: >
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5
-          root@10.10.0.10
+          root@{{ enclave_attacker.isolated_ip }}
           'timeout 5 ping -c 1 8.8.8.8'
       register: internet_test
       failed_when: false
@@ -152,7 +152,7 @@
       ansible.builtin.command:
         cmd: >
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5
-          root@10.10.0.10
+          root@{{ enclave_attacker.isolated_ip }}
           'timeout 5 ping -c 1 10.10.0.100'
       register: internal_test
       failed_when: false
@@ -209,7 +209,7 @@
       ansible.builtin.debug:
         msg:
           - "═══════════════════════════════════════════════════"
-          - "WARNING: Attacker VM (10.10.0.10) not reachable"
+          - "WARNING: Attacker VM ({{ enclave_attacker.isolated_ip }}) not reachable"
           - "═══════════════════════════════════════════════════"
           - "Please ensure the attacker VM is running:"
           - "  1. Deploy enclave: ansible-playbook playbooks/secure-enclave.yml"

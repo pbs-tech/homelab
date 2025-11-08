@@ -42,6 +42,117 @@ vault_proxmox_api_tokens:
 - Use SSH agent forwarding carefully
 - Rotate keys annually
 
+#### SSH Key Setup and Configuration
+
+**1. Generate SSH Key Pair**:
+```bash
+# Generate ED25519 key for enclave access
+ssh-keygen -t ed25519 -f ~/.ssh/enclave_id_ed25519 -C "enclave-access"
+
+# Set proper permissions
+chmod 600 ~/.ssh/enclave_id_ed25519
+chmod 644 ~/.ssh/enclave_id_ed25519.pub
+```
+
+**2. Configure Ansible to Use SSH Key**:
+
+Add to `inventory/group_vars/all.yml` or specific host group:
+```yaml
+# SSH configuration for enclave access
+ansible_ssh_private_key_file: ~/.ssh/enclave_id_ed25519
+ansible_user: root  # or pbs for bastion
+ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+```
+
+Or specify per-host in inventory:
+```yaml
+# In inventory/hosts.yml
+enclave_bastion:
+  ansible_host: 192.168.0.250
+  ansible_user: pbs
+  ansible_ssh_private_key_file: ~/.ssh/enclave_id_ed25519
+```
+
+**3. Deploy Public Key to Enclave Components**:
+
+The role automatically deploys your public key during container/VM creation. To manually add keys:
+
+```bash
+# Copy public key to bastion
+ssh-copy-id -i ~/.ssh/enclave_id_ed25519.pub pbs@192.168.0.250
+
+# Or manually add to authorized_keys
+cat ~/.ssh/enclave_id_ed25519.pub | ssh root@192.168.0.250 \
+  'mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys'
+```
+
+**4. Verify SSH Access**:
+```bash
+# Test connection without password prompt
+ssh -i ~/.ssh/enclave_id_ed25519 pbs@192.168.0.250
+
+# Should connect without password if configured correctly
+```
+
+**5. Key Storage Locations**:
+
+Recommended directory structure:
+```
+~/.ssh/
+├── enclave_id_ed25519         # Private key (600 permissions)
+├── enclave_id_ed25519.pub     # Public key (644 permissions)
+├── config                      # SSH client config
+└── known_hosts                # Host fingerprints
+```
+
+**6. SSH Config File (Optional but Recommended)**:
+
+Add to `~/.ssh/config`:
+```
+# Enclave Bastion Host
+Host enclave-bastion
+    HostName 192.168.0.250
+    User pbs
+    IdentityFile ~/.ssh/enclave_id_ed25519
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+
+# Enclave Attacker VM (via bastion)
+Host enclave-attacker
+    HostName 10.10.0.10
+    User root
+    IdentityFile ~/.ssh/enclave_id_ed25519
+    ProxyJump enclave-bastion
+```
+
+Usage:
+```bash
+ssh enclave-bastion    # Direct access to bastion
+ssh enclave-attacker   # Jump through bastion to attacker VM
+```
+
+**7. Integration with Ansible Playbooks**:
+
+The secure enclave role uses the configured SSH key automatically during deployment:
+
+```yaml
+# In roles/secure_enclave/tasks/bastion.yml
+- name: Deploy SSH public key to bastion
+  ansible.posix.authorized_key:
+    user: pbs
+    key: "{{ lookup('file', '~/.ssh/enclave_id_ed25519.pub') }}"
+    state: present
+```
+
+**Common Issues and Solutions**:
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| Permission denied (publickey) | Key not in authorized_keys | Run ssh-copy-id or manually add key |
+| Key not found | Wrong path in ansible config | Verify ansible_ssh_private_key_file path |
+| Connection timeout | Network isolation blocking | Access via bastion host |
+| Password prompt despite key | Wrong permissions on key file | chmod 600 on private key |
+
 ### 3. SSL/TLS Certificates (Optional)
 
 **Location**: Managed by Traefik (if integrated)
