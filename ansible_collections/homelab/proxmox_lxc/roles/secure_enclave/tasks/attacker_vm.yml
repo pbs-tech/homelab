@@ -4,7 +4,7 @@
 
 - name: Create directory for Kali ISO
   ansible.builtin.file:
-    path: "/var/lib/vz/template/iso"
+    path: "{{ enclave_paths.iso_storage }}"
     state: directory
     mode: '0755'
   delegate_to: "{{ proxmox_config[enclave_proxmox_node].host }}"
@@ -14,23 +14,67 @@
 
 - name: Check if Kali ISO already exists
   ansible.builtin.stat:
-    path: "/var/lib/vz/template/iso/kali-linux-2024.3-installer-amd64.iso"
+    path: "{{ enclave_paths.iso_storage }}/kali-linux-2024.3-installer-amd64.iso"
   register: kali_iso_stat
   delegate_to: "{{ proxmox_config[enclave_proxmox_node].host }}"
   tags:
     - attacker
     - iso
 
-- name: Display Kali ISO download message
+- name: Download Kali ISO if requested and not exists
+  ansible.builtin.get_url:
+    url: "{{ enclave_attacker.iso_url }}"
+    dest: "{{ enclave_paths.iso_storage }}/kali-linux-2024.3-installer-amd64.iso"
+    checksum: "{{ enclave_attacker.iso_checksum }}"
+    mode: '0644'
+    timeout: 600
+  delegate_to: "{{ proxmox_config[enclave_proxmox_node].host }}"
+  when:
+    - not kali_iso_stat.stat.exists
+    - enclave_attacker_download_iso | default(false)
+  register: iso_download
+  async: 1800  # 30 minute timeout
+  poll: 30     # Check every 30 seconds
+  tags:
+    - attacker
+    - iso
+    - download
+
+- name: Fail-fast if ISO not available and download not enabled
+  ansible.builtin.fail:
+    msg: |
+      ═══════════════════════════════════════════════════════════
+      KALI ISO NOT FOUND - Action Required
+      ═══════════════════════════════════════════════════════════
+
+      The Kali Linux ISO is not available and automatic download
+      is disabled. Please choose one of the following options:
+
+      Option 1: Enable automatic download (RECOMMENDED)
+        ansible-playbook playbooks/secure-enclave.yml \
+          -e enclave_attacker_download_iso=true
+
+      Option 2: Manual download
+        1. Download: {{ enclave_attacker.iso_url }}
+        2. Upload to: {{ proxmox_config[enclave_proxmox_node].host }}:{{ enclave_paths.iso_storage }}/
+        3. Re-run playbook
+
+      Option 3: Deploy LXC-based attacker (FASTER)
+        ansible-playbook playbooks/secure-enclave.yml \
+          -e enclave_attacker_use_lxc=true
+
+      ═══════════════════════════════════════════════════════════
+  when:
+    - not kali_iso_stat.stat.exists
+    - not (enclave_attacker_download_iso | default(false))
+    - not (enclave_attacker_use_lxc | default(true))
+  tags:
+    - attacker
+    - iso
+
+- name: Display ISO status
   ansible.builtin.debug:
-    msg:
-      - "Kali ISO not found. You can:"
-      - "  1. Download manually: {{ enclave_attacker.iso_url }}"
-      - "  2. Upload to Proxmox: /var/lib/vz/template/iso/"
-      - "  3. Use alternative: Deploy Kali in LXC with Docker"
-      - ""
-      - "For automated deployment, we'll create a Kali LXC container instead."
-  when: not kali_iso_stat.stat.exists
+    msg: "Kali ISO: {{ 'FOUND ✓' if (kali_iso_stat.stat.exists or iso_download is succeeded) else 'Using LXC alternative' }}"
   tags:
     - attacker
     - iso

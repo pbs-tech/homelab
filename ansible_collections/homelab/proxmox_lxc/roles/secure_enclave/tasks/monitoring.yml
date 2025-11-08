@@ -16,14 +16,14 @@
 
 - name: Configure audit rules for enclave access
   ansible.builtin.copy:
-    dest: /etc/audit/rules.d/enclave-audit.rules
+    dest: "{{ enclave_paths.etc }}/audit/rules.d/enclave-audit.rules"
     content: |
       # Enclave Audit Rules
       # Monitor all access and activity in the enclave
 
       # Monitor SSH access
-      -w /var/log/auth.log -p wa -k enclave_ssh_access
-      -w /etc/ssh/sshd_config -p wa -k enclave_ssh_config
+      -w {{ enclave_paths.log }}/auth.log -p wa -k enclave_ssh_access
+      -w {{ enclave_paths.etc }}/ssh/sshd_config -p wa -k enclave_ssh_config
 
       # Monitor network connections
       -a always,exit -F arch=b64 -S connect -k enclave_network_connect
@@ -34,8 +34,8 @@
       -a always,exit -F arch=b32 -S execve -F euid=0 -k enclave_root_commands
 
       # Monitor file access in sensitive directories
-      -w /etc/ -p wa -k enclave_etc_changes
-      -w /usr/local/bin/ -p wa -k enclave_bin_changes
+      -w {{ enclave_paths.etc }}/ -p wa -k enclave_etc_changes
+      -w {{ enclave_paths.bin }}/ -p wa -k enclave_bin_changes
 
       # Make configuration immutable
       -e 2
@@ -58,27 +58,51 @@
 
 - name: Configure rsyslog for enclave logging
   ansible.builtin.copy:
-    dest: /etc/rsyslog.d/50-enclave.conf
+    dest: "{{ enclave_paths.etc }}/rsyslog.d/50-enclave.conf"
     content: |
       # Enclave logging configuration
 
       # Log all enclave activity to dedicated file
-      :programname, contains, "enclave" {{ enclave_monitoring.audit_log_path }}
+      :programname, contains, "enclave" {{ enclave_paths.audit_log }}
 
       # Log SSH activity
-      :programname, isequal, "sshd" {{ enclave_monitoring.audit_log_path }}
+      :programname, isequal, "sshd" {{ enclave_paths.audit_log }}
 
       # Log sudo activity
-      :programname, isequal, "sudo" {{ enclave_monitoring.audit_log_path }}
+      :programname, isequal, "sudo" {{ enclave_paths.audit_log }}
 
       # Rotate logs
-      $outchannel log_rotation,{{ enclave_monitoring.audit_log_path }},52428800,/usr/sbin/logrotate /etc/logrotate.conf
+      $outchannel log_rotation,{{ enclave_paths.audit_log }},52428800,/usr/sbin/logrotate {{ enclave_paths.etc }}/logrotate.conf
     mode: '0644'
   delegate_to: "{{ enclave_bastion.hostname }}"
   notify: restart rsyslog
   tags:
     - monitoring
     - logging
+
+- name: Configure audit log rotation
+  ansible.builtin.copy:
+    dest: "{{ enclave_paths.etc }}/logrotate.d/enclave-audit"
+    content: |
+      {{ enclave_paths.audit_log }} {
+        daily
+        rotate 30
+        compress
+        delaycompress
+        missingok
+        notifempty
+        create 0640 root adm
+        sharedscripts
+        postrotate
+          /usr/bin/systemctl kill -s HUP rsyslog.service >/dev/null 2>&1 || true
+        endscript
+      }
+    mode: '0644'
+  delegate_to: "{{ enclave_bastion.hostname }}"
+  tags:
+    - monitoring
+    - logging
+    - rotation
 
 - name: Install node_exporter for metrics
   when: enclave_monitoring.metrics_enabled | default(true)
@@ -100,14 +124,14 @@
     - name: Install node_exporter binary
       ansible.builtin.copy:
         src: /tmp/node_exporter-1.7.0.linux-amd64/node_exporter
-        dest: /usr/local/bin/node_exporter
+        dest: "{{ enclave_paths.bin }}/node_exporter"
         mode: '0755'
         remote_src: true
       delegate_to: "{{ enclave_bastion.hostname }}"
 
     - name: Create node_exporter systemd service
       ansible.builtin.copy:
-        dest: /etc/systemd/system/node_exporter.service
+        dest: "{{ enclave_paths.etc }}/systemd/system/node_exporter.service"
         content: |
           [Unit]
           Description=Node Exporter
@@ -116,7 +140,7 @@
           [Service]
           Type=simple
           User=nobody
-          ExecStart=/usr/local/bin/node_exporter --web.listen-address=:{{ enclave_monitoring.metrics_port }}
+          ExecStart={{ enclave_paths.bin }}/node_exporter --web.listen-address=:{{ enclave_monitoring.metrics_port }}
           Restart=always
 
           [Install]
@@ -138,7 +162,7 @@
 
 - name: Create monitoring dashboard script
   ansible.builtin.copy:
-    dest: /usr/local/bin/enclave-monitor
+    dest: "{{ enclave_paths.bin }}/enclave-monitor"
     content: |
       #!/bin/bash
       # Real-time enclave monitoring dashboard
@@ -149,7 +173,7 @@
       who
       echo ""
       echo "Recent Authentication Attempts:"
-      tail -20 /var/log/auth.log | grep -E "sshd|sudo" | tail -10
+      tail -20 {{ enclave_paths.log }}/auth.log | grep -E "sshd|sudo" | tail -10
       echo ""
       echo "Network Connections to Isolated Network:"
       netstat -an | grep "{{ enclave_network.isolated_subnet.split('/')[0] }}" || echo "  None"

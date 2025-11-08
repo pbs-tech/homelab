@@ -11,37 +11,73 @@
     - ../ansible_collections/homelab/common/inventory/group_vars/all.yml
 
   pre_tasks:
-    - name: Display deployment warning
+    - name: Display legal and compliance warning
+      ansible.builtin.debug:
+        msg:
+          - "╔══════════════════════════════════════════════════════════════╗"
+          - "║              ⚠️  LEGAL & COMPLIANCE WARNING ⚠️                ║"
+          - "╚══════════════════════════════════════════════════════════════╝"
+          - ""
+          - "This environment contains INTENTIONALLY VULNERABLE systems."
+          - ""
+          - "LEGAL REQUIREMENTS:"
+          - "  • Authorized use ONLY - Obtain written authorization"
+          - "  • Comply with organizational security policies"
+          - "  • Follow applicable laws (CFAA, GDPR, etc.)"
+          - "  • Never attack systems without explicit permission"
+          - "  • Do not use for malicious purposes"
+          - ""
+          - "COMPLIANCE:"
+          - "  • All activity is logged and monitored"
+          - "  • Logs retained for 90 days minimum"
+          - "  • Subject to audit and review"
+          - "  • Violators subject to disciplinary/legal action"
+          - ""
+          - "DISCLAIMER:"
+          - "  • For educational and testing purposes only"
+          - "  • Use at your own risk"
+          - "  • No warranty or guarantee provided"
+          - "  • Not for production use"
+          - ""
+          - "═══════════════════════════════════════════════════════════════"
+
+    - name: Display deployment information
       ansible.builtin.debug:
         msg:
           - "╔══════════════════════════════════════════════════════════════╗"
           - "║          SECURE ENCLAVE DEPLOYMENT                           ║"
-          - "║                                                              ║"
-          - "║  This playbook will deploy an isolated pentesting           ║"
-          - "║  environment with intentionally vulnerable systems.          ║"
-          - "║                                                              ║"
-          - "║  Network Isolation:                                          ║"
-          - "║    - Isolated subnet: 10.10.0.0/24                          ║"
-          - "║    - Firewall blocks all traffic to production              ║"
-          - "║    - Internet access allowed for updates                    ║"
-          - "║                                                              ║"
-          - "║  Components:                                                 ║"
-          - "║    - Enclave Bastion (192.168.0.250)                        ║"
-          - "║    - Enclave Router (192.168.0.251)                         ║"
-          - "║    - Kali Attacker VM (10.10.0.10)                          ║"
-          - "║    - Vulnerable Targets (10.10.0.100+)                      ║"
-          - "║                                                              ║"
-          - "║  Safety Features:                                            ║"
-          - "║    - Auto-shutdown after 4h idle                            ║"
-          - "║    - Daily shutdown at 2 AM                                 ║"
-          - "║    - Comprehensive audit logging                            ║"
-          - "║                                                              ║"
-          - "║  For authorized security testing and training only!          ║"
           - "╚══════════════════════════════════════════════════════════════╝"
+          - ""
+          - "Network Isolation:"
+          - "  • Isolated subnet: 10.10.0.0/24"
+          - "  • Firewall blocks all traffic to production"
+          - "  • Internet access allowed for updates"
+          - ""
+          - "Components:"
+          - "  • Enclave Bastion (192.168.0.250)"
+          - "  • Enclave Router (192.168.0.251)"
+          - "  • Kali Attacker VM (10.10.0.10)"
+          - "  • Vulnerable Targets (10.10.0.100+)"
+          - ""
+          - "Safety Features:"
+          - "  • Auto-shutdown after 4h idle"
+          - "  • Daily shutdown at 2 AM"
+          - "  • Comprehensive audit logging"
+          - "  • Network isolation enforcement"
+          - ""
+          - "═══════════════════════════════════════════════════════════════"
 
-    - name: Pause for confirmation
+    - name: Acknowledge legal terms
       ansible.builtin.pause:
-        prompt: "Press ENTER to continue with enclave deployment, or Ctrl+C to cancel"
+        prompt: |
+
+          By continuing, you acknowledge that:
+          1. You have authorization to deploy this environment
+          2. You will use it only for authorized security testing
+          3. You understand all activity is logged and monitored
+          4. You comply with all applicable laws and policies
+
+          Press ENTER to accept and continue, or Ctrl+C to cancel
       when: not (skip_confirmation | default(false))
 
   roles:

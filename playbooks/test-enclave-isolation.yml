@@ -1,0 +1,221 @@
+---
+# Network Isolation Test Playbook
+# Validates that enclave is properly isolated from production
+
+- name: Test Secure Enclave Network Isolation
+  hosts: localhost
+  gather_facts: false
+  become: false
+
+  vars_files:
+    - ../ansible_collections/homelab/common/inventory/group_vars/all.yml
+
+  tasks:
+    - name: Display test information
+      ansible.builtin.debug:
+        msg:
+          - "═══════════════════════════════════════════════════"
+          - "Secure Enclave Network Isolation Tests"
+          - "═══════════════════════════════════════════════════"
+          - "Testing network isolation from attacker VM (10.10.0.10)"
+          - "Expected Results:"
+          - "  ✓ DNS to 192.168.0.202: PASS (allowed)"
+          - "  ✗ Prometheus (192.168.0.200): FAIL (blocked)"
+          - "  ✗ Grafana (192.168.0.201): FAIL (blocked)"
+          - "  ✗ K3s nodes: FAIL (blocked)"
+          - "  ✓ Internet (8.8.8.8): PASS (allowed)"
+          - "═══════════════════════════════════════════════════"
+
+    - name: Test 1 - Verify attacker VM is accessible
+      ansible.builtin.wait_for:
+        host: 10.10.0.10
+        port: 22
+        timeout: 10
+      register: attacker_reachable
+      failed_when: false
+      tags:
+        - test
+        - connectivity
+
+    - name: Display attacker VM status
+      ansible.builtin.debug:
+        msg: "Test 1: Attacker VM (10.10.0.10) - {{ 'ONLINE ✓' if attacker_reachable is succeeded else 'OFFLINE ✗ (Start VM first)' }}"
+      tags:
+        - test
+
+    - name: Test 2 - DNS access should be ALLOWED
+      ansible.builtin.command:
+        cmd: >
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5
+          root@10.10.0.10
+          'timeout 5 nc -zv 192.168.0.202 53 2>&1'
+      register: dns_test
+      failed_when: false
+      changed_when: false
+      when: attacker_reachable is succeeded
+      tags:
+        - test
+        - dns
+
+    - name: Display DNS test result
+      ansible.builtin.debug:
+        msg: "Test 2: DNS to 192.168.0.202 - {{ 'PASS ✓ (allowed)' if dns_test.rc == 0 else 'FAIL ✗ (should be allowed!)' }}"
+      when: attacker_reachable is succeeded
+      tags:
+        - test
+
+    - name: Test 3 - Prometheus access should be BLOCKED
+      ansible.builtin.command:
+        cmd: >
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5
+          root@10.10.0.10
+          'timeout 5 nc -zv 192.168.0.200 9090 2>&1'
+      register: prometheus_test
+      failed_when: false
+      changed_when: false
+      when: attacker_reachable is succeeded
+      tags:
+        - test
+        - block
+
+    - name: Display Prometheus test result
+      ansible.builtin.debug:
+        msg: "Test 3: Prometheus (192.168.0.200) - {{ 'FAIL ✗ (should be blocked!)' if prometheus_test.rc == 0 else 'PASS ✓ (blocked)' }}"
+      when: attacker_reachable is succeeded
+      tags:
+        - test
+
+    - name: Test 4 - Grafana access should be BLOCKED
+      ansible.builtin.command:
+        cmd: >
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5
+          root@10.10.0.10
+          'timeout 5 nc -zv 192.168.0.201 3000 2>&1'
+      register: grafana_test
+      failed_when: false
+      changed_when: false
+      when: attacker_reachable is succeeded
+      tags:
+        - test
+        - block
+
+    - name: Display Grafana test result
+      ansible.builtin.debug:
+        msg: "Test 4: Grafana (192.168.0.201) - {{ 'FAIL ✗ (should be blocked!)' if grafana_test.rc == 0 else 'PASS ✓ (blocked)' }}"
+      when: attacker_reachable is succeeded
+      tags:
+        - test
+
+    - name: Test 5 - K3s node access should be BLOCKED
+      ansible.builtin.command:
+        cmd: >
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5
+          root@10.10.0.10
+          'timeout 5 nc -zv 192.168.0.111 22 2>&1'
+      register: k3s_test
+      failed_when: false
+      changed_when: false
+      when: attacker_reachable is succeeded
+      tags:
+        - test
+        - block
+
+    - name: Display K3s test result
+      ansible.builtin.debug:
+        msg: "Test 5: K3s Node (192.168.0.111) - {{ 'FAIL ✗ (should be blocked!)' if k3s_test.rc == 0 else 'PASS ✓ (blocked)' }}"
+      when: attacker_reachable is succeeded
+      tags:
+        - test
+
+    - name: Test 6 - Internet access should be ALLOWED
+      ansible.builtin.command:
+        cmd: >
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5
+          root@10.10.0.10
+          'timeout 5 ping -c 1 8.8.8.8'
+      register: internet_test
+      failed_when: false
+      changed_when: false
+      when: attacker_reachable is succeeded
+      tags:
+        - test
+        - internet
+
+    - name: Display Internet test result
+      ansible.builtin.debug:
+        msg: "Test 6: Internet (8.8.8.8) - {{ 'PASS ✓ (allowed)' if internet_test.rc == 0 else 'FAIL ✗ (should be allowed!)' }}"
+      when: attacker_reachable is succeeded
+      tags:
+        - test
+
+    - name: Test 7 - Internal enclave communication should work
+      ansible.builtin.command:
+        cmd: >
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5
+          root@10.10.0.10
+          'timeout 5 ping -c 1 10.10.0.100'
+      register: internal_test
+      failed_when: false
+      changed_when: false
+      when: attacker_reachable is succeeded
+      tags:
+        - test
+        - internal
+
+    - name: Display internal communication test result
+      ansible.builtin.debug:
+        msg: "Test 7: Internal Enclave (10.10.0.100) - {{ 'PASS ✓ (allowed)' if internal_test.rc == 0 else 'FAIL ✗ (should be allowed!)' }}"
+      when: attacker_reachable is succeeded
+      tags:
+        - test
+
+    - name: Calculate test results
+      ansible.builtin.set_fact:
+        tests_passed: "{{
+          [
+            dns_test.rc == 0,
+            prometheus_test.rc != 0,
+            grafana_test.rc != 0,
+            k3s_test.rc != 0,
+            internet_test.rc == 0,
+            internal_test.rc == 0
+          ] | select('equalto', true) | list | length
+        }}"
+        tests_total: 6
+      when: attacker_reachable is succeeded
+      tags:
+        - test
+
+    - name: Display final test summary
+      ansible.builtin.debug:
+        msg:
+          - "═══════════════════════════════════════════════════"
+          - "Network Isolation Test Results"
+          - "═══════════════════════════════════════════════════"
+          - "Tests Passed: {{ tests_passed | default(0) }}/{{ tests_total | default(6) }}"
+          - ""
+          - "✓ = Test Passed (Expected Behavior)"
+          - "✗ = Test Failed (Unexpected Behavior)"
+          - ""
+          - "Status: {{ 'ALL TESTS PASSED ✓' if (tests_passed | default(0) | int) == (tests_total | default(6) | int) else 'SOME TESTS FAILED ✗' }}"
+          - "═══════════════════════════════════════════════════"
+      when: attacker_reachable is succeeded
+      failed_when: (tests_passed | default(0) | int) < (tests_total | default(6) | int)
+      tags:
+        - test
+        - always
+
+    - name: Attacker VM not available warning
+      ansible.builtin.debug:
+        msg:
+          - "═══════════════════════════════════════════════════"
+          - "WARNING: Attacker VM (10.10.0.10) not reachable"
+          - "═══════════════════════════════════════════════════"
+          - "Please ensure the attacker VM is running:"
+          - "  1. Deploy enclave: ansible-playbook playbooks/secure-enclave.yml"
+          - "  2. Start attacker VM if needed"
+          - "  3. Re-run this test playbook"
+          - "═══════════════════════════════════════════════════"
+      when: attacker_reachable is not succeeded
+      tags:
+        - always

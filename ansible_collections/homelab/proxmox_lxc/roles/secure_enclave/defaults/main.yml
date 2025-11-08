@@ -207,3 +207,17 @@ enclave_usage_banner: |
   ║  Attacker VM: 10.10.0.10 (Kali Linux)                       ║
   ║  Targets: 10.10.0.100+ (Vulnerable VMs)                     ║
   ╚══════════════════════════════════════════════════════════════╝
+
+# Resource constraints (prevent overallocation)
+enclave_resource_limits:
+  # Maximum total resources for entire enclave
+  max_total_cores: 16
+  max_total_memory_mb: 16384  # 16GB
+  max_total_disk_gb: 200      # 200GB
+  # Individual VM/container limits
+  max_vm_cores: 8
+  max_vm_memory_mb: 8192      # 8GB
+  max_vm_disk_gb: 100         # 100GB
+  # Warning thresholds
+  warn_memory_percent: 80
+  warn_disk_percent: 80

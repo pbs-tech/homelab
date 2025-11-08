@@ -117,7 +117,7 @@
 
 - name: Create enclave usage documentation on bastion
   ansible.builtin.copy:
-    dest: /etc/motd
+    dest: "{{ enclave_paths.etc }}/motd"
     content: "{{ enclave_usage_banner }}"
     mode: '0644'
   delegate_to: "{{ enclave_bastion.hostname }}"
@@ -127,7 +127,7 @@
 
 - name: Create enclave helper scripts on bastion
   ansible.builtin.copy:
-    dest: "/usr/local/bin/{{ item.name }}"
+    dest: "{{ enclave_paths.bin }}/{{ item.name }}"
     content: "{{ item.content }}"
     mode: '0755'
   loop:
