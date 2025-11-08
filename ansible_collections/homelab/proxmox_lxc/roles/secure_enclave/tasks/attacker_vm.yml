@@ -120,7 +120,7 @@
     - attacker
     - lxc
 
-- name: Start attacker container
+- name: Start attacker container  # noqa: no-handler
   community.general.proxmox:
     api_host: "{{ proxmox_config[enclave_proxmox_node].host }}"
     api_token_id: "{{ proxmox_config[enclave_proxmox_node].api_token_id }}"
@@ -135,7 +135,7 @@
   tags:
     - attacker
 
-- name: Wait for attacker container to be reachable
+- name: Wait for attacker container to be reachable  # noqa: no-handler
   ansible.builtin.wait_for:
     host: "{{ enclave_attacker.management_ip }}"
     port: 22

@@ -39,7 +39,9 @@
 
     - name: Display attacker VM status
       ansible.builtin.debug:
-        msg: "Test 1: Attacker VM ({{ enclave_attacker.isolated_ip }}) - {{ 'ONLINE ✓' if attacker_reachable is succeeded else 'OFFLINE ✗ (Start VM first)' }}"
+        msg: >-
+          Test 1: Attacker VM ({{ enclave_attacker.isolated_ip }}) -
+          {{ 'ONLINE ✓' if attacker_reachable is succeeded else 'OFFLINE ✗ (Start VM first)' }}
       tags:
         - test
 
@@ -171,16 +173,12 @@
 
     - name: Calculate test results
       ansible.builtin.set_fact:
-        tests_passed: "{{
-          [
-            dns_test.rc == 0,
-            prometheus_test.rc != 0,
-            grafana_test.rc != 0,
-            k3s_test.rc != 0,
-            internet_test.rc == 0,
-            internal_test.rc == 0
-          ] | select('equalto', true) | list | length
-        }}"
+        tests_passed: >-
+          {{
+            [dns_test.rc == 0, prometheus_test.rc != 0, grafana_test.rc != 0,
+             k3s_test.rc != 0, internet_test.rc == 0, internal_test.rc == 0]
+            | select('equalto', true) | list | length
+          }}
         tests_total: 6
       when: attacker_reachable is succeeded
       tags:

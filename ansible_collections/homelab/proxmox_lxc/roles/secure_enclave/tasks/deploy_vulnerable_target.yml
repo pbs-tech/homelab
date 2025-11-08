@@ -38,7 +38,7 @@
     - vulnerable
     - lxc
 
-- name: Start vulnerable target container
+- name: Start vulnerable target container  # noqa: no-handler
   community.general.proxmox:
     api_host: "{{ proxmox_config[enclave_proxmox_node].host }}"
     api_token_id: "{{ proxmox_config[enclave_proxmox_node].api_token_id }}"
@@ -53,7 +53,7 @@
   tags:
     - vulnerable
 
-- name: Wait for target container to be reachable
+- name: Wait for target container to be reachable  # noqa: no-handler
   ansible.builtin.wait_for:
     host: "{{ target_vm.ip_address }}"
     port: 22
@@ -77,6 +77,9 @@
 # Docker-based deployment (e.g., DVWA)
 - name: Install Docker for Docker-based targets
   when: target_vm.deployment_type == 'docker'
+  tags:
+    - vulnerable
+    - docker
   block:
     - name: Install Docker prerequisites
       ansible.builtin.apt:
@@ -130,10 +133,6 @@
           - "{{ target_vm.service_port | default('80') }}:{{ target_vm.service_port | default('80') }}"
       delegate_to: "{{ target_vm.hostname }}"
       when: target_vm.docker_image is defined
-
-  tags:
-    - vulnerable
-    - docker
 
 - name: Create target information file
   ansible.builtin.copy:

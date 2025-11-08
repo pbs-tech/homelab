@@ -117,7 +117,7 @@
 
     - name: Flush enclave firewall rules
       ansible.builtin.shell: |
-        set -e
+        set -eo pipefail
         # Remove enclave-specific rules
         iptables-save | grep -v "enclave" | iptables-restore || true
         iptables-save > /etc/iptables/rules.v4

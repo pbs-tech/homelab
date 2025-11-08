@@ -106,6 +106,9 @@
 
 - name: Install node_exporter for metrics
   when: enclave_monitoring.metrics_enabled | default(true)
+  tags:
+    - monitoring
+    - metrics
   block:
     - name: Download node_exporter
       ansible.builtin.get_url:
@@ -155,10 +158,6 @@
         enabled: true
         daemon_reload: true
       delegate_to: "{{ enclave_bastion.hostname }}"
-
-  tags:
-    - monitoring
-    - metrics
 
 - name: Create monitoring dashboard script
   ansible.builtin.copy:

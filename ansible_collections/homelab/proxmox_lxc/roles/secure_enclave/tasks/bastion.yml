@@ -36,7 +36,7 @@
     - bastion
     - lxc
 
-- name: Start enclave bastion container
+- name: Start enclave bastion container  # noqa: no-handler
   community.general.proxmox:
     api_host: "{{ proxmox_config[enclave_proxmox_node].host }}"
     api_token_id: "{{ proxmox_config[enclave_proxmox_node].api_token_id }}"
@@ -52,7 +52,7 @@
     - bastion
     - lxc
 
-- name: Wait for bastion to be reachable
+- name: Wait for bastion to be reachable  # noqa: no-handler
   ansible.builtin.wait_for:
     host: "{{ enclave_bastion.ip_address }}"
     port: 22

@@ -374,6 +374,6 @@ ansible-vault view group_vars/all.yml | grep -E "(token_id|api_token)"
 
 ---
 
-**Last Updated**: 2025-01-XX  
-**Version**: 1.0  
+**Last Updated**: 2025-01-XX
+**Version**: 1.0
 **Maintainer**: Infrastructure Team

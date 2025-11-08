@@ -81,7 +81,7 @@
       when: not (skip_confirmation | default(false))
 
   roles:
-    - role: homelab.proxmox_lxc.secure_enclave
+    - role: homelab.proxmox_lxc.secure_enclave  # noqa: syntax-check[specific]
       tags:
         - secure-enclave
         - enclave

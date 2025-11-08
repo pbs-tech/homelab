@@ -157,7 +157,7 @@
     - firewall
     - security
 
-- name: Save iptables rules for persistence
+- name: Save iptables rules for persistence  # noqa: no-handler
   ansible.builtin.shell: |
     set -e
     iptables-save > {{ enclave_paths.iptables_rules }}

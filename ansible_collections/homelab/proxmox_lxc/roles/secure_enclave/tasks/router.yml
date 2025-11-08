@@ -41,7 +41,7 @@
     - router
     - lxc
 
-- name: Configure container capabilities for unprivileged router
+- name: Configure container capabilities for unprivileged router  # noqa: no-handler
   ansible.builtin.shell: |
     # Add capabilities to container config for networking
     if ! grep -q "lxc.cap.keep" {{ enclave_paths.proxmox_pve }}/lxc/{{ enclave_router.container_id }}.conf; then
@@ -59,7 +59,7 @@
     - router
     - capabilities
 
-- name: Start enclave router container
+- name: Start enclave router container  # noqa: no-handler
   community.general.proxmox:
     api_host: "{{ proxmox_config[enclave_proxmox_node].host }}"
     api_token_id: "{{ proxmox_config[enclave_proxmox_node].api_token_id }}"
@@ -78,7 +78,7 @@
   tags:
     - router
 
-- name: Wait for router to be reachable
+- name: Wait for router to be reachable  # noqa: no-handler
   ansible.builtin.wait_for:
     host: "{{ enclave_router.wan_ip }}"
     port: 22
