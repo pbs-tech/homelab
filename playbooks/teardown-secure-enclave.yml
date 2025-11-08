@@ -1,0 +1,219 @@
+---
+# Secure Enclave Teardown Playbook
+# Safely removes all enclave infrastructure
+
+- name: Teardown Secure Enclave Infrastructure
+  hosts: localhost
+  gather_facts: true
+  become: false
+
+  vars_files:
+    - ../ansible_collections/homelab/common/inventory/group_vars/all.yml
+
+  vars:
+    # Teardown options (can be overridden)
+    enclave_cleanup_remove_vms: true
+    enclave_cleanup_remove_network: false  # Keep network config by default
+    enclave_force_stop: false  # Graceful shutdown by default
+
+  pre_tasks:
+    - name: Display teardown warning
+      ansible.builtin.pause:
+        prompt: |
+          ╔══════════════════════════════════════════════════════════════╗
+          ║          SECURE ENCLAVE TEARDOWN - WARNING!                  ║
+          ║                                                              ║
+          ║  This will permanently remove:                               ║
+          ║    - Enclave Bastion (192.168.0.250)                        ║
+          ║    - Enclave Router (192.168.0.251)                         ║
+          ║    - Kali Attacker VM (10.10.0.10)                          ║
+          ║    - All Vulnerable VMs (DVWA, Metasploitable3, etc.)       ║
+          ║    - Firewall rules and network isolation                   ║
+          ║    - Management scripts and documentation                   ║
+          ║                                                              ║
+          ║  Network config: {{ 'WILL BE REMOVED' if enclave_cleanup_remove_network else 'WILL BE KEPT' }}
+          ║                                                              ║
+          ║  Press ENTER to continue or Ctrl+C to abort                 ║
+          ╚══════════════════════════════════════════════════════════════╝
+      when: not (skip_confirmation | default(false))
+
+  tasks:
+    - name: Stop all enclave VMs/containers gracefully
+      community.general.proxmox:
+        api_host: "{{ proxmox_config[enclave_proxmox_node].host }}"
+        api_token_id: "{{ proxmox_config[enclave_proxmox_node].api_token_id }}"
+        api_token_secret: "{{ proxmox_config[enclave_proxmox_node].api_token_secret }}"
+        validate_certs: "{{ proxmox_config[enclave_proxmox_node].validate_certs }}"
+        vmid: "{{ item }}"
+        node: "{{ proxmox_config[enclave_proxmox_node].node }}"
+        state: stopped
+        force: "{{ enclave_force_stop }}"
+      loop:
+        - 250  # Bastion
+        - 251  # Router
+        - 252  # Attacker
+        - 253  # DVWA
+        - 254  # Metasploitable3
+      loop_control:
+        label: "VM/CT {{ item }}"
+      delegate_to: localhost
+      failed_when: false
+      register: stop_result
+      retries: 3
+      delay: 5
+      tags:
+        - teardown
+        - stop
+
+    - name: Wait for VMs to fully stop
+      ansible.builtin.pause:
+        seconds: 15
+      tags:
+        - teardown
+
+    - name: Remove enclave VMs/containers
+      community.general.proxmox:
+        api_host: "{{ proxmox_config[enclave_proxmox_node].host }}"
+        api_token_id: "{{ proxmox_config[enclave_proxmox_node].api_token_id }}"
+        api_token_secret: "{{ proxmox_config[enclave_proxmox_node].api_token_secret }}"
+        validate_certs: "{{ proxmox_config[enclave_proxmox_node].validate_certs }}"
+        vmid: "{{ item }}"
+        node: "{{ proxmox_config[enclave_proxmox_node].node }}"
+        state: absent
+      loop:
+        - 250
+        - 251
+        - 252
+        - 253
+        - 254
+      loop_control:
+        label: "VM/CT {{ item }}"
+      delegate_to: localhost
+      when: enclave_cleanup_remove_vms | default(true)
+      failed_when: false
+      tags:
+        - teardown
+        - remove
+
+    - name: Disable enclave firewall service
+      ansible.builtin.systemd:
+        name: enclave-firewall
+        state: stopped
+        enabled: false
+      delegate_to: "{{ proxmox_config[enclave_proxmox_node].host }}"
+      failed_when: false
+      tags:
+        - teardown
+        - firewall
+
+    - name: Remove enclave firewall service file
+      ansible.builtin.file:
+        path: /etc/systemd/system/enclave-firewall.service
+        state: absent
+      delegate_to: "{{ proxmox_config[enclave_proxmox_node].host }}"
+      tags:
+        - teardown
+        - firewall
+
+    - name: Flush enclave firewall rules
+      ansible.builtin.shell: |
+        set -eo pipefail
+        # Remove enclave-specific rules
+        iptables-save | grep -v "enclave" | iptables-restore || true
+        iptables-save > /etc/iptables/rules.v4
+      args:
+        executable: /bin/bash
+      delegate_to: "{{ proxmox_config[enclave_proxmox_node].host }}"
+      changed_when: true
+      failed_when: false
+      tags:
+        - teardown
+        - firewall
+
+    - name: Remove network bridge configuration
+      ansible.builtin.blockinfile:
+        path: /etc/network/interfaces
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - Secure Enclave Network"
+        state: absent
+      delegate_to: "{{ proxmox_config[enclave_proxmox_node].host }}"
+      when: enclave_cleanup_remove_network | default(false)
+      register: network_removed
+      tags:
+        - teardown
+        - network
+
+    - name: Reload network interfaces after removal
+      ansible.builtin.command:
+        cmd: ifreload -a
+      delegate_to: "{{ proxmox_config[enclave_proxmox_node].host }}"
+      when:
+        - enclave_cleanup_remove_network | default(false)
+        - network_removed is changed
+      changed_when: true
+      failed_when: false
+      tags:
+        - teardown
+        - network
+
+    - name: Remove enclave scripts and documentation
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /usr/local/bin/enclave-firewall-init
+        - /usr/local/bin/enclave-idle-check
+        - /usr/local/bin/enclave-scheduled-shutdown
+        - /usr/local/bin/enclave-shutdown-now
+        - /usr/local/bin/enclave-status
+        - /usr/local/bin/enclave-connect
+        - /usr/local/bin/enclave-monitor
+        - /usr/local/bin/router-status
+        - /etc/pve/enclave-network-config.txt
+        - /etc/logrotate.d/enclave-audit
+        - /etc/logrotate.d/enclave-auto-shutdown
+      delegate_to: "{{ proxmox_config[enclave_proxmox_node].host }}"
+      failed_when: false
+      tags:
+        - teardown
+        - cleanup
+
+    - name: Remove cron jobs
+      ansible.builtin.cron:
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - "Enclave idle check"
+        - "Enclave scheduled shutdown"
+      delegate_to: "{{ proxmox_config[enclave_proxmox_node].host }}"
+      failed_when: false
+      tags:
+        - teardown
+        - cleanup
+
+    - name: Reload systemd daemon
+      ansible.builtin.systemd:
+        daemon_reload: true
+      delegate_to: "{{ proxmox_config[enclave_proxmox_node].host }}"
+      tags:
+        - teardown
+
+  post_tasks:
+    - name: Display teardown summary
+      ansible.builtin.debug:
+        msg:
+          - "══════════════════════════════════════════"
+          - "Secure Enclave Teardown Complete"
+          - "══════════════════════════════════════════"
+          - ""
+          - "Removed Components:"
+          - "  ✓ All VMs/Containers ({{ 'YES' if enclave_cleanup_remove_vms else 'NO' }})"
+          - "  ✓ Firewall rules"
+          - "  ✓ Systemd service"
+          - "  ✓ Management scripts"
+          - "  ✓ Cron jobs"
+          - "  ✓ Network config ({{ 'YES' if enclave_cleanup_remove_network else 'NO' }})"
+          - ""
+          - "Status: Enclave successfully removed"
+          - "══════════════════════════════════════════"
+      tags:
+        - always

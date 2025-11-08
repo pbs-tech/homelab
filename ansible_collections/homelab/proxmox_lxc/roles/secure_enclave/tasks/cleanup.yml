@@ -1,0 +1,55 @@
+---
+# Cleanup and Rollback Tasks
+# Safely removes all enclave components
+
+- name: Display cleanup warning
+  ansible.builtin.debug:
+    msg:
+      - "WARNING: This will remove all enclave infrastructure"
+      - "Set enclave_cleanup_remove_vms=false to keep VMs"
+      - "Set enclave_cleanup_remove_network=true to remove network config"
+  tags:
+    - cleanup
+    - always
+
+- name: Stop all enclave VMs/containers
+  community.general.proxmox:
+    api_host: "{{ proxmox_config[enclave_proxmox_node].host }}"
+    api_token_id: "{{ proxmox_config[enclave_proxmox_node].api_token_id }}"
+    api_token_secret: "{{ proxmox_config[enclave_proxmox_node].api_token_secret }}"
+    validate_certs: "{{ proxmox_config[enclave_proxmox_node].validate_certs }}"
+    vmid: "{{ item }}"
+    node: "{{ proxmox_config[enclave_proxmox_node].node }}"
+    state: stopped
+  loop:
+    - "{{ enclave_bastion.container_id }}"
+    - "{{ enclave_router.container_id }}"
+    - "{{ enclave_attacker.vm_id }}"
+  loop_control:
+    label: "VM/CT {{ item }}"
+  delegate_to: localhost
+  failed_when: false
+  register: stop_result
+  retries: 3
+  delay: 5
+  tags:
+    - cleanup
+
+- name: Remove enclave scripts and cron jobs
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ enclave_paths.bin }}/enclave-firewall-init"
+    - "{{ enclave_paths.bin }}/enclave-idle-check"
+    - "{{ enclave_paths.bin }}/enclave-scheduled-shutdown"
+    - "{{ enclave_paths.bin }}/enclave-shutdown-now"
+  delegate_to: "{{ proxmox_config[enclave_proxmox_node].host }}"
+  tags:
+    - cleanup
+
+- name: Display cleanup summary
+  ansible.builtin.debug:
+    msg: "Enclave cleanup completed successfully"
+  tags:
+    - cleanup

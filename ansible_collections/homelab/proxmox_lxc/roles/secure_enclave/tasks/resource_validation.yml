@@ -1,0 +1,194 @@
+---
+# Resource Limit Validation Tasks
+# Validates that enclave resource allocation doesn't exceed defined limits
+
+- name: Calculate total enclave resource allocation
+  ansible.builtin.set_fact:
+    total_cores: >-
+      {{
+        enclave_bastion.cores | default(2) +
+        enclave_router.cores | default(2) +
+        enclave_attacker.cores | default(4) +
+        (enclave_vulnerable_vms | map(attribute='cores') | map('default', 2) | sum)
+      }}
+    total_memory_mb: >-
+      {{
+        enclave_bastion.memory_mb | default(2048) +
+        enclave_router.memory_mb | default(1024) +
+        enclave_attacker.memory_mb | default(4096) +
+        (enclave_vulnerable_vms | map(attribute='memory_mb') | map('default', 2048) | sum)
+      }}
+    total_disk_gb: >-
+      {{
+        enclave_bastion.disk_size_gb | default(10) +
+        enclave_router.disk_size_gb | default(8) +
+        enclave_attacker.disk_size_gb | default(50) +
+        (enclave_vulnerable_vms | map(attribute='disk_size_gb') | map('default', 20) | sum)
+      }}
+  tags:
+    - validation
+    - resources
+
+- name: Display resource allocation
+  ansible.builtin.debug:
+    msg:
+      - "═══════════════════════════════════════════════════"
+      - "Enclave Resource Allocation"
+      - "═══════════════════════════════════════════════════"
+      - >-
+        CPU Cores: {{ total_cores }} / {{ enclave_resource_limits.max_total_cores }}
+        ({{ ((total_cores | int * 100) / enclave_resource_limits.max_total_cores) | round(1) }}%)
+      - >-
+        Memory: {{ total_memory_mb }}MB / {{ enclave_resource_limits.max_total_memory_mb }}MB
+        ({{ ((total_memory_mb | int * 100) / enclave_resource_limits.max_total_memory_mb) | round(1) }}%)
+      - >-
+        Disk: {{ total_disk_gb }}GB / {{ enclave_resource_limits.max_total_disk_gb }}GB
+        ({{ ((total_disk_gb | int * 100) / enclave_resource_limits.max_total_disk_gb) | round(1) }}%)
+      - "═══════════════════════════════════════════════════"
+  tags:
+    - validation
+    - resources
+
+- name: Validate total CPU allocation
+  ansible.builtin.assert:
+    that:
+      - total_cores | int <= enclave_resource_limits.max_total_cores
+    fail_msg: |
+      ╔══════════════════════════════════════════════════════════════╗
+      ║           RESOURCE LIMIT EXCEEDED - CPU CORES                ║
+      ╚══════════════════════════════════════════════════════════════╝
+
+      Total CPU cores requested: {{ total_cores }}
+      Maximum allowed: {{ enclave_resource_limits.max_total_cores }}
+      Exceeded by: {{ total_cores | int - enclave_resource_limits.max_total_cores }}
+
+      Breakdown:
+        - Bastion: {{ enclave_bastion.cores | default(2) }} cores
+        - Router: {{ enclave_router.cores | default(2) }} cores
+        - Attacker VM: {{ enclave_attacker.cores | default(4) }} cores
+        - Vulnerable VMs: {{ enclave_vulnerable_vms | map(attribute='cores') | map('default', 2) | sum }} cores
+
+      Action Required:
+        1. Reduce VM core allocation in defaults/main.yml
+        2. Increase max_total_cores limit (if host supports it)
+        3. Deploy fewer vulnerable VMs
+    success_msg: >-
+      ✓ CPU allocation within limits
+      ({{ total_cores }}/{{ enclave_resource_limits.max_total_cores }} cores)
+  tags:
+    - validation
+    - resources
+
+- name: Validate total memory allocation
+  ansible.builtin.assert:
+    that:
+      - total_memory_mb | int <= enclave_resource_limits.max_total_memory_mb
+    fail_msg: |
+      ╔══════════════════════════════════════════════════════════════╗
+      ║           RESOURCE LIMIT EXCEEDED - MEMORY                   ║
+      ╚══════════════════════════════════════════════════════════════╝
+
+      Total memory requested: {{ total_memory_mb }}MB
+        ({{ (total_memory_mb | int / 1024) | round(1) }}GB)
+      Maximum allowed: {{ enclave_resource_limits.max_total_memory_mb }}MB
+        ({{ (enclave_resource_limits.max_total_memory_mb / 1024) | round(1) }}GB)
+      Exceeded by: {{ total_memory_mb | int - enclave_resource_limits.max_total_memory_mb }}MB
+
+      Breakdown:
+        - Bastion: {{ enclave_bastion.memory_mb | default(2048) }}MB
+        - Router: {{ enclave_router.memory_mb | default(1024) }}MB
+        - Attacker VM: {{ enclave_attacker.memory_mb | default(4096) }}MB
+        - Vulnerable VMs: {{ enclave_vulnerable_vms | map(attribute='memory_mb') | map('default', 2048) | sum }}MB
+
+      Action Required:
+        1. Reduce VM memory allocation in defaults/main.yml
+        2. Increase max_total_memory_mb limit (if host supports it)
+        3. Deploy fewer vulnerable VMs
+    success_msg: >-
+      ✓ Memory allocation within limits
+      ({{ total_memory_mb }}MB/{{ enclave_resource_limits.max_total_memory_mb }}MB)
+  tags:
+    - validation
+    - resources
+
+- name: Validate total disk allocation
+  ansible.builtin.assert:
+    that:
+      - total_disk_gb | int <= enclave_resource_limits.max_total_disk_gb
+    fail_msg: |
+      ╔══════════════════════════════════════════════════════════════╗
+      ║           RESOURCE LIMIT EXCEEDED - DISK SPACE               ║
+      ╚══════════════════════════════════════════════════════════════╝
+
+      Total disk requested: {{ total_disk_gb }}GB
+      Maximum allowed: {{ enclave_resource_limits.max_total_disk_gb }}GB
+      Exceeded by: {{ total_disk_gb | int - enclave_resource_limits.max_total_disk_gb }}GB
+
+      Breakdown:
+        - Bastion: {{ enclave_bastion.disk_size_gb | default(10) }}GB
+        - Router: {{ enclave_router.disk_size_gb | default(8) }}GB
+        - Attacker VM: {{ enclave_attacker.disk_size_gb | default(50) }}GB
+        - Vulnerable VMs: {{ enclave_vulnerable_vms | map(attribute='disk_size_gb') | map('default', 20) | sum }}GB
+
+      Action Required:
+        1. Reduce VM disk allocation in defaults/main.yml
+        2. Increase max_total_disk_gb limit (if storage supports it)
+        3. Deploy fewer vulnerable VMs
+    success_msg: >-
+      ✓ Disk allocation within limits
+      ({{ total_disk_gb }}GB/{{ enclave_resource_limits.max_total_disk_gb }}GB)
+  tags:
+    - validation
+    - resources
+
+- name: Validate individual VM resource limits
+  ansible.builtin.assert:
+    that:
+      - enclave_attacker.cores | default(4) <= enclave_resource_limits.max_vm_cores
+      - enclave_attacker.memory_mb | default(4096) <= enclave_resource_limits.max_vm_memory_mb
+      - enclave_attacker.disk_size_gb | default(50) <= enclave_resource_limits.max_vm_disk_gb
+    fail_msg: |
+      ╔══════════════════════════════════════════════════════════════╗
+      ║        INDIVIDUAL VM RESOURCE LIMIT EXCEEDED                 ║
+      ╚══════════════════════════════════════════════════════════════╝
+
+      Attacker VM Configuration:
+        - Cores: {{ enclave_attacker.cores | default(4) }}
+          (max: {{ enclave_resource_limits.max_vm_cores }})
+        - Memory: {{ enclave_attacker.memory_mb | default(4096) }}MB
+          (max: {{ enclave_resource_limits.max_vm_memory_mb }}MB)
+        - Disk: {{ enclave_attacker.disk_size_gb | default(50) }}GB
+          (max: {{ enclave_resource_limits.max_vm_disk_gb }}GB)
+
+      Action Required:
+        Reduce individual VM resource allocation in defaults/main.yml
+    success_msg: "✓ Individual VM resources within limits"
+  tags:
+    - validation
+    - resources
+
+- name: Warn if approaching resource limits
+  ansible.builtin.debug:
+    msg:
+      - "⚠️  WARNING: Approaching resource limits"
+      - >-
+        CPU usage: {{ ((total_cores | int * 100) / enclave_resource_limits.max_total_cores) | round(1) }}%
+        (threshold: {{ enclave_resource_limits.warn_memory_percent }}%)
+      - >-
+        Memory usage: {{ ((total_memory_mb | int * 100) / enclave_resource_limits.max_total_memory_mb) | round(1) }}%
+        (threshold: {{ enclave_resource_limits.warn_memory_percent }}%)
+      - >-
+        Disk usage: {{ ((total_disk_gb | int * 100) / enclave_resource_limits.max_total_disk_gb) | round(1) }}%
+        (threshold: {{ enclave_resource_limits.warn_disk_percent }}%)
+      - ""
+      - "Consider reducing resource allocation or increasing limits"
+  when: >-
+    ((total_cores | int * 100) / enclave_resource_limits.max_total_cores) >=
+      enclave_resource_limits.warn_memory_percent or
+    ((total_memory_mb | int * 100) / enclave_resource_limits.max_total_memory_mb) >=
+      enclave_resource_limits.warn_memory_percent or
+    ((total_disk_gb | int * 100) / enclave_resource_limits.max_total_disk_gb) >=
+      enclave_resource_limits.warn_disk_percent
+  tags:
+    - validation
+    - resources

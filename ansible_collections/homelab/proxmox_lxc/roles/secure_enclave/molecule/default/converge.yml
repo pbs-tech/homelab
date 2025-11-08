@@ -1,0 +1,63 @@
+---
+# Molecule converge playbook for secure_enclave role
+# Tests role syntax and variable validation
+
+- name: Converge
+  hosts: all
+  gather_facts: true
+  become: true
+
+  tasks:
+    - name: Test role variable defaults
+      ansible.builtin.debug:
+        msg:
+          - "Testing secure_enclave role variables..."
+          - "Enclave network: {{ enclave_network.isolated_subnet | default('not set') }}"
+          - "Bastion IP: {{ enclave_bastion.ip_address | default('not set') }}"
+
+    - name: Include role defaults
+      ansible.builtin.include_vars:
+        file: ../../defaults/main.yml
+
+    - name: Validate network configuration
+      ansible.builtin.assert:
+        that:
+          - enclave_network.isolated_subnet is defined
+          - enclave_network.management_subnet is defined
+          - enclave_bastion.ip_address is defined
+          - enclave_router.lan_ip is defined
+        fail_msg: "Network configuration variables not properly defined"
+        success_msg: "Network configuration validated successfully"
+
+    - name: Validate firewall rules
+      ansible.builtin.assert:
+        that:
+          - enclave_firewall_rules is defined
+          - enclave_firewall_rules | length > 0
+        fail_msg: "Firewall rules not properly defined"
+        success_msg: "Firewall rules validated successfully"
+
+    - name: Validate monitoring configuration
+      ansible.builtin.assert:
+        that:
+          - enclave_monitoring.enabled is defined
+          - enclave_monitoring.audit_logging is defined
+        fail_msg: "Monitoring configuration not properly defined"
+        success_msg: "Monitoring configuration validated successfully"
+
+    - name: Validate auto-shutdown configuration
+      ansible.builtin.assert:
+        that:
+          - enclave_auto_shutdown.enabled is defined
+          - enclave_auto_shutdown.idle_timeout_hours is defined
+          - enclave_auto_shutdown.shutdown_schedule is defined
+        fail_msg: "Auto-shutdown configuration not properly defined"
+        success_msg: "Auto-shutdown configuration validated successfully"
+
+    - name: Test task file syntax
+      ansible.builtin.include_tasks:
+        file: ../../tasks/main.yml
+      ignore_errors: true
+      tags:
+        - never
+        - syntax-test

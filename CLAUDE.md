@@ -97,6 +97,32 @@ ansible-playbook phase2-security.yml --tags "dns,security"
 ansible-playbook test-security-hardening.yml
 ```
 
+### Secure Enclave Deployment (Pentesting Environment)
+
+```bash
+# Deploy complete secure enclave for pentesting and security research
+ansible-playbook playbooks/secure-enclave.yml
+
+# Deploy specific enclave components
+ansible-playbook playbooks/secure-enclave.yml --tags network,firewall  # Network isolation only
+ansible-playbook playbooks/secure-enclave.yml --tags infrastructure    # Bastion and router
+ansible-playbook playbooks/secure-enclave.yml --tags attacker          # Kali attacker VM
+ansible-playbook playbooks/secure-enclave.yml --tags vulnerable        # Vulnerable targets
+
+# Access enclave (from production bastion)
+ssh pbs@192.168.0.250  # Enclave bastion
+enclave-status         # Check status
+enclave-connect        # Connect to attacker VM
+enclave-monitor        # Real-time monitoring
+enclave-shutdown       # Emergency shutdown all VMs
+
+# Verify network isolation
+# From attacker VM (10.10.0.10):
+ping 192.168.0.200     # Should FAIL (blocked to production)
+ping 8.8.8.8           # Should SUCCEED (internet allowed)
+nmap -sn 10.10.0.0/24  # Scan enclave targets
+```
+
 ### LXC Template Management
 
 ```bash
@@ -395,6 +421,19 @@ ansible-galaxy collection install *.tar.gz --force
 - **qBittorrent** (192.168.0.234) - BitTorrent client
 - **Jellyfin** (192.168.0.235) - Media streaming server
 
+#### Security Research & Pentesting (Secure Enclave)
+
+- **Enclave Bastion** (192.168.0.250) - Isolated jump host for pentesting environment access
+- **Enclave Router** (192.168.0.251) - Network isolation and firewall for enclave
+- **Kali Attacker VM** (10.10.0.10) - Pentesting workstation with security tools
+- **DVWA** (10.10.0.100) - Damn Vulnerable Web Application for practice
+- **Metasploitable3** (10.10.0.101) - Intentionally vulnerable VM for training
+- **Isolated Network** (10.10.0.0/24) - Completely isolated from production with firewall rules
+  - All traffic to production infrastructure BLOCKED
+  - Internet access allowed for updates/tools
+  - Auto-shutdown after 4h idle for safety
+  - Comprehensive audit logging
+
 ### Directory Structure
 
 ```text
@@ -409,7 +448,8 @@ ansible-galaxy collection install *.tar.gz --force
 │   ├── foundation.yml               # Phase 1: Bastion and Proxmox setup
 │   ├── networking.yml               # Phase 2: DNS, VPN, reverse proxy
 │   ├── monitoring.yml               # Phase 3: Prometheus, Grafana, Loki
-│   └── applications.yml             # Phase 4: Home automation, NAS services
+│   ├── applications.yml             # Phase 4: Home automation, NAS services
+│   └── secure-enclave.yml           # Secure pentesting environment deployment
 ├── tests/                           # Fast validation tests (< 5 min total)
 │   ├── quick-smoke-test.yml         # 30s validation of critical components
 │   ├── validate-infrastructure.yml  # Infrastructure health checks

@@ -67,6 +67,12 @@ k3s_config:
   server_endpoints:
     - https://192.168.0.111:6443
   kubeconfig_path: /etc/rancher/k3s/k3s.yaml
+  # K3s cluster node IPs (for firewall rules and access control)
+  node_ips:
+    - 192.168.0.111  # k3s-01 (server)
+    - 192.168.0.112  # k3s-02 (agent)
+    - 192.168.0.113  # k3s-03 (agent)
+    - 192.168.0.114  # k3s-04 (agent)
 
 # Security configuration
 security_config:

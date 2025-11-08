@@ -1,3 +1,4 @@
+---
 name: 'Wait for Galaxy Collection'
 description: 'Polls Ansible Galaxy for collection availability with retry logic'
 inputs:

@@ -1,0 +1,233 @@
+---
+# Secure Enclave Role Defaults
+# This role creates an isolated network environment for pentesting and security research
+
+# Enclave network configuration
+enclave_network:
+  # Management network (accessible from production bastion)
+  management_subnet: 192.168.0.250/29  # 192.168.0.250-254
+  # Isolated pentesting network
+  isolated_subnet: 10.10.0.0/24
+  # Virtual network bridge for isolation
+  bridge_name: vmbr1
+  vlan_id: 10
+
+# Enclave bastion host configuration
+enclave_bastion:
+  container_id: 250
+  hostname: enclave-bastion
+  ip_address: 192.168.0.250
+  cores: 2
+  memory: 2048
+  disk_size: 16
+  ssh_port: 22
+
+# Enclave router/firewall configuration
+enclave_router:
+  container_id: 251
+  hostname: enclave-router
+  ip_address: 192.168.0.251
+  cores: 2
+  memory: 1024
+  disk_size: 8
+  # Network interfaces
+  wan_ip: 192.168.0.251
+  lan_ip: 10.10.0.1
+  # Router capabilities (unprivileged container)
+  capabilities:
+    - NET_ADMIN
+    - NET_RAW
+    - NET_BIND_SERVICE
+
+# Kali Linux version configuration
+# Update quarterly when new Kali releases are available (Jan, Apr, Jul, Oct)
+# See README.md Maintenance section for update procedures
+enclave_kali_version: "2024.3"
+enclave_kali_iso_checksums:
+  "2024.3": "sha256:c5cf31f246fb34a5080e2be5827e8c6eb1f86c7c63ffea67fbcd9cad4b1a8fb0"
+  "2024.4": "sha256:UPDATE_WHEN_AVAILABLE"  # Placeholder for next release
+
+# Attacker VM configuration (Kali Linux)
+enclave_attacker:
+  vm_id: 252
+  hostname: kali-attacker
+  # Dual-homed: management + isolated network
+  management_ip: 192.168.0.252
+  isolated_ip: 10.10.0.10
+  cores: 4
+  memory: 4096
+  disk_size: 50
+  # Dynamic ISO URL based on configured version
+  iso_url: "https://cdimage.kali.org/kali-{{ enclave_kali_version }}/kali-linux-{{ enclave_kali_version }}-installer-amd64.iso"
+  # Dynamic checksum lookup based on version
+  iso_checksum: "{{ enclave_kali_iso_checksums[enclave_kali_version] }}"
+
+# Vulnerable VM templates
+enclave_vulnerable_vms:
+  - name: dvwa
+    vm_id: 253
+    hostname: dvwa-target
+    ip_address: 10.10.0.100
+    description: "Damn Vulnerable Web Application"
+    cores: 2
+    memory: 2048
+    disk_size: 20
+    # Will be deployed via Docker on Ubuntu LXC
+    deployment_type: docker
+    docker_image: vulnerables/web-dvwa
+
+  - name: metasploitable3
+    vm_id: 254
+    hostname: metasploitable3
+    ip_address: 10.10.0.101
+    description: "Metasploitable3 - Intentionally vulnerable VM"
+    cores: 2
+    memory: 2048
+    disk_size: 40
+    deployment_type: vm
+    # ISO will be built from https://github.com/rapid7/metasploitable3
+
+# Firewall rules for network isolation
+enclave_firewall_rules:
+  # Allow SSH from production bastion to enclave bastion only
+  - name: "Allow SSH from production bastion"
+    chain: INPUT
+    source: 192.168.0.110  # k3s-bastion
+    destination: 192.168.0.250  # enclave-bastion
+    protocol: tcp
+    destination_port: 22
+    action: ACCEPT
+
+  # Block all traffic from enclave to production networks
+  - name: "Block enclave to production services"
+    chain: FORWARD
+    source: "{{ enclave_network.isolated_subnet }}"
+    destination: 192.168.0.0/24
+    action: DROP
+    comment: "Prevent lateral movement to production"
+
+  # Block enclave to K3s cluster
+  - name: "Block enclave to K3s cluster"
+    chain: FORWARD
+    source: "{{ enclave_network.isolated_subnet }}"
+    destination: 192.168.0.111/32,192.168.0.112/32,192.168.0.113/32,192.168.0.114/32
+    action: DROP
+
+  # Allow enclave internal traffic
+  - name: "Allow enclave internal traffic"
+    chain: FORWARD
+    source: "{{ enclave_network.isolated_subnet }}"
+    destination: "{{ enclave_network.isolated_subnet }}"
+    action: ACCEPT
+
+  # Allow internet access for enclave (for updates/tools)
+  - name: "Allow enclave internet access"
+    chain: FORWARD
+    source: "{{ enclave_network.isolated_subnet }}"
+    out_interface: vmbr0
+    action: ACCEPT
+
+  # Allow established/related connections back
+  - name: "Allow established connections"
+    chain: FORWARD
+    state: ESTABLISHED,RELATED
+    action: ACCEPT
+
+# Security monitoring configuration
+enclave_monitoring:
+  enabled: true
+  # Log all enclave access attempts
+  audit_logging: true
+  audit_log_path: /var/log/enclave-audit.log
+  # Alert on suspicious activity
+  alerting_enabled: true
+  # Prometheus metrics for monitoring
+  metrics_enabled: true
+  metrics_port: 9100
+
+# Auto-shutdown configuration (safety feature)
+enclave_auto_shutdown:
+  enabled: true
+  # Automatically shutdown vulnerable VMs when not in use
+  idle_timeout_hours: 4
+  # Schedule for automatic shutdown (cron format)
+  shutdown_schedule: "0 2 * * *"  # 2 AM daily
+
+# Proxmox node for enclave deployment
+enclave_proxmox_node: pve_mac
+
+# Default template for LXC containers in enclave
+enclave_lxc_template: "local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
+
+# Storage configuration
+enclave_storage:
+  lxc_storage: local-lvm
+  vm_storage: local-lvm
+  iso_storage: local
+
+# Path configuration (parameterized for flexibility)
+enclave_paths:
+  bin: /usr/local/bin
+  log: /var/log
+  audit_log: /var/log/enclave-audit.log
+  auto_shutdown_log: /var/log/enclave-auto-shutdown.log
+  etc: /etc
+  iptables_rules: /etc/iptables/rules.v4
+  proxmox_pve: /etc/pve
+  network_interfaces: /etc/network/interfaces
+  iso_storage: /var/lib/vz/template/iso
+  opt: /opt
+  root: /root
+
+# Common pentesting tools to install on attacker VM
+enclave_pentesting_tools:
+  - nmap
+  - metasploit-framework
+  - burpsuite
+  - sqlmap
+  - nikto
+  - wireshark
+  - john
+  - hashcat
+  - hydra
+  - gobuster
+  - ffuf
+  - enum4linux
+  - smbclient
+  - netcat
+  - socat
+  - proxychains
+  - bloodhound
+  - impacket-scripts
+
+# Documentation and usage warnings
+enclave_usage_banner: |
+  ╔══════════════════════════════════════════════════════════════╗
+  ║             SECURE ENCLAVE - PENTESTING ENVIRONMENT          ║
+  ║                                                              ║
+  ║  WARNING: This environment contains intentionally            ║
+  ║  vulnerable systems for authorized security testing only.    ║
+  ║                                                              ║
+  ║  - All activity is logged and monitored                      ║
+  ║  - Network is isolated from production systems               ║
+  ║  - VMs auto-shutdown after idle timeout                      ║
+  ║  - For authorized security research and training only        ║
+  ║                                                              ║
+  ║  Access: ssh pbs@192.168.0.250 (enclave-bastion)            ║
+  ║  Attacker VM: 10.10.0.10 (Kali Linux)                       ║
+  ║  Targets: 10.10.0.100+ (Vulnerable VMs)                     ║
+  ╚══════════════════════════════════════════════════════════════╝
+
+# Resource constraints (prevent overallocation)
+enclave_resource_limits:
+  # Maximum total resources for entire enclave
+  max_total_cores: 16
+  max_total_memory_mb: 16384  # 16GB
+  max_total_disk_gb: 200      # 200GB
+  # Individual VM/container limits
+  max_vm_cores: 8
+  max_vm_memory_mb: 8192      # 8GB
+  max_vm_disk_gb: 100         # 100GB
+  # Warning thresholds
+  warn_memory_percent: 80
+  warn_disk_percent: 80

@@ -1,0 +1,95 @@
+---
+# Secure Enclave Deployment Tasks
+# Creates an isolated pentesting environment with network segmentation
+
+- name: Display enclave deployment banner
+  ansible.builtin.debug:
+    msg: "{{ enclave_usage_banner.split('\n') }}"
+  tags:
+    - always
+
+- name: Validate Proxmox API connectivity
+  ansible.builtin.include_tasks:
+    file: "{{ lookup('ansible.builtin.first_found', params) }}"
+  vars:
+    params:
+      files:
+        - proxmox_api_validation.yml
+      paths:
+        - "{{ role_path }}/../../common/tasks"
+  tags:
+    - validation
+    - proxmox
+
+- name: Validate resource allocation
+  ansible.builtin.include_tasks: resource_validation.yml
+  tags:
+    - validation
+    - resources
+
+- name: Include network isolation setup tasks
+  ansible.builtin.include_tasks: network_isolation.yml
+  tags:
+    - network
+    - isolation
+
+- name: Include bastion host deployment tasks
+  ansible.builtin.include_tasks: bastion.yml
+  tags:
+    - bastion
+    - infrastructure
+
+- name: Include router/firewall deployment tasks
+  ansible.builtin.include_tasks: router.yml
+  tags:
+    - router
+    - firewall
+
+- name: Include attacker VM deployment tasks
+  ansible.builtin.include_tasks: attacker_vm.yml
+  tags:
+    - attacker
+    - kali
+
+- name: Include vulnerable VMs deployment tasks
+  ansible.builtin.include_tasks: vulnerable_vms.yml
+  tags:
+    - vulnerable
+    - targets
+
+- name: Include monitoring and audit setup tasks
+  ansible.builtin.include_tasks: monitoring.yml
+  when: enclave_monitoring.enabled | default(true)
+  tags:
+    - monitoring
+    - audit
+
+- name: Include auto-shutdown configuration tasks
+  ansible.builtin.include_tasks: auto_shutdown.yml
+  when: enclave_auto_shutdown.enabled | default(true)
+  tags:
+    - safety
+    - auto-shutdown
+
+- name: Display enclave access information
+  ansible.builtin.debug:
+    msg:
+      - "Secure Enclave deployment completed successfully!"
+      - ""
+      - "Access Information:"
+      - "  Bastion Host: ssh pbs@{{ enclave_bastion.ip_address }}"
+      - "  Attacker VM: {{ enclave_attacker.isolated_ip }} (from bastion)"
+      - "  Vulnerable Targets:"
+      - "{% for vm in enclave_vulnerable_vms %}    - {{ vm.hostname }}: {{ vm.ip_address }} - {{ vm.description }}\n{% endfor %}"
+      - ""
+      - "Network Isolation:"
+      - "  Management Network: {{ enclave_network.management_subnet }}"
+      - "  Isolated Network: {{ enclave_network.isolated_subnet }}"
+      - "  Firewall: All traffic to production networks is blocked"
+      - ""
+      - "Safety Features:"
+      - "  - Auto-shutdown after {{ enclave_auto_shutdown.idle_timeout_hours }}h idle"
+      - "  - Audit logging enabled: {{ enclave_monitoring.audit_log_path }}"
+      - "  - Network traffic monitoring enabled"
+  tags:
+    - always

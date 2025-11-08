@@ -1,0 +1,220 @@
+---
+# Enclave Bastion Host Deployment
+# Secure jump host for accessing the pentesting environment
+
+- name: Create enclave bastion LXC container
+  community.general.proxmox:
+    api_host: "{{ proxmox_config[enclave_proxmox_node].host }}"
+    api_token_id: "{{ proxmox_config[enclave_proxmox_node].api_token_id }}"
+    api_token_secret: "{{ proxmox_config[enclave_proxmox_node].api_token_secret }}"
+    validate_certs: "{{ proxmox_config[enclave_proxmox_node].validate_certs }}"
+
+    vmid: "{{ enclave_bastion.container_id }}"
+    node: "{{ proxmox_config[enclave_proxmox_node].node }}"
+    hostname: "{{ enclave_bastion.hostname }}"
+    ostemplate: "{{ enclave_lxc_template }}"
+
+    cores: "{{ enclave_bastion.cores }}"
+    memory: "{{ enclave_bastion.memory }}"
+    disk: "{{ enclave_bastion.disk_size }}"
+    swap: 0
+
+    netif: |
+      {
+        "net0": "name=eth0,bridge=vmbr0,ip={{ enclave_bastion.ip_address }}/24,gw={{ homelab_network.gateway_ip }}"
+      }
+
+    nameserver: "{{ homelab_network.dns_servers | join(' ') }}"
+    searchdomain: "{{ homelab_domain }}"
+    onboot: true
+    unprivileged: true
+
+    state: present
+  delegate_to: localhost
+  register: bastion_result
+  tags:
+    - bastion
+    - lxc
+
+- name: Start enclave bastion container  # noqa: no-handler
+  community.general.proxmox:
+    api_host: "{{ proxmox_config[enclave_proxmox_node].host }}"
+    api_token_id: "{{ proxmox_config[enclave_proxmox_node].api_token_id }}"
+    api_token_secret: "{{ proxmox_config[enclave_proxmox_node].api_token_secret }}"
+    validate_certs: "{{ proxmox_config[enclave_proxmox_node].validate_certs }}"
+
+    vmid: "{{ enclave_bastion.container_id }}"
+    node: "{{ proxmox_config[enclave_proxmox_node].node }}"
+    state: started
+  delegate_to: localhost
+  when: bastion_result is changed
+  tags:
+    - bastion
+    - lxc
+
+- name: Wait for bastion to be reachable  # noqa: no-handler
+  ansible.builtin.wait_for:
+    host: "{{ enclave_bastion.ip_address }}"
+    port: 22
+    delay: 10
+    timeout: 120
+  when: bastion_result is changed
+  tags:
+    - bastion
+
+- name: Add bastion to inventory
+  ansible.builtin.add_host:
+    name: "{{ enclave_bastion.hostname }}"
+    ansible_host: "{{ enclave_bastion.ip_address }}"
+    ansible_user: root
+    groups:
+      - enclave_infrastructure
+      - bastion_host
+  tags:
+    - bastion
+    - inventory
+
+- name: Configure bastion host security hardening
+  ansible.builtin.include_role:
+    name: homelab.common.security_hardening
+  vars:
+    hardening_ssh_port: "{{ enclave_bastion.ssh_port }}"
+    hardening_allowed_users:
+      - pbs
+    hardening_ssh_key_only: true
+    hardening_fail2ban_enabled: true
+    hardening_ufw_enabled: true
+    hardening_ufw_rules:
+      - rule: allow
+        port: "{{ enclave_bastion.ssh_port }}"
+        proto: tcp
+        from_ip: 192.168.0.110  # Only from production bastion
+  delegate_to: "{{ enclave_bastion.hostname }}"
+  tags:
+    - bastion
+    - security
+    - hardening
+
+- name: Configure strict fail2ban for enclave bastion SSH
+  ansible.builtin.copy:
+    dest: /etc/fail2ban/jail.d/enclave-sshd.conf
+    content: |
+      # Enclave Bastion SSH Protection
+      # Stricter rate limiting for pentesting environment access
+
+      [enclave-sshd]
+      enabled = true
+      port = {{ enclave_bastion.ssh_port | default(22) }}
+      filter = sshd
+      logpath = /var/log/auth.log
+      maxretry = 3        # Allow only 3 failed attempts (stricter than default 5)
+      findtime = 600      # Within 10 minutes
+      bantime = 3600      # Ban for 1 hour (stricter than default 10 min)
+
+      # Email notification (optional)
+      # action = %(action_mwl)s
+
+      # Custom action to log bans to enclave audit log
+      action = %(action_)s
+               enclave-audit
+
+      [enclave-audit]
+      actionstart = echo "$(date) - fail2ban: Starting SSH protection" >> {{ enclave_paths.audit_log }}
+      actionstop = echo "$(date) - fail2ban: Stopping SSH protection" >> {{ enclave_paths.audit_log }}
+      actioncheck =
+      actionban = echo "$(date) - fail2ban: Banned <ip> after <failures> failed login attempts" >> {{ enclave_paths.audit_log }}
+      actionunban = echo "$(date) - fail2ban: Unbanned <ip>" >> {{ enclave_paths.audit_log }}
+    mode: '0644'
+  delegate_to: "{{ enclave_bastion.hostname }}"
+  notify: restart fail2ban
+  tags:
+    - bastion
+    - security
+    - fail2ban
+
+- name: Ensure fail2ban is installed
+  ansible.builtin.apt:
+    name: fail2ban
+    state: present
+  delegate_to: "{{ enclave_bastion.hostname }}"
+  tags:
+    - bastion
+    - security
+    - fail2ban
+
+- name: Install enclave access tools on bastion
+  ansible.builtin.apt:
+    name:
+      - tmux
+      - vim
+      - htop
+      - net-tools
+      - tcpdump
+      - iptables
+      - nmap
+      - curl
+      - wget
+      - git
+    state: present
+    update_cache: true
+  delegate_to: "{{ enclave_bastion.hostname }}"
+  tags:
+    - bastion
+    - packages
+
+- name: Create enclave usage documentation on bastion
+  ansible.builtin.copy:
+    dest: "{{ enclave_paths.etc }}/motd"
+    content: "{{ enclave_usage_banner }}"
+    mode: '0644'
+  delegate_to: "{{ enclave_bastion.hostname }}"
+  tags:
+    - bastion
+    - documentation
+
+- name: Create enclave helper scripts on bastion
+  ansible.builtin.copy:
+    dest: "{{ enclave_paths.bin }}/{{ item.name }}"
+    content: "{{ item.content }}"
+    mode: '0755'
+  loop:
+    - name: enclave-status
+      content: |
+        #!/bin/bash
+        # Display enclave network and VM status
+        echo "=== Secure Enclave Status ==="
+        echo ""
+        echo "Management Network:"
+        ip addr show eth0 | grep inet
+        echo ""
+        echo "Active VMs in Enclave:"
+        nmap -sn {{ enclave_network.isolated_subnet }} | grep "Nmap scan report"
+        echo ""
+        echo "Firewall Rules:"
+        echo "  - Production networks: BLOCKED"
+        echo "  - Internet access: ALLOWED"
+        echo "  - DNS: ALLOWED"
+
+    - name: enclave-connect
+      content: |
+        #!/bin/bash
+        # Connect to enclave VMs
+        TARGET=${1:-{{ enclave_attacker.isolated_ip }}}
+        echo "Connecting to $TARGET..."
+        ssh -o StrictHostKeyChecking=no root@$TARGET
+
+    - name: enclave-shutdown
+      content: |
+        #!/bin/bash
+        # Emergency shutdown of all enclave VMs
+        echo "Shutting down all enclave VMs..."
+        for vm_id in {{ enclave_attacker.vm_id }} {% for vm in enclave_vulnerable_vms %}{{ vm.vm_id }} {% endfor %}; do
+          echo "Stopping VM/CT $vm_id..."
+          pvesh create /nodes/{{ proxmox_config[enclave_proxmox_node].node }}/qemu/$vm_id/status/stop || \
+          pvesh create /nodes/{{ proxmox_config[enclave_proxmox_node].node }}/lxc/$vm_id/status/stop
+        done
+        echo "All enclave VMs stopped."
+  delegate_to: "{{ enclave_bastion.hostname }}"
+  tags:
+    - bastion
+    - scripts

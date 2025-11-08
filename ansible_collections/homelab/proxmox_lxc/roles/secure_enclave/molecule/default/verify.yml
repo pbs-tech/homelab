@@ -1,0 +1,97 @@
+---
+# Molecule verify playbook for secure_enclave role
+
+- name: Verify
+  hosts: all
+  gather_facts: true
+  become: true
+
+  tasks:
+    - name: Include role defaults for verification
+      ansible.builtin.include_vars:
+        file: ../../defaults/main.yml
+
+    - name: Verify enclave network configuration
+      ansible.builtin.assert:
+        that:
+          - enclave_network.isolated_subnet == "10.10.0.0/24"
+          - enclave_network.management_subnet == "192.168.0.250/29"
+          - enclave_network.bridge_name == "vmbr1"
+        success_msg: "Network configuration is correct"
+
+    - name: Verify bastion configuration
+      ansible.builtin.assert:
+        that:
+          - enclave_bastion.container_id == 250
+          - enclave_bastion.ip_address == "192.168.0.250"
+          - enclave_bastion.hostname == "enclave-bastion"
+        success_msg: "Bastion configuration is correct"
+
+    - name: Verify router configuration
+      ansible.builtin.assert:
+        that:
+          - enclave_router.container_id == 251
+          - enclave_router.wan_ip == "192.168.0.251"
+          - enclave_router.lan_ip == "10.10.0.1"
+        success_msg: "Router configuration is correct"
+
+    - name: Verify attacker VM configuration
+      ansible.builtin.assert:
+        that:
+          - enclave_attacker.vm_id == 252
+          - enclave_attacker.management_ip == "192.168.0.252"
+          - enclave_attacker.isolated_ip == "10.10.0.10"
+        success_msg: "Attacker VM configuration is correct"
+
+    - name: Verify vulnerable VMs configuration
+      ansible.builtin.assert:
+        that:
+          - enclave_vulnerable_vms | length >= 2
+          - enclave_vulnerable_vms[0].name == "dvwa"
+          - enclave_vulnerable_vms[0].ip_address == "10.10.0.100"
+        success_msg: "Vulnerable VMs configuration is correct"
+
+    - name: Verify firewall rules exist
+      ansible.builtin.assert:
+        that:
+          - enclave_firewall_rules | length > 0
+          - enclave_firewall_rules | selectattr('name', 'search', 'production') | list | length > 0
+        success_msg: "Firewall rules are properly configured"
+
+    - name: Verify monitoring is enabled
+      ansible.builtin.assert:
+        that:
+          - enclave_monitoring.enabled | bool
+          - enclave_monitoring.audit_logging | bool
+          - enclave_monitoring.audit_log_path is defined
+        success_msg: "Monitoring configuration is correct"
+
+    - name: Verify auto-shutdown is configured
+      ansible.builtin.assert:
+        that:
+          - enclave_auto_shutdown.enabled | bool
+          - enclave_auto_shutdown.idle_timeout_hours == 4
+          - enclave_auto_shutdown.shutdown_schedule is defined
+        success_msg: "Auto-shutdown configuration is correct"
+
+    - name: Verify pentesting tools list
+      ansible.builtin.assert:
+        that:
+          - enclave_pentesting_tools | length > 10
+          - "'nmap' in enclave_pentesting_tools"
+          - "'metasploit-framework' in enclave_pentesting_tools"
+        success_msg: "Pentesting tools list is properly configured"
+
+    - name: Display verification summary
+      ansible.builtin.debug:
+        msg:
+          - "═══════════════════════════════════════"
+          - "Secure Enclave Role Verification: PASSED"
+          - "═══════════════════════════════════════"
+          - "✓ Network configuration validated"
+          - "✓ Component configurations validated"
+          - "✓ Firewall rules validated"
+          - "✓ Monitoring configuration validated"
+          - "✓ Auto-shutdown configuration validated"
+          - "✓ Pentesting tools validated"
+          - "═══════════════════════════════════════"
