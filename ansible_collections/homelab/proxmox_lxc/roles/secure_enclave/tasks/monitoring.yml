@@ -86,7 +86,7 @@
     content: |
       {{ enclave_paths.audit_log }} {
         daily
-        rotate 30
+        rotate 90  # 90-day retention for compliance and security audits
         compress
         delaycompress
         missingok

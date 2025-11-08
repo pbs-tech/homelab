@@ -14,3 +14,8 @@
 - name: reload systemd
   ansible.builtin.systemd:
     daemon_reload: true
+
+- name: restart fail2ban
+  ansible.builtin.service:
+    name: fail2ban
+    state: restarted

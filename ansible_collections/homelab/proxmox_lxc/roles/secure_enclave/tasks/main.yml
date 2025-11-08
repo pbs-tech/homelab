@@ -21,6 +21,12 @@
     - validation
     - proxmox
 
+- name: Validate resource allocation
+  ansible.builtin.include_tasks: resource_validation.yml
+  tags:
+    - validation
+    - resources
+
 - name: Include network isolation setup tasks
   ansible.builtin.include_tasks: network_isolation.yml
   tags:

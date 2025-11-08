@@ -95,6 +95,53 @@
     - security
     - hardening
 
+- name: Configure strict fail2ban for enclave bastion SSH
+  ansible.builtin.copy:
+    dest: /etc/fail2ban/jail.d/enclave-sshd.conf
+    content: |
+      # Enclave Bastion SSH Protection
+      # Stricter rate limiting for pentesting environment access
+
+      [enclave-sshd]
+      enabled = true
+      port = {{ enclave_bastion.ssh_port | default(22) }}
+      filter = sshd
+      logpath = /var/log/auth.log
+      maxretry = 3        # Allow only 3 failed attempts (stricter than default 5)
+      findtime = 600      # Within 10 minutes
+      bantime = 3600      # Ban for 1 hour (stricter than default 10 min)
+
+      # Email notification (optional)
+      # action = %(action_mwl)s
+
+      # Custom action to log bans to enclave audit log
+      action = %(action_)s
+               enclave-audit
+
+      [enclave-audit]
+      actionstart = echo "$(date) - fail2ban: Starting SSH protection" >> {{ enclave_paths.audit_log }}
+      actionstop = echo "$(date) - fail2ban: Stopping SSH protection" >> {{ enclave_paths.audit_log }}
+      actioncheck =
+      actionban = echo "$(date) - fail2ban: Banned <ip> after <failures> failed login attempts" >> {{ enclave_paths.audit_log }}
+      actionunban = echo "$(date) - fail2ban: Unbanned <ip>" >> {{ enclave_paths.audit_log }}
+    mode: '0644'
+  delegate_to: "{{ enclave_bastion.hostname }}"
+  notify: restart fail2ban
+  tags:
+    - bastion
+    - security
+    - fail2ban
+
+- name: Ensure fail2ban is installed
+  ansible.builtin.apt:
+    name: fail2ban
+    state: present
+  delegate_to: "{{ enclave_bastion.hostname }}"
+  tags:
+    - bastion
+    - security
+    - fail2ban
+
 - name: Install enclave access tools on bastion
   ansible.builtin.apt:
     name:
