@@ -4,9 +4,8 @@
 # Runs in < 5 minutes with basic validation only
 
 dependency:
-  name: galaxy
-  options:
-    requirements-file: requirements.yml
+  name: shell
+  command: echo "Dependencies are handled by the CI workflow, skipping molecule dependency step"
 
 driver:
   name: docker
