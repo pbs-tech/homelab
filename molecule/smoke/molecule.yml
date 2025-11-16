@@ -4,9 +4,8 @@
 # Runs in < 5 minutes with basic validation only
 
 dependency:
-  name: galaxy
-  options:
-    requirements-file: requirements.yml
+  name: shell
+  command: echo "Dependencies are handled by the CI workflow, skipping molecule dependency step"
 
 driver:
   name: docker
@@ -55,8 +54,9 @@ provisioner:
     ANSIBLE_REMOTE_TMP: /tmp/ansible-tmp
   config_options:
     defaults:
-      callbacks_enabled: profile_tasks,timer,yaml
-      stdout_callback: yaml
+      callbacks_enabled: profile_tasks,timer
+      stdout_callback: default
+      result_format: yaml
       host_key_checking: false
       deprecation_warnings: false
       remote_tmp: /tmp/ansible-tmp
