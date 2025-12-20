@@ -486,7 +486,7 @@ pct resize 200 rootfs +10G
 ```bash
 # Check cluster status
 kubectl get nodes -o wide
-kubectl describe node k3s-01
+kubectl describe node k3-01
 
 # Check K3s service status
 for i in {1..4}; do

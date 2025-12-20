@@ -220,8 +220,8 @@ ansible-playbook playbooks/site.yml
 | Radarr | 192.168.0.231 | Movie management | proxmox_lxc |
 | Jellyfin | 192.168.0.235 | Media streaming | proxmox_lxc |
 | **Cluster** | | |
-| k3s-01 | 192.168.0.111 | K3s server node | k3s |
-| k3s-02-04 | 192.168.0.112-114 | K3s agent nodes | k3s |
+| k3-01 | 192.168.0.111 | K3s server node | k3s |
+| k3-02-04 | 192.168.0.112-114 | K3s agent nodes | k3s |
 
 ## 🔧 Configuration
 

@@ -413,8 +413,8 @@ ansible-galaxy collection install *.tar.gz --force
 ### Network Layout
 
 - **Raspberry Pi K3s cluster**: 192.168.0.111-114
-  - k3s-01: 192.168.0.111 (server node)
-  - k3s-02, k3s-03, k3s-04: 192.168.0.112-114 (agent nodes)
+  - k3-01: 192.168.0.111 (server node)
+  - k3-02, k3-03, k3-04: 192.168.0.112-114 (agent nodes)
 - **Proxmox hosts**: 192.168.0.56-57 (pve-mac, pve-nas)
 - **Bastion hosts**:
   - k3s-bastion: 192.168.0.110 (main bastion)

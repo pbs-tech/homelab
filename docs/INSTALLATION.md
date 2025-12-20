@@ -47,10 +47,10 @@ Network Layout:
 │   k3s-bastion: 192.168.0.110               │
 ├─────────────────────────────────────────────┤
 │ K3s Cluster:                               │
-│   k3s-01 (server): 192.168.0.111          │
-│   k3s-02 (agent): 192.168.0.112           │
-│   k3s-03 (agent): 192.168.0.113           │
-│   k3s-04 (agent): 192.168.0.114           │
+│   k3-01 (server): 192.168.0.111          │
+│   k3-02 (agent): 192.168.0.112           │
+│   k3-03 (agent): 192.168.0.113           │
+│   k3-04 (agent): 192.168.0.114           │
 ├─────────────────────────────────────────────┤
 │ Core Services: 192.168.0.200-210           │
 │ NAS Services: 192.168.0.230-235            │
@@ -294,18 +294,18 @@ all:
       children:
         server:
           hosts:
-            k3s-01:
+            k3-01:
               ansible_host: 192.168.0.111
               ansible_user: pbs
         agent:
           hosts:
-            k3s-02:
+            k3-02:
               ansible_host: 192.168.0.112
               ansible_user: pbs
-            k3s-03:
+            k3-03:
               ansible_host: 192.168.0.113
               ansible_user: pbs
-            k3s-04:
+            k3-04:
               ansible_host: 192.168.0.114
               ansible_user: pbs
 ```
