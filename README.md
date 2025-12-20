@@ -65,12 +65,16 @@ This repository implements a layered homelab infrastructure using three core Ans
 
 ## 🚀 Quick Start
 
+For a streamlined setup experience, see **[SETUP.md](SETUP.md)** - a beginner-friendly guide that gets you running in 30 minutes.
+
+For detailed step-by-step installation, see **[docs/INSTALLATION.md](docs/INSTALLATION.md)**.
+
 ### Prerequisites
 
 - Ansible 2.17.0+
 - Python 3.12+
 - SSH access to target hosts
-- Domain name for homelab services
+- Domain name for homelab services (optional)
 
 ### Installation
 
@@ -364,7 +368,8 @@ See [SECURITY-ARCHITECTURE.md](SECURITY-ARCHITECTURE.md) and [.github/SECURITY.m
 
 ### Getting Started
 
-- [INSTALLATION.md](INSTALLATION.md) - Complete step-by-step installation guide
+- **[SETUP.md](SETUP.md)** - Quick setup guide (30 minutes to running infrastructure)
+- **[docs/INSTALLATION.md](docs/INSTALLATION.md)** - Complete step-by-step installation guide
 - [CLAUDE.md](CLAUDE.md) - Repository guidance and key commands
 - [API.md](API.md) - Comprehensive API documentation for all services
 
