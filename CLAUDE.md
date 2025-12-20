@@ -161,6 +161,36 @@ ansible-galaxy collection install homelab.k3s
 ansible-galaxy collection install homelab.proxmox_lxc
 ```
 
+### Vault Setup (Required for Proxmox Authentication)
+
+The Proxmox dynamic inventory requires vault variables for API authentication.
+
+```bash
+# Create vault file from example
+cp inventory/group_vars/vault.yml.example inventory/group_vars/vault.yml
+
+# Encrypt the vault file
+ansible-vault encrypt inventory/group_vars/vault.yml
+
+# Edit encrypted vault to add your credentials
+ansible-vault edit inventory/group_vars/vault.yml
+```
+
+Required vault variables:
+
+- `vault_proxmox_api_tokens.pve_mac.token_id` - API token ID for pve-mac
+- `vault_proxmox_api_tokens.pve_mac.token_secret` - API token secret for pve-mac
+- `vault_proxmox_api_tokens.pve_nas.token_id` - API token ID for pve-nas
+- `vault_proxmox_api_tokens.pve_nas.token_secret` - API token secret for pve-nas
+- `vault_ssl_email` - Email for Let's Encrypt certificates
+
+To create Proxmox API tokens:
+
+1. Login to Proxmox web UI
+2. Navigate to Datacenter > Permissions > API Tokens
+3. Create token with privileges: `VM.Allocate, VM.Config.*, VM.Console, VM.PowerMgmt,
+   Datastore.AllocateSpace, Sys.Audit`
+
 ### Code Quality and Linting
 
 ```bash
