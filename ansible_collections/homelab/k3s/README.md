@@ -18,13 +18,13 @@ An Ansible collection for deploying and managing K3s Kubernetes clusters on Rasp
 │                K3s Cluster                          │
 │                                                     │
 │  ┌──────────────┐  ┌──────────────┐ ┌─────────────┐ │
-│  │   k3s-01     │  │   k3s-02     │ │   k3s-03    │ │
+│  │   k3-01      │  │   k3-02      │ │   k3-03     │ │
 │  │ (Server)     │  │ (Agent)      │ │  (Agent)    │ │
 │  │ .111         │  │ .112         │ │   .113      │ │
 │  └──────────────┘  └──────────────┘ └─────────────┘ │
 │                                                     │
 │  ┌──────────────┐                                   │
-│  │   k3s-04     │                                   │
+│  │   k3-04      │                                   │
 │  │ (Agent)      │                                   │
 │  │ .114         │                                   │
 │  └──────────────┘                                   │
@@ -113,18 +113,18 @@ all:
       children:
         server:
           hosts:
-            k3s-01:
+            k3-01:
               ansible_host: 192.168.0.111
               ansible_user: pbs
         agent:
           hosts:
-            k3s-02:
+            k3-02:
               ansible_host: 192.168.0.112
               ansible_user: pbs
-            k3s-03:
+            k3-03:
               ansible_host: 192.168.0.113
               ansible_user: pbs
-            k3s-04:
+            k3-04:
               ansible_host: 192.168.0.114
               ansible_user: pbs
 ```

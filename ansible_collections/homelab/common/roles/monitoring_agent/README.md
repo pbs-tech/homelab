@@ -396,8 +396,8 @@ scrape_configs:
   - job_name: 'homelab-nodes'
     static_configs:
       - targets:
-        - '192.168.0.111:9100'  # k3s-01
-        - '192.168.0.112:9100'  # k3s-02
+        - '192.168.0.111:9100'  # k3-01
+        - '192.168.0.112:9100'  # k3-02
         - '192.168.0.200:9100'  # prometheus-lxc
 ```
 

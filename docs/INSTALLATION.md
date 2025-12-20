@@ -47,10 +47,10 @@ Network Layout:
 │   k3s-bastion: 192.168.0.110               │
 ├─────────────────────────────────────────────┤
 │ K3s Cluster:                               │
-│   k3s-01 (server): 192.168.0.111          │
-│   k3s-02 (agent): 192.168.0.112           │
-│   k3s-03 (agent): 192.168.0.113           │
-│   k3s-04 (agent): 192.168.0.114           │
+│   k3-01 (server): 192.168.0.111          │
+│   k3-02 (agent): 192.168.0.112           │
+│   k3-03 (agent): 192.168.0.113           │
+│   k3-04 (agent): 192.168.0.114           │
 ├─────────────────────────────────────────────┤
 │ Core Services: 192.168.0.200-210           │
 │ NAS Services: 192.168.0.230-235            │
@@ -63,7 +63,7 @@ Network Layout:
 #### Control Machine (Ansible Host)
 
 - **Ubuntu 22.04 LTS** or similar Linux distribution
-- **Python 3.8+** with pip
+- **Python 3.12+** with pip (aligned with CI/CD pipeline)
 - **Git** for repository management
 - **SSH client** configured with keys
 
@@ -99,8 +99,11 @@ python3 -m venv ~/.venv/homelab
 source ~/.venv/homelab/bin/activate
 
 # Install Ansible and required Python packages
-pip install ansible>=2.15.0
-pip install proxmoxer requests urllib3 kubernetes
+pip install -r requirements.txt
+
+# Or install manually:
+# pip install ansible-core>=2.17.0
+# pip install ansible-lint>=24.0.0 yamllint>=1.35.0
 
 # Install additional tools
 sudo apt install -y sshpass rsync jq
@@ -123,17 +126,17 @@ cat >> ~/.ssh/config << EOF
 Host pve-*
     User root
     IdentityFile ~/.ssh/homelab_ed25519
-    StrictHostKeyChecking no
+    StrictHostKeyChecking accept-new
 
 Host 192.168.0.*
     User pbs
     IdentityFile ~/.ssh/homelab_ed25519
-    StrictHostKeyChecking no
+    StrictHostKeyChecking accept-new
 
 Host k3s-*
     User pbs
     IdentityFile ~/.ssh/homelab_ed25519
-    StrictHostKeyChecking no
+    StrictHostKeyChecking accept-new
 EOF
 
 chmod 600 ~/.ssh/config
@@ -145,8 +148,8 @@ Clone and configure the homelab repository:
 
 ```bash
 # Clone repository
-git clone https://github.com/your-org/homelab-ansible.git
-cd homelab-ansible
+git clone https://github.com/pbs-tech/homelab.git
+cd homelab
 
 # Install Ansible collections and dependencies
 ansible-galaxy install -r requirements.yml
@@ -262,12 +265,15 @@ done
 Set up Ansible inventory:
 
 ```bash
-# Copy example inventory files
-cp inventory/hosts.yml.example inventory/hosts.yml
-cp inventory/group_vars/all.yml.example inventory/group_vars/all.yml
-
-# Edit inventory to match your environment
+# The repository includes a pre-configured inventory file
+# Edit it to match your environment
 nano inventory/hosts.yml
+
+# Create vault file from example
+cp inventory/group_vars/vault.yml.example inventory/group_vars/vault.yml
+
+# Review and customize as needed
+nano inventory/group_vars/vault.yml
 ```
 
 Example `hosts.yml`:
@@ -288,51 +294,40 @@ all:
       children:
         server:
           hosts:
-            k3s-01:
+            k3-01:
               ansible_host: 192.168.0.111
               ansible_user: pbs
         agent:
           hosts:
-            k3s-02:
+            k3-02:
               ansible_host: 192.168.0.112
               ansible_user: pbs
-            k3s-03:
+            k3-03:
               ansible_host: 192.168.0.113
               ansible_user: pbs
-            k3s-04:
+            k3-04:
               ansible_host: 192.168.0.114
               ansible_user: pbs
 ```
 
 ### 4.2 Configure Variables
 
-Edit `inventory/group_vars/all.yml`:
+The repository includes a pre-configured `inventory/hosts.yml` with default settings.
+Key variables are defined in collection-specific inventories:
 
-```yaml
-# Network configuration
-homelab_domain: "homelab.local"
-external_domain: "yourdomain.com"  # Your actual domain
-network_cidr: "192.168.0.0/24"
-gateway_ip: "192.168.0.1"
+- **Common settings**: `ansible_collections/homelab/common/inventory/group_vars/`
+- **K3s settings**: `ansible_collections/homelab/k3s/inventory/`
+- **Proxmox LXC settings**: `ansible_collections/homelab/proxmox_lxc/inventory/`
 
-# Proxmox configuration
-proxmox_hosts:
-  pve-mac:
-    host: "192.168.0.56"
-    api_user: "root@pam"
-    node_type: "compute"
-  pve-nas:
-    host: "192.168.0.57"
-    api_user: "root@pam"
-    node_type: "storage"
+Review and customize these files as needed for your environment:
 
-# K3s configuration
-k3s_version: "v1.28.3+k3s2"
-k3s_token: "{{ vault_k3s_token }}"
+```bash
+# Review root inventory
+cat inventory/hosts.yml
 
-# Service configuration
-ssl_email: "{{ vault_ssl_email }}"
-cloudflare_api_token: "{{ vault_cloudflare_api_token }}"
+# Review collection inventories
+cat ansible_collections/homelab/k3s/inventory/hosts.yml
+cat ansible_collections/homelab/proxmox_lxc/inventory/proxmox.yml
 ```
 
 ### 4.3 Create Vault File
@@ -340,28 +335,40 @@ cloudflare_api_token: "{{ vault_cloudflare_api_token }}"
 Store sensitive data securely:
 
 ```bash
-# Create vault file
-ansible-vault create inventory/group_vars/all/vault.yml
+# Create vault file from example
+cp inventory/group_vars/vault.yml.example inventory/group_vars/vault.yml
 
-# Add required vault variables:
+# Edit the vault file to add your credentials
+nano inventory/group_vars/vault.yml
+
+# Encrypt the vault file
+ansible-vault encrypt inventory/group_vars/vault.yml
+
+# Or edit an already encrypted vault:
+ansible-vault edit inventory/group_vars/vault.yml
+```
+
+Required vault variables (see `vault.yml.example` for template):
+
+```yaml
 ---
-# Infrastructure passwords
-vault_proxmox_password: "your_proxmox_root_password"
+# Proxmox API Token Authentication (preferred method)
+vault_proxmox_api_tokens:
+  pve_mac:
+    token_id: "root@pam!ansible"
+    token_secret: "your-token-secret"
+  pve_nas:
+    token_id: "root@pam!ansible"
+    token_secret: "your-token-secret"
 
-# SSL configuration
+# SSL/TLS Configuration
 vault_ssl_email: "admin@yourdomain.com"
-vault_cloudflare_api_token: "your_cloudflare_token"
+```
 
-# Service credentials
-vault_grafana_admin_password: "secure_grafana_password"
-vault_k3s_token: "generated_k3s_token"
+**Vault Password Management:**
 
-# Service API keys
-vault_sonarr_api_key: "generated_sonarr_key"
-vault_radarr_api_key: "generated_radarr_key"
-vault_prowlarr_api_key: "generated_prowlarr_key"
-
-# Save vault password
+```bash
+# Save vault password for convenience
 echo "your_vault_password" > ~/.ansible_vault_pass
 chmod 600 ~/.ansible_vault_pass
 export ANSIBLE_VAULT_PASSWORD_FILE=~/.ansible_vault_pass
@@ -514,8 +521,8 @@ Configure VPN clients for remote access:
 
 ```bash
 # Generate client configurations
-ansible-playbook site.yml --tags "wireguard_client" -e "client_name=laptop"
-ansible-playbook site.yml --tags "wireguard_client" -e "client_name=phone"
+ansible-playbook playbooks/networking.yml --tags "wireguard" -e "client_name=laptop"
+ansible-playbook playbooks/networking.yml --tags "wireguard" -e "client_name=phone"
 
 # Copy client configs
 scp pbs@192.168.0.203:/opt/wireguard/clients/laptop.conf ./

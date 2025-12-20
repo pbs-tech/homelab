@@ -353,7 +353,7 @@ semodule -l | grep k3s
 ansible-playbook test-download.yml --tags download
 
 # Test distribution to one node
-ansible-playbook airgap-deploy.yml --limit k3s-01
+ansible-playbook airgap-deploy.yml --limit k3-01
 
 # Verify before full deployment
 ansible k3s_cluster -m shell -a "ls -lh /var/lib/rancher/k3s/agent/images/"

@@ -303,7 +303,7 @@ pct exec 203 -- ip route show
 pct exec 203 -- systemctl restart wg-quick@wg0
 
 # Regenerate client configs
-ansible-playbook site.yml --tags "wireguard_client" -e "client_name=laptop"
+ansible-playbook playbooks/networking.yml --tags "wireguard" -e "client_name=laptop"
 
 # Fix IP forwarding
 pct exec 203 -- echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
@@ -486,7 +486,7 @@ pct resize 200 rootfs +10G
 ```bash
 # Check cluster status
 kubectl get nodes -o wide
-kubectl describe node k3s-01
+kubectl describe node k3-01
 
 # Check K3s service status
 for i in {1..4}; do

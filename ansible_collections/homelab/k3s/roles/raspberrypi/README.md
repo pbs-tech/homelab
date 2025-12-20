@@ -359,8 +359,8 @@ ansible-playbook playbook.yml -e "debug=true" -v
 ```ini
 # Group Raspberry Pi nodes separately
 [pi_nodes]
-k3s-01 ansible_host=192.168.0.111
-k3s-02 ansible_host=192.168.0.112
+k3-01 ansible_host=192.168.0.111
+k3-02 ansible_host=192.168.0.112
 
 [x86_nodes]
 k3s-server ansible_host=192.168.0.100
