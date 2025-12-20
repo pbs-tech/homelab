@@ -126,17 +126,17 @@ cat >> ~/.ssh/config << EOF
 Host pve-*
     User root
     IdentityFile ~/.ssh/homelab_ed25519
-    StrictHostKeyChecking no
+    StrictHostKeyChecking accept-new
 
 Host 192.168.0.*
     User pbs
     IdentityFile ~/.ssh/homelab_ed25519
-    StrictHostKeyChecking no
+    StrictHostKeyChecking accept-new
 
 Host k3s-*
     User pbs
     IdentityFile ~/.ssh/homelab_ed25519
-    StrictHostKeyChecking no
+    StrictHostKeyChecking accept-new
 EOF
 
 chmod 600 ~/.ssh/config
@@ -521,8 +521,8 @@ Configure VPN clients for remote access:
 
 ```bash
 # Generate client configurations
-ansible-playbook site.yml --tags "wireguard_client" -e "client_name=laptop"
-ansible-playbook site.yml --tags "wireguard_client" -e "client_name=phone"
+ansible-playbook playbooks/networking.yml --tags "wireguard" -e "client_name=laptop"
+ansible-playbook playbooks/networking.yml --tags "wireguard" -e "client_name=phone"
 
 # Copy client configs
 scp pbs@192.168.0.203:/opt/wireguard/clients/laptop.conf ./

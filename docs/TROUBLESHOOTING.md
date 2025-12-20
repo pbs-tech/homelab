@@ -303,7 +303,7 @@ pct exec 203 -- ip route show
 pct exec 203 -- systemctl restart wg-quick@wg0
 
 # Regenerate client configs
-ansible-playbook site.yml --tags "wireguard_client" -e "client_name=laptop"
+ansible-playbook playbooks/networking.yml --tags "wireguard" -e "client_name=laptop"
 
 # Fix IP forwarding
 pct exec 203 -- echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf

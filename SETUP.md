@@ -104,6 +104,12 @@ ansible-vault encrypt inventory/group_vars/vault.yml
 # Save vault password for convenience
 echo "your_vault_password" > ~/.ansible_vault_pass
 chmod 600 ~/.ansible_vault_pass
+
+# Configure Ansible to use the vault password file
+export ANSIBLE_VAULT_PASSWORD_FILE=~/.ansible_vault_pass
+
+# Add to shell profile for persistence (add to .bashrc or .zshrc)
+echo 'export ANSIBLE_VAULT_PASSWORD_FILE=~/.ansible_vault_pass' >> ~/.bashrc
 ```
 
 ### Step 5: Review and Customize Inventory (5 minutes)
@@ -218,7 +224,7 @@ For remote access to your homelab:
 
 ```bash
 # Generate VPN client configuration
-ansible-playbook site.yml --tags "wireguard_client" -e "client_name=laptop"
+ansible-playbook playbooks/networking.yml --tags "wireguard" -e "client_name=laptop"
 
 # Copy configuration from WireGuard server
 scp pbs@192.168.0.203:/opt/wireguard/clients/laptop.conf ./
@@ -231,6 +237,7 @@ scp pbs@192.168.0.203:/opt/wireguard/clients/laptop.conf ./
 ### Issue: "SSH connection refused"
 
 **Solution:**
+
 ```bash
 # Verify SSH service is running on target
 ssh user@target-ip "sudo systemctl status sshd"
@@ -242,6 +249,7 @@ ssh user@target-ip "sudo ufw status"
 ### Issue: "Proxmox API connection failed"
 
 **Solution:**
+
 ```bash
 # Test API token manually
 curl -k -H "Authorization: PVEAPIToken=root@pam!ansible=your-secret" \
@@ -253,6 +261,7 @@ curl -k -H "Authorization: PVEAPIToken=root@pam!ansible=your-secret" \
 ### Issue: "Container creation failed"
 
 **Solution:**
+
 ```bash
 # Check available storage on Proxmox
 ssh root@pve-mac "df -h /var/lib/vz"
@@ -267,6 +276,7 @@ ssh root@pve-mac "pveam download local ubuntu-22.04-standard_22.04-1_amd64.tar.z
 ### Issue: "Service not responding"
 
 **Solution:**
+
 ```bash
 # Check service status
 ansible prometheus -m shell -a "systemctl status prometheus"
@@ -303,6 +313,7 @@ telnet 192.168.0.200 9090
 ### Optional Enhancements
 
 - **Secure Enclave**: Deploy isolated pentesting environment
+
   ```bash
   ansible-playbook playbooks/secure-enclave.yml
   ```
