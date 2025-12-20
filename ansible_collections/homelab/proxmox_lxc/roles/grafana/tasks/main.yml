@@ -13,15 +13,23 @@
       - software-properties-common
     state: present
 
-- name: Add Grafana GPG key
-  ansible.builtin.apt_key:
-    url: https://apt.grafana.com/gpg.key
-    state: present
+- name: Create keyrings directory
+  ansible.builtin.file:
+    path: /usr/share/keyrings
+    state: directory
+    mode: "0755"
 
-- name: Add Grafana repository
+- name: Add Grafana GPG key (modern method)
+  ansible.builtin.get_url:
+    url: https://apt.grafana.com/gpg.key
+    dest: /usr/share/keyrings/grafana.asc
+    mode: "0644"
+
+- name: Add Grafana repository (with signed-by)
   ansible.builtin.apt_repository:
-    repo: deb https://apt.grafana.com stable main
+    repo: "deb [signed-by=/usr/share/keyrings/grafana.asc] https://apt.grafana.com stable main"
     state: present
+    filename: grafana
 
 - name: Install Grafana
   ansible.builtin.apt:

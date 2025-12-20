@@ -1,0 +1,41 @@
+---
+# Vault Variables Example
+#
+# Copy this file to vault.yml and encrypt it with ansible-vault:
+#   cp vault.yml.example vault.yml
+#   ansible-vault encrypt vault.yml
+#
+# To edit encrypted vault:
+#   ansible-vault edit vault.yml
+#
+# To use with playbooks:
+#   ansible-playbook site.yml --ask-vault-pass
+#   or use a vault password file:
+#   ansible-playbook site.yml --vault-password-file ~/.vault_pass
+
+# Proxmox API Token Authentication (preferred method)
+# Create API tokens in Proxmox: Datacenter > Permissions > API Tokens
+# Required privileges: VM.Allocate, VM.Config.*, VM.Console, VM.PowerMgmt,
+#                      Datastore.AllocateSpace, Sys.Audit
+vault_proxmox_api_tokens:
+  pve_mac:
+    # Format: user@realm!token-name
+    token_id: "root@pam!ansible"
+    token_secret: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+  pve_nas:
+    token_id: "root@pam!ansible"
+    token_secret: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+# Proxmox Password Authentication (legacy fallback)
+# Only used if API tokens are not configured
+vault_proxmox_passwords:
+  pve_mac: "your-pve-mac-password"
+  pve_nas: "your-pve-nas-password"
+
+# SSL/TLS Configuration
+# Email for Let's Encrypt certificate notifications
+vault_ssl_email: "admin@example.com"
+
+# Additional secrets can be added here as needed
+# vault_grafana_admin_password: "your-grafana-password"
+# vault_wireguard_private_key: "your-wireguard-key"

@@ -10,9 +10,9 @@ GREEN := \033[0;32m
 RED := \033[0;31m
 NC := \033[0m # No Color
 
-# Default Python and Ansible versions
-PYTHON_VERSION ?= 3.11
-ANSIBLE_CORE_VERSION ?= 2.15
+# Default Python and Ansible versions (aligned with CI/CD pipeline)
+PYTHON_VERSION ?= 3.12
+ANSIBLE_CORE_VERSION ?= 2.17
 
 # Collection paths
 COLLECTIONS_PATH := ansible_collections/homelab
