@@ -124,13 +124,27 @@ For development or customization, clone the repository:
 
 3. **Configure inventory:**
 
+   The repository includes a consolidated inventory at `inventory/hosts.yml` for
+   running playbooks from the repository root. Collection-specific inventories
+   are in each collection's `inventory/` directory.
+
    ```bash
-   # Copy and customize inventory files
-   cp inventory/hosts.yml.example inventory/hosts.yml
-   cp inventory/group_vars/all.yml.example inventory/group_vars/all.yml
+   # The repository includes pre-configured inventory files:
+   # - inventory/hosts.yml (consolidated static inventory)
+   # - ansible_collections/homelab/k3s/inventory/hosts.yml (K3s nodes)
+   # - ansible_collections/homelab/proxmox_lxc/inventory/proxmox.yml (pve-mac dynamic)
+   # - ansible_collections/homelab/proxmox_lxc/inventory/pve-nas.yml (pve-nas dynamic)
 
    # Create vault file for sensitive data
-   ansible-vault create inventory/group_vars/all/vault.yml
+   ansible-vault create inventory/group_vars/vault.yml
+   ```
+
+   **Multi-Proxmox-Host Support:** Use both dynamic inventory files to discover
+   containers on all Proxmox nodes:
+
+   ```bash
+   # Query all containers from both Proxmox hosts
+   ansible-inventory -i ansible_collections/homelab/proxmox_lxc/inventory/ --graph
    ```
 
 ### Deployment Options
@@ -206,6 +220,29 @@ ansible-playbook playbooks/site.yml
 | k3s-02-04 | 192.168.0.112-114 | K3s agent nodes | k3s |
 
 ## 🔧 Configuration
+
+### Control Point Configuration
+
+This repository supports running playbooks from multiple control points:
+
+1. **Local Machine** (default) - Run from your workstation with SSH access to targets
+2. **Bastion Host** - Run from k3s-bastion (192.168.0.110) for production operations
+3. **Proxmox Node** - Run directly on pve-mac/pve-nas for container management
+
+```bash
+# From local machine (default - uses API calls over network)
+ansible-playbook playbooks/infrastructure.yml
+
+# From bastion host (SSH to bastion first)
+ssh pbs@192.168.0.110
+cd ~/ansible/homelab
+ansible-playbook playbooks/infrastructure.yml
+
+# For LXC container management from Proxmox node itself
+ssh root@192.168.0.56
+cd /root/homelab
+ansible-playbook -i inventory/hosts.yml site.yml
+```
 
 ### Network Configuration
 
