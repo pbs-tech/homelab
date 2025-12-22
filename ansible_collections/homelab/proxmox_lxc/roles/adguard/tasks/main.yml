@@ -1,6 +1,18 @@
 ---
 # AdGuard Home deployment and configuration
 
+- name: Validate AdGuard admin password is configured
+  ansible.builtin.assert:
+    that:
+      - adguard_admin_password is defined
+      - adguard_admin_password | length >= 12
+      - adguard_admin_password != 'changeme'
+    fail_msg: >-
+      AdGuard admin password must be set in vault (vault_adguard_admin_password)
+      and be at least 12 characters. Do not use default 'changeme' password.
+    success_msg: "AdGuard admin password is properly configured"
+  tags: validate
+
 - name: Create AdGuard user
   ansible.builtin.user:
     name: "{{ adguard_user }}"
@@ -79,7 +91,7 @@
 - name: Generate admin password hash if not provided
   ansible.builtin.shell: |
     set -o pipefail
-    password="{{ adguard_admin_password | default('changeme') }}"
+    password="{{ adguard_admin_password }}"
     htpasswd -bnBC 10 "" "$password" | tr -d ':\n'
   args:
     executable: /bin/bash

@@ -4,7 +4,7 @@
   block:
     - name: Verify Ansible meets airgap version requirements.
       ansible.builtin.assert:
-        that: ansible_version.full is version_compare('2.12', '>=')
+        that: ansible_version.full is version('2.12', '>=')
         msg: The Airgap role requires at least ansible-core 2.12
 
     - name: Check for existing install script
@@ -39,18 +39,16 @@
 
     - name: Distribute K3s binary {{ k3s_arch }}
       ansible.builtin.copy:
-        src: "{{ item }}"
+        src: "{{ lookup('ansible.builtin.first_found', k3s_binary_files, errors='ignore') }}"
         dest: /usr/local/bin/k3s
         owner: root
         group: root
         mode: "0755"
-      with_first_found:
-        - files:
-            - "{{ airgap_dir }}/k3s-{{ k3s_arch }}"
-            - "{{ airgap_dir }}/k3s"
-          # with_first_found always runs, even inside the when block
-          # so we need to skip it if the file is not found
-          skip: true
+      vars:
+        k3s_binary_files:
+          - "{{ airgap_dir }}/k3s-{{ k3s_arch }}"
+          - "{{ airgap_dir }}/k3s"
+      when: lookup('ansible.builtin.first_found', k3s_binary_files, errors='ignore') | length > 0
 
     - name: Distribute K3s SELinux RPM
       ansible.builtin.copy:
@@ -59,8 +57,7 @@
         owner: root
         group: root
         mode: "0755"
-      with_fileglob:
-        - "{{ airgap_dir }}/k3s-selinux*.rpm"
+      loop: "{{ lookup('ansible.builtin.fileglob', airgap_dir + '/k3s-selinux*.rpm', wantlist=True) }}"
       register: selinux_copy
       ignore_errors: true
 
@@ -87,10 +84,12 @@
         owner: root
         group: root
         mode: "0755"
-      with_fileglob:
-        - "{{ airgap_dir }}/*.tar.gz"
-        - "{{ airgap_dir }}/*.tar.zst"
-        - "{{ airgap_dir }}/*.tar"
+      loop: >-
+        {{
+          lookup('ansible.builtin.fileglob', airgap_dir + '/*.tar.gz', wantlist=True) +
+          lookup('ansible.builtin.fileglob', airgap_dir + '/*.tar.zst', wantlist=True) +
+          lookup('ansible.builtin.fileglob', airgap_dir + '/*.tar', wantlist=True)
+        }}
 
     - name: Run K3s Install [server]
       when: inventory_hostname in groups['server'] or ansible_host in groups['server']

@@ -36,6 +36,17 @@ vault_proxmox_passwords:
 # Email for Let's Encrypt certificate notifications
 vault_ssl_email: "admin@example.com"
 
+# Service Secrets - REQUIRED for deployment
+# Grafana
+vault_grafana_admin_password: "your-grafana-admin-password"
+# Generate with: openssl rand -base64 32
+vault_grafana_secret_key: "your-grafana-secret-key-base64"
+
+# AdGuard Home - minimum 12 characters
+vault_adguard_admin_password: "your-adguard-admin-password"
+
+# WireGuard VPN
+vault_wireguard_server_private_key: "your-wireguard-server-private-key"
+# Generate with: wg genkey
+
 # Additional secrets can be added here as needed
-# vault_grafana_admin_password: "your-grafana-password"
-# vault_wireguard_private_key: "your-wireguard-key"

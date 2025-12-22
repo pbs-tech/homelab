@@ -1,18 +1,35 @@
 ---
+- name: Validate required Traefik variables
+  ansible.builtin.assert:
+    that:
+      - traefik_version is defined
+      - traefik_ssl_email is defined
+      - traefik_ssl_email != 'admin@homelab.local' or not traefik_ssl_enabled | default(false)
+      - homelab_domain is defined
+    fail_msg: |
+      Required Traefik configuration variables are missing or using defaults.
+      Please set in inventory or group_vars:
+        - traefik_version: {{ traefik_version | default('undefined') }}
+        - traefik_ssl_email: {{ traefik_ssl_email | default('undefined') }}
+        - homelab_domain: {{ homelab_domain | default('undefined') }}
+      Note: traefik_ssl_email must be set to a valid email for Let's Encrypt.
+    success_msg: "Traefik configuration validated successfully"
+  tags: validate
+
 - name: Update system packages
-  apt:
+  ansible.builtin.apt:
     update_cache: true
     upgrade: true
 
 - name: Install required packages
-  apt:
+  ansible.builtin.apt:
     name:
       - curl
       - ca-certificates
     state: present
 
 - name: Create traefik user
-  user:
+  ansible.builtin.user:
     name: traefik
     system: true
     shell: /bin/false
@@ -20,7 +37,7 @@
     create_home: true
 
 - name: Create traefik directories
-  file:
+  ansible.builtin.file:
     path: "{{ item }}"
     state: directory
     owner: traefik
@@ -33,20 +50,20 @@
     - /var/log/traefik
 
 - name: Download Traefik binary
-  get_url:
+  ansible.builtin.get_url:
     # yamllint disable-line rule:line-length
     url: https://github.com/traefik/traefik/releases/download/v{{ traefik_version }}/traefik_v{{ traefik_version }}_linux_amd64.tar.gz
     dest: /tmp/traefik.tar.gz
     mode: "0644"
 
 - name: Extract Traefik binary
-  unarchive:
+  ansible.builtin.unarchive:
     src: /tmp/traefik.tar.gz
     dest: /tmp
     remote_src: true
 
 - name: Install Traefik binary
-  copy:
+  ansible.builtin.copy:
     src: /tmp/traefik
     dest: /usr/local/bin/traefik
     owner: root
@@ -55,7 +72,7 @@
     remote_src: true
 
 - name: Create Traefik static configuration
-  template:
+  ansible.builtin.template:
     src: traefik.yml.j2
     dest: /etc/traefik/traefik.yml
     owner: traefik
@@ -64,7 +81,7 @@
   notify: Restart traefik
 
 - name: Create Traefik dynamic configuration for services
-  template:
+  ansible.builtin.template:
     src: dynamic.yml.j2
     dest: /etc/traefik/dynamic/services.yml
     owner: traefik
@@ -73,7 +90,7 @@
   notify: Restart traefik
 
 - name: Create Traefik systemd service
-  template:
+  ansible.builtin.template:
     src: traefik.service.j2
     dest: /etc/systemd/system/traefik.service
     mode: "0644"
@@ -82,7 +99,7 @@
     - Restart traefik
 
 - name: Enable and start Traefik
-  systemd:
+  ansible.builtin.systemd:
     name: traefik
     enabled: true
     state: started

@@ -21,7 +21,10 @@ validate_certs: false
 # Compose inventory groups based on Proxmox attributes
 compose:
   # Set ansible_host to the first IP address found
-  ansible_host: ansible_host | default(proxmox_ipconfig0_ip0.split('/')[0]) if proxmox_ipconfig0_ip0 else proxmox_net0_ip
+  # yamllint disable-line rule:line-length
+  ansible_host: >-
+    {{ ansible_host | default(proxmox_ipconfig0_ip0.split('/')[0])
+    if proxmox_ipconfig0_ip0 else proxmox_net0_ip }}
   # Set container_id from Proxmox VMID
   container_id: proxmox_vmid
   # Set service_port based on known services (can be overridden in host_vars)
@@ -32,10 +35,9 @@ compose:
     9221 if inventory_hostname.startswith('pve-exporter') else
     53 if inventory_hostname.startswith('unbound') else
     51820 if inventory_hostname.startswith('wireguard') else
-    # yamllint disable-line rule:line-length
-    # yamllint disable-line rule:line-length
-    80 if inventory_hostname.startswith('adguard') or inventory_hostname.startswith('traefik') or inventory_hostname.startswith('openwrt')
-    else
+    80 if inventory_hostname.startswith('adguard') else
+    80 if inventory_hostname.startswith('traefik') else
+    80 if inventory_hostname.startswith('openwrt') else
     8123 if inventory_hostname.startswith('homeassistant') else
     3100 if inventory_hostname.startswith('loki') else
     8989 if inventory_hostname.startswith('sonarr') else

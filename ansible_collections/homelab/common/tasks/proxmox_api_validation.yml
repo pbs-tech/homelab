@@ -2,6 +2,19 @@
 # Proxmox API validation and connectivity testing tasks
 # These tasks validate API token configuration and test connectivity
 
+- name: Security warning - SSL certificate validation disabled
+  ansible.builtin.debug:
+    msg: |
+      ⚠️  WARNING: SSL certificate validation is DISABLED for Proxmox API.
+      This exposes credentials to man-in-the-middle attacks.
+      For production, set: proxmox_validate_certs=true
+      Or run with: ansible-playbook ... -e proxmox_validate_certs=true
+  when: not (proxmox_validate_certs | default(false) | bool)
+  tags:
+    - proxmox
+    - validation
+    - security
+
 - name: Validate Proxmox API token configuration
   ansible.builtin.assert:
     that:
@@ -46,6 +59,7 @@
   register: proxmox_token_test
   failed_when: false
   changed_when: false
+  no_log: true  # Protect API token from logs
   when:
     - proxmox_api_token_id is defined and proxmox_api_token_id != ""
     - proxmox_api_token_secret is defined and proxmox_api_token_secret != ""
@@ -68,6 +82,7 @@
   register: proxmox_password_test
   failed_when: false
   changed_when: false
+  no_log: true  # Protect password from logs
   when:
     - proxmox_api_token_id is not defined or proxmox_api_token_id == ""
     - proxmox_user is defined and proxmox_user != ""

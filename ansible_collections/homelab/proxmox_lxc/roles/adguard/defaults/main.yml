@@ -16,7 +16,9 @@ adguard_web_session_ttl: 720
 
 # Authentication
 adguard_admin_username: "admin"
-adguard_admin_password_hash: ""  # Generate with: htpasswd -bnBC 10 "" password | tr -d ':\n'
+# REQUIRED: Must be set in vault - minimum 12 characters
+adguard_admin_password: "{{ vault_adguard_admin_password }}"
+adguard_admin_password_hash: ""  # Auto-generated from adguard_admin_password if empty
 adguard_auth_attempts: 5
 adguard_block_auth_min: 15
 

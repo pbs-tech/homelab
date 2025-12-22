@@ -32,6 +32,10 @@ grafana_database_path: "{{ grafana_data_dir }}/grafana.db"
 grafana_log_mode: file
 grafana_log_level: info
 
+# Security: Secret key for signing cookies and session tokens
+# MUST be set in vault - generate with: openssl rand -base64 32
+grafana_secret_key: "{{ vault_grafana_secret_key }}"
+
 # Datasources configuration
 grafana_datasources:
   - name: Prometheus
