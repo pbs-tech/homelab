@@ -22,6 +22,14 @@ Deploys and configures Grafana as a powerful visualization and analytics platfor
 - Valid domain name for HTTPS access (optional)
 - Sufficient storage for dashboard definitions and plugins
 
+### Required Vault Variables
+
+The following vault variables must be configured before deployment:
+
+- `vault_grafana_admin_password` - Admin user password
+- `vault_grafana_secret_key` - Secret key for signing cookies and session tokens
+  (generate with: `openssl rand -base64 32`)
+
 ## Role Variables
 
 ### Version and Installation

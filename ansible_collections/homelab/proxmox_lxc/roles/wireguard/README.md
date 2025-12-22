@@ -22,6 +22,13 @@ This role provides configuration management for WireGuard VPN server deployment 
 - Public IP or dynamic DNS for external access
 - UDP port forwarding configuration
 
+### Required Vault Variables
+
+The following vault variable must be configured before deployment:
+
+- `vault_wireguard_server_private_key` - WireGuard server private key
+  (generate with: `wg genkey`)
+
 ## Role Variables
 
 ### Server Configuration

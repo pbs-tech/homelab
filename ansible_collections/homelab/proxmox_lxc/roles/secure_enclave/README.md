@@ -184,6 +184,23 @@ Security Boundaries:
 - Available IP addresses in 192.168.0.250-254 range
 - Storage for LXC containers and VMs
 
+### Security Acknowledgement
+
+Before deploying the secure enclave, you **must** acknowledge the security risks by setting:
+
+```yaml
+enclave_security_acknowledged: true
+```
+
+This can be set via:
+- Extra vars: `-e enclave_security_acknowledged=true`
+- Inventory: `group_vars/all.yml`
+- Host vars: `host_vars/proxmox.yml`
+
+This requirement exists because the enclave deploys components that may require elevated
+privileges (network routing, firewall management). Review the security notice in
+`defaults/main.yml` before proceeding.
+
 ## Installation
 
 This role is part of the `homelab.proxmox_lxc` collection:
@@ -196,10 +213,10 @@ ansible-galaxy collection install homelab.proxmox_lxc
 
 ### Basic Deployment
 
-Deploy the entire secure enclave:
+Deploy the entire secure enclave (requires security acknowledgement):
 
 ```bash
-ansible-playbook playbooks/secure-enclave.yml
+ansible-playbook playbooks/secure-enclave.yml -e enclave_security_acknowledged=true
 ```
 
 ### Selective Deployment
@@ -208,16 +225,16 @@ Deploy specific components using tags:
 
 ```bash
 # Network isolation only
-ansible-playbook playbooks/secure-enclave.yml --tags network,firewall
+ansible-playbook playbooks/secure-enclave.yml --tags network,firewall -e enclave_security_acknowledged=true
 
 # Bastion and infrastructure
-ansible-playbook playbooks/secure-enclave.yml --tags infrastructure
+ansible-playbook playbooks/secure-enclave.yml --tags infrastructure -e enclave_security_acknowledged=true
 
 # Attacker VM only
-ansible-playbook playbooks/secure-enclave.yml --tags attacker
+ansible-playbook playbooks/secure-enclave.yml --tags attacker -e enclave_security_acknowledged=true
 
 # Vulnerable targets only
-ansible-playbook playbooks/secure-enclave.yml --tags vulnerable
+ansible-playbook playbooks/secure-enclave.yml --tags vulnerable -e enclave_security_acknowledged=true
 ```
 
 ### Accessing the Enclave
