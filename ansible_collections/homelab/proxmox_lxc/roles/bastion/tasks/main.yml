@@ -118,8 +118,8 @@
 
 - name: Copy ansible collections to bastion
   ansible.posix.synchronize:
-    src: /home/pbs/ansible/k3s-bastion/ansible_collections/
-    dest: /home/pbs/ansible_collections/
+    src: "{{ bastion_sync_source_base }}/ansible_collections/"
+    dest: "{{ bastion_sync_dest_base }}/ansible_collections/"
     delete: true
     recursive: true
   delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
@@ -128,8 +128,8 @@
 
 - name: Copy main site.yml to bastion
   ansible.builtin.copy:
-    src: /home/pbs/ansible/k3s-bastion/site.yml
-    dest: /home/pbs/site.yml
+    src: "{{ bastion_sync_source_base }}/site.yml"
+    dest: "{{ bastion_sync_dest_base }}/site.yml"
     mode: "0644"
   delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
   become: true

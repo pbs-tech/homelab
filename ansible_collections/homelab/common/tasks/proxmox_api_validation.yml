@@ -15,6 +15,27 @@
     - validation
     - security
 
+- name: Validate SSL configuration for production
+  ansible.builtin.assert:
+    that:
+      - proxmox_validate_certs | default(false) | bool or proxmox_ssl_validation_override | default(false) | bool
+    fail_msg: |
+      SSL certificate validation is disabled in a production environment.
+      This is a security risk that exposes API credentials to MITM attacks.
+
+      To fix, either:
+      1. Install valid SSL certificates and set: proxmox_validate_certs=true
+      2. Explicitly acknowledge the risk: -e proxmox_ssl_validation_override=true
+
+      See docs/security/proxmox-ssl-setup.md for certificate installation guide.
+    success_msg: "SSL configuration validated for production environment"
+  when: deployment_environment | default('development') == 'production'
+  tags:
+    - proxmox
+    - validation
+    - security
+    - production
+
 - name: Validate Proxmox API token configuration
   ansible.builtin.assert:
     that:

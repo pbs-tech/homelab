@@ -63,6 +63,16 @@ proxmox_api_defaults:
 # Or set in production inventory group_vars
 proxmox_validate_certs: false  # CHANGE TO true FOR PRODUCTION
 
+# Deployment environment setting
+# Set to 'production' to enforce SSL validation and other security requirements
+# Options: development, staging, production
+deployment_environment: development
+
+# SSL validation override flag
+# Set to true to explicitly acknowledge running without SSL validation in production
+# ansible-playbook ... -e proxmox_ssl_validation_override=true
+proxmox_ssl_validation_override: false
+
 # Default Proxmox node for operations (can be overridden per host/group)
 proxmox_default_node: pve_mac
 

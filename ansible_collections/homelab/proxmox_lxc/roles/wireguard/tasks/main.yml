@@ -1,6 +1,16 @@
 ---
 # WireGuard VPN server deployment and configuration
 
+- name: Validate WireGuard configuration
+  ansible.builtin.assert:
+    that:
+      - vault_wireguard_server_private_key is defined or not wireguard_use_vault_key | default(false)
+    fail_msg: >-
+      WireGuard server private key must be set in vault (vault_wireguard_server_private_key)
+      when wireguard_use_vault_key is true. Generate with: wg genkey
+    success_msg: "WireGuard configuration validated"
+  tags: validate
+
 - name: Install WireGuard packages
   ansible.builtin.apt:
     name:

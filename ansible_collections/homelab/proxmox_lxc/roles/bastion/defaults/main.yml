@@ -48,3 +48,8 @@ bastion_pip_packages:
   - kubernetes
   - proxmoxer
   - requests
+
+# Source paths for synchronization to bastion
+# Override these if your repository is in a different location
+bastion_sync_source_base: "{{ playbook_dir | dirname }}"
+bastion_sync_dest_base: /home/pbs
