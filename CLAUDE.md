@@ -99,9 +99,13 @@ ansible-playbook test-security-hardening.yml
 
 ### Secure Enclave Deployment (Pentesting Environment)
 
+**Security Acknowledgement Required:** Before deploying the secure enclave, you must acknowledge
+the security risks by setting `enclave_security_acknowledged: true` in your inventory or via
+extra vars (`-e enclave_security_acknowledged=true`).
+
 ```bash
 # Deploy complete secure enclave for pentesting and security research
-ansible-playbook playbooks/secure-enclave.yml
+ansible-playbook playbooks/secure-enclave.yml -e enclave_security_acknowledged=true
 
 # Deploy specific enclave components
 ansible-playbook playbooks/secure-enclave.yml --tags network,firewall  # Network isolation only
@@ -178,11 +182,20 @@ ansible-vault edit inventory/group_vars/vault.yml
 
 Required vault variables:
 
+**Proxmox API Authentication:**
+
 - `vault_proxmox_api_tokens.pve_mac.token_id` - API token ID for pve-mac
 - `vault_proxmox_api_tokens.pve_mac.token_secret` - API token secret for pve-mac
 - `vault_proxmox_api_tokens.pve_nas.token_id` - API token ID for pve-nas
 - `vault_proxmox_api_tokens.pve_nas.token_secret` - API token secret for pve-nas
 - `vault_ssl_email` - Email for Let's Encrypt certificates
+
+**Service Secrets (required for deployment):**
+
+- `vault_grafana_admin_password` - Grafana admin password
+- `vault_grafana_secret_key` - Grafana secret key for signing (generate with: `openssl rand -base64 32`)
+- `vault_adguard_admin_password` - AdGuard Home admin password (minimum 12 characters)
+- `vault_wireguard_server_private_key` - WireGuard server private key (generate with: `wg genkey`)
 
 To create Proxmox API tokens:
 

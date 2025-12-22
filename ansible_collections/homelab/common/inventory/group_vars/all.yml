@@ -17,6 +17,8 @@ homelab_network:
   service_cidr: 10.43.0.0/16
 
 # Proxmox configuration
+# SECURITY: Set validate_certs to true in production after installing valid SSL certs
+# See docs/security/proxmox-ssl-setup.md for certificate installation guide
 proxmox_config:
   pve_mac:
     host: 192.168.0.56
@@ -27,7 +29,8 @@ proxmox_config:
     api_token_secret: "{{ vault_proxmox_api_tokens.pve_mac.token_secret }}"
     # Legacy password fallback (will be removed in future version)
     password: "{{ vault_proxmox_passwords.pve_mac | default('') }}"
-    validate_certs: false
+    # WARNING: Set to true in production with valid SSL certificates
+    validate_certs: "{{ proxmox_validate_certs | default(false) }}"
   pve_nas:
     host: 192.168.0.57
     user: root@pam
@@ -37,7 +40,8 @@ proxmox_config:
     api_token_secret: "{{ vault_proxmox_api_tokens.pve_nas.token_secret }}"
     # Legacy password fallback (will be removed in future version)
     password: "{{ vault_proxmox_passwords.pve_nas | default('') }}"
-    validate_certs: false
+    # WARNING: Set to true in production with valid SSL certificates
+    validate_certs: "{{ proxmox_validate_certs | default(false) }}"
 
 # Proxmox API defaults and validation
 proxmox_api_defaults:
@@ -48,10 +52,26 @@ proxmox_api_defaults:
   retry_delay: 5
   # API version compatibility
   api_version: 2
-  # SSL/TLS settings
-  validate_certs: false # Set to true in production with valid certs
+  # SSL/TLS settings - SECURITY: Enable in production
+  # Set proxmox_validate_certs=true or -e proxmox_validate_certs=true for production
+  validate_certs: "{{ proxmox_validate_certs | default(false) }}"
   # Connection pooling settings
   connection_timeout: 30
+
+# Production SSL configuration flag
+# Override with: ansible-playbook ... -e proxmox_validate_certs=true
+# Or set in production inventory group_vars
+proxmox_validate_certs: false  # CHANGE TO true FOR PRODUCTION
+
+# Deployment environment setting
+# Set to 'production' to enforce SSL validation and other security requirements
+# Options: development, staging, production
+deployment_environment: development
+
+# SSL validation override flag
+# Set to true to explicitly acknowledge running without SSL validation in production
+# ansible-playbook ... -e proxmox_ssl_validation_override=true
+proxmox_ssl_validation_override: false
 
 # Default Proxmox node for operations (can be overridden per host/group)
 proxmox_default_node: pve_mac

@@ -42,11 +42,13 @@
     - ansible_facts.os_family is match("Archlinux")
 
 - name: Execute OS related tasks on the Raspberry Pi
-  ansible.builtin.include_tasks: "{{ item }}"
-  with_first_found:
-    - "prereq/{{ detected_distribution }}.yml"
-    - "prereq/{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
-    - "prereq/{{ ansible_distribution }}.yml"
-    - "prereq/default.yml"
+  ansible.builtin.include_tasks:
+    file: "{{ lookup('ansible.builtin.first_found', prereq_files) }}"
+  vars:
+    prereq_files:
+      - "prereq/{{ detected_distribution }}.yml"
+      - "prereq/{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+      - "prereq/{{ ansible_distribution }}.yml"
+      - "prereq/default.yml"
   when:
-    - raspberry_pi|default(false)
+    - raspberry_pi | default(false)

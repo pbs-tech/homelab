@@ -27,8 +27,9 @@ admin_user = {{ grafana_admin_user }}
 # Default admin password, can be changed before first start of grafana
 admin_password = {{ grafana_admin_password }}
 
-# Used for signing
-secret_key = SW2YcwTIb9zpOOhoPsMm
+# Used for signing session cookies and other security tokens
+# IMPORTANT: Must be unique per deployment - generate with: openssl rand -base64 32
+secret_key = {{ grafana_secret_key }}
 
 # Disable creation of admin user on first start of grafana
 disable_initial_admin_creation = false

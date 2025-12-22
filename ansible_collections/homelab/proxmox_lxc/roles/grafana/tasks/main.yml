@@ -1,4 +1,19 @@
 ---
+- name: Validate required Grafana variables
+  ansible.builtin.assert:
+    that:
+      - grafana_admin_password is defined
+      - grafana_admin_password | length >= 12
+      - grafana_secret_key is defined
+      - grafana_secret_key | length >= 32
+    fail_msg: |
+      Required Grafana security variables are missing or insufficient.
+      Please set in vault:
+        - vault_grafana_admin_password: (minimum 12 characters)
+        - vault_grafana_secret_key: (generate with: openssl rand -base64 32)
+    success_msg: "Grafana security configuration validated"
+  tags: validate
+
 - name: Update system packages
   ansible.builtin.apt:
     update_cache: true

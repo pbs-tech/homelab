@@ -45,7 +45,8 @@ security_hardening:
   logging:
     rsyslog_enabled: true
     log_rotation: true
-    audit_enabled: false # Enable for high-security environments
+    audit_enabled: true  # Enabled by default for security compliance
+    log_retention_days: 90  # Increased from 7 days for compliance
 
 # Service-specific security settings
 service_security:

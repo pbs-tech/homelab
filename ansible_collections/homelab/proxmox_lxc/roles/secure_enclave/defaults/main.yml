@@ -1,6 +1,37 @@
 ---
 # Secure Enclave Role Defaults
 # This role creates an isolated network environment for pentesting and security research
+#
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║                    SECURITY NOTICE - PRIVILEGED CONTAINERS               ║
+# ╠══════════════════════════════════════════════════════════════════════════╣
+# ║ This role deploys components that may require elevated privileges:       ║
+# ║                                                                          ║
+# ║ 1. Attacker VM (Kali): Runs as QEMU VM, not LXC - safer isolation        ║
+# ║ 2. Enclave Router: Uses specific capabilities (NET_ADMIN, NET_RAW)       ║
+# ║    instead of full privileged mode for minimal required access           ║
+# ║                                                                          ║
+# ║ RISKS OF PRIVILEGED CONTAINERS:                                          ║
+# ║ - Container escape to host system                                        ║
+# ║ - Access to host kernel features                                         ║
+# ║ - Potential compromise of entire Proxmox node                            ║
+# ║                                                                          ║
+# ║ MITIGATIONS IN PLACE:                                                    ║
+# ║ - Network isolation via dedicated bridge (vmbr1)                         ║
+# ║ - Firewall rules blocking production access                              ║
+# ║ - Auto-shutdown after idle timeout (4h default)                          ║
+# ║ - Comprehensive audit logging                                            ║
+# ║ - Resource limits preventing DoS                                         ║
+# ║                                                                          ║
+# ║ RECOMMENDATIONS:                                                         ║
+# ║ - Review firewall rules before deployment                                ║
+# ║ - Enable monitoring alerts                                               ║
+# ║ - Regularly rotate enclave credentials                                   ║
+# ║ - Consider VM-only deployment for highest security                       ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+
+# Acknowledge security risks before deployment (must be set to true)
+enclave_security_acknowledged: false
 
 # Enclave network configuration
 enclave_network:

@@ -34,35 +34,35 @@
     timeout: 60
 
 - name: Wait for bastion container to be available
-  wait_for:
+  ansible.builtin.wait_for:
     host: "{{ bastion_container.ip.split('/')[0] }}"
     port: 22
     delay: 30
     timeout: 300
 
 - name: Update package cache
-  apt:
+  ansible.builtin.apt:
     update_cache: true
     cache_valid_time: 3600
   delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
   become: true
 
 - name: Install required packages
-  apt:
+  ansible.builtin.apt:
     name: "{{ bastion_packages }}"
     state: present
   delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
   become: true
 
 - name: Install Python pip packages
-  pip:
+  ansible.builtin.pip:
     name: "{{ bastion_pip_packages }}"
     state: present
   delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
   become: true
 
 - name: Configure SSH for security
-  template:
+  ansible.builtin.template:
     src: sshd_config.j2
     dest: /etc/ssh/sshd_config
     backup: true
@@ -72,7 +72,7 @@
   notify: Restart ssh
 
 - name: Configure fail2ban
-  template:
+  ansible.builtin.template:
     src: jail.local.j2
     dest: /etc/fail2ban/jail.local
     mode: "0644"
@@ -98,7 +98,7 @@
   become: true
 
 - name: Create ansible user
-  user:
+  ansible.builtin.user:
     name: pbs
     shell: /bin/bash
     create_home: true
@@ -118,8 +118,8 @@
 
 - name: Copy ansible collections to bastion
   ansible.posix.synchronize:
-    src: /home/pbs/ansible/k3s-bastion/ansible_collections/
-    dest: /home/pbs/ansible_collections/
+    src: "{{ bastion_sync_source_base }}/ansible_collections/"
+    dest: "{{ bastion_sync_dest_base }}/ansible_collections/"
     delete: true
     recursive: true
   delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
@@ -127,9 +127,9 @@
   become_user: pbs
 
 - name: Copy main site.yml to bastion
-  copy:
-    src: /home/pbs/ansible/k3s-bastion/site.yml
-    dest: /home/pbs/site.yml
+  ansible.builtin.copy:
+    src: "{{ bastion_sync_source_base }}/site.yml"
+    dest: "{{ bastion_sync_dest_base }}/site.yml"
     mode: "0644"
   delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
   become: true

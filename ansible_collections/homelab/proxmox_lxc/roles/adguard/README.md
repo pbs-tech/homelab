@@ -19,6 +19,7 @@ This role is planned to deploy AdGuard Home DNS server in an LXC container. AdGu
 - Proxmox VE with LXC support
 - Ubuntu 22.04 LTS template
 - Network configuration for DNS services
+- Vault variable: `vault_adguard_admin_password` (minimum 12 characters)
 
 ## Current Status
 

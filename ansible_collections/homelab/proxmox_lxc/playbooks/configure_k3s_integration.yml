@@ -85,14 +85,16 @@
           - "kubernetes.io/service-account.name=traefik"
       register: traefik_secret
       delegate_to: "{{ groups['bastion'][0] }}"
+      no_log: true  # Protect service token from logs
 
     - name: Update Traefik configuration with service token
-      lineinfile:
+      ansible.builtin.lineinfile:
         path: /etc/traefik/traefik.yml
         regexp: "^\\s*token:"
         line: "    token: {{ traefik_secret.resources[0].data.token | b64decode }}"
         insertafter: "endpoints:"
       notify: Restart traefik
+      no_log: true  # Protect service token from logs
 
   handlers:
     - name: Restart traefik

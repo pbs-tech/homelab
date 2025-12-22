@@ -8,6 +8,32 @@
   tags:
     - always
 
+- name: Validate security risks acknowledgement
+  ansible.builtin.assert:
+    that:
+      - enclave_security_acknowledged | default(false) | bool
+    fail_msg: |
+      ╔══════════════════════════════════════════════════════════════════════════╗
+      ║                    SECURITY ACKNOWLEDGEMENT REQUIRED                     ║
+      ╠══════════════════════════════════════════════════════════════════════════╣
+      ║ The Secure Enclave deploys components with elevated privileges.          ║
+      ║ Before proceeding, you must acknowledge the security risks by setting:   ║
+      ║                                                                          ║
+      ║   enclave_security_acknowledged: true                                    ║
+      ║                                                                          ║
+      ║ This can be set via:                                                     ║
+      ║   - Extra vars: -e enclave_security_acknowledged=true                    ║
+      ║   - Inventory: group_vars/all.yml                                        ║
+      ║   - Host vars: host_vars/proxmox.yml                                     ║
+      ║                                                                          ║
+      ║ Please review the security notice in defaults/main.yml before deploying.║
+      ╚══════════════════════════════════════════════════════════════════════════╝
+    success_msg: "Security risks acknowledged - proceeding with enclave deployment"
+  tags:
+    - always
+    - security
+    - validation
+
 - name: Validate Proxmox API connectivity
   ansible.builtin.include_tasks:
     file: "{{ lookup('ansible.builtin.first_found', params) }}"

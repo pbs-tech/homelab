@@ -28,7 +28,7 @@ validate_certs: false
 # Compose inventory groups based on Proxmox attributes
 compose:
   # Set ansible_host to the first IP address found
-  ansible_host: ansible_host | default(proxmox_ipconfig0_ip0.split('/')[0]) if proxmox_ipconfig0_ip0 else proxmox_net0_ip
+  ansible_host: "{{ ansible_host | default(proxmox_ipconfig0_ip0.split('/')[0]) if proxmox_ipconfig0_ip0 else proxmox_net0_ip }}"
   # Set container_id from Proxmox VMID
   container_id: proxmox_vmid
   # Set service_port based on known services (can be overridden in host_vars)
