@@ -1,0 +1,113 @@
+---
+# LXC Container Provisioning Playbook
+# Creates all LXC containers on Proxmox hosts before service configuration
+#
+# Usage:
+#   ansible-playbook playbooks/provision-containers.yml
+#   ansible-playbook playbooks/provision-containers.yml --tags networking
+#   ansible-playbook playbooks/provision-containers.yml --limit prometheus,grafana
+
+- name: Validate Proxmox API connectivity
+  hosts: proxmox_hosts
+  gather_facts: false
+  tasks:
+    - name: Verify Proxmox API is accessible
+      uri:
+        url: https://{{ ansible_host }}:8006/api2/json/version
+        method: GET
+        validate_certs: false
+        timeout: 30
+        status_code: [200, 401]
+      delegate_to: localhost
+      become: false
+      tags: [always]
+
+- name: Provision networking containers
+  hosts: networking
+  gather_facts: false
+  become: false
+  serial: 1
+  tasks:
+    - name: Create networking LXC container
+      include_role:
+        name: homelab.common.container_base
+      vars:
+        container_resources:
+          cores: "{{ lxc_cores | default(1) }}"
+          memory: "{{ lxc_memory | default(512) }}"
+          swap: "{{ lxc_swap | default(0) }}"
+          disk_size: "{{ lxc_disk_size | default(8) }}"
+      when: container_id is defined
+  tags: [provision, containers, networking]
+
+- name: Provision monitoring containers
+  hosts: monitoring
+  gather_facts: false
+  become: false
+  serial: 1
+  tasks:
+    - name: Create monitoring LXC container
+      include_role:
+        name: homelab.common.container_base
+      vars:
+        container_resources:
+          cores: "{{ lxc_cores | default(1) }}"
+          memory: "{{ lxc_memory | default(512) }}"
+          swap: "{{ lxc_swap | default(0) }}"
+          disk_size: "{{ lxc_disk_size | default(8) }}"
+      when: container_id is defined
+  tags: [provision, containers, monitoring]
+
+- name: Provision automation containers
+  hosts: automation
+  gather_facts: false
+  become: false
+  serial: 1
+  tasks:
+    - name: Create automation LXC container
+      include_role:
+        name: homelab.common.container_base
+      vars:
+        container_resources:
+          cores: "{{ lxc_cores | default(2) }}"
+          memory: "{{ lxc_memory | default(1024) }}"
+          swap: "{{ lxc_swap | default(0) }}"
+          disk_size: "{{ lxc_disk_size | default(16) }}"
+      when: container_id is defined
+  tags: [provision, containers, automation]
+
+- name: Provision NAS service containers
+  hosts: nas_services
+  gather_facts: false
+  become: false
+  serial: 1
+  tasks:
+    - name: Create NAS service LXC container
+      include_role:
+        name: homelab.common.container_base
+      vars:
+        container_resources:
+          cores: "{{ lxc_cores | default(1) }}"
+          memory: "{{ lxc_memory | default(512) }}"
+          swap: "{{ lxc_swap | default(0) }}"
+          disk_size: "{{ lxc_disk_size | default(8) }}"
+      when: container_id is defined
+  tags: [provision, containers, nas_services]
+
+- name: Verify container connectivity
+  hosts: lxc_containers
+  gather_facts: false
+  tasks:
+    - name: Wait for containers to be reachable via SSH
+      wait_for:
+        host: "{{ ansible_host }}"
+        port: 22
+        delay: 5
+        timeout: 120
+      delegate_to: localhost
+      when: container_id is defined
+
+    - name: Test SSH connectivity
+      ping:
+      when: container_id is defined
+  tags: [provision, verify]

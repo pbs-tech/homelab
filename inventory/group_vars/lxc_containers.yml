@@ -1,0 +1,66 @@
+---
+# LXC Containers group configuration
+# Shared settings for all LXC container provisioning
+
+# Use the ansible user created for Proxmox/infrastructure management
+ansible_user: ansible
+
+# Flat Proxmox variables required by API validation tasks
+# These reference the nested proxmox_config based on the host's proxmox_node
+# NOTE: api_token_id must be the FULL token ID (user@realm!tokenname) for community.proxmox module
+proxmox_host: "{{ '192.168.0.57' if proxmox_node | default('pve-mac') == 'pve-nas' else '192.168.0.56' }}"
+proxmox_api_token_id: "{{ vault_proxmox_api_tokens.pve_nas.token_id if proxmox_node | default('pve-mac') == 'pve-nas' else vault_proxmox_api_tokens.pve_mac.token_id }}"
+proxmox_api_token_secret: "{{ vault_proxmox_api_tokens.pve_nas.token_secret if proxmox_node | default('pve-mac') == 'pve-nas' else vault_proxmox_api_tokens.pve_mac.token_secret }}"
+proxmox_user: "{{ (vault_proxmox_api_tokens.pve_nas.token_id.split('!')[0]) if proxmox_node | default('pve-mac') == 'pve-nas' else (vault_proxmox_api_tokens.pve_mac.token_id.split('!')[0]) }}"
+
+# Proxmox configuration for container creation
+# Note: api_token_id must be the FULL token ID (user@realm!tokenname)
+# When using token auth without api_user, the module needs the complete token ID
+proxmox_config:
+  pve-mac:
+    host: 192.168.0.56
+    node: pve-mac
+    # User is extracted from token_id for backwards compatibility (user@realm)
+    user: "{{ vault_proxmox_api_tokens.pve_mac.token_id.split('!')[0] }}"
+    # Full token ID format: user@realm!tokenname (e.g., root@pam!ansible)
+    api_token_id: "{{ vault_proxmox_api_tokens.pve_mac.token_id }}"
+    api_token_secret: "{{ vault_proxmox_api_tokens.pve_mac.token_secret }}"
+    validate_certs: false
+  pve-nas:
+    host: 192.168.0.57
+    node: pve-nas
+    # User is extracted from token_id for backwards compatibility (user@realm)
+    user: "{{ vault_proxmox_api_tokens.pve_nas.token_id.split('!')[0] }}"
+    # Full token ID format: user@realm!tokenname (e.g., root@pam!ansible)
+    api_token_id: "{{ vault_proxmox_api_tokens.pve_nas.token_id }}"
+    api_token_secret: "{{ vault_proxmox_api_tokens.pve_nas.token_secret }}"
+    validate_certs: false
+
+# Proxmox API defaults
+proxmox_api_defaults:
+  timeout: 300
+  retry_count: 3
+  retry_delay: 5
+
+# Default Proxmox node
+proxmox_default_node: pve-mac
+
+# Network configuration for containers
+homelab_network:
+  gateway_ip: 192.168.0.1
+  dns_servers:
+    - 1.1.1.1
+    - 1.0.0.1
+
+homelab_domain: homelab.local
+
+# Container defaults
+container_defaults:
+  template: ubuntu-22.04-standard_22.04-1_amd64.tar.zst
+  disk_size: 8
+  cores: 1
+  memory: 512
+  swap: 0
+  onboot: true
+  unprivileged: true
+  ssh_key: "{{ lookup('file', '~/.ssh/id_rsa.pub', errors='ignore') | default('') }}"

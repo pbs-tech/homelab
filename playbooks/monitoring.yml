@@ -10,9 +10,13 @@
     - name: Ensure monitoring containers exist
       include_role:
         name: homelab.common.container_base
-      when:
-        - inventory_hostname.endswith('-lxc')
-        - container_id is defined
+      vars:
+        container_resources:
+          cores: "{{ lxc_cores | default(1) }}"
+          memory: "{{ lxc_memory | default(512) }}"
+          swap: "{{ lxc_swap | default(0) }}"
+          disk_size: "{{ lxc_disk_size | default(8) }}"
+      when: container_id is defined
 
   roles:
     - role: homelab.common.common_setup

@@ -1,6 +1,12 @@
 ---
 # Foundation infrastructure deployment
-# Deploys bastion hosts and core security infrastructure
+# Deploys bastion hosts, provisions LXC containers, and core security infrastructure
+
+- name: Provision LXC containers
+  import_playbook: provision-containers.yml
+  tags:
+    - provision
+    - containers
 
 - name: Deploy bastion hosts
   hosts: bastion_host
@@ -44,4 +50,6 @@
         method: GET
         validate_certs: false
         timeout: 30
+        status_code: [200, 401]  # 401 is OK - means API is reachable
       delegate_to: localhost
+      become: false

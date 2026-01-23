@@ -77,6 +77,8 @@
     vmid: 999999 # Use a high VMID that likely doesn't exist
     node: "{{ proxmox_node }}"
     state: query
+  delegate_to: localhost
+  become: false
   register: proxmox_token_test
   failed_when: false
   changed_when: false
@@ -100,6 +102,8 @@
     vmid: 999999 # Use a high VMID that likely doesn't exist
     node: "{{ proxmox_node }}"
     state: query
+  delegate_to: localhost
+  become: false
   register: proxmox_password_test
   failed_when: false
   changed_when: false

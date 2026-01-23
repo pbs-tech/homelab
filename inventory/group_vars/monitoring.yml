@@ -1,0 +1,14 @@
+---
+# Monitoring services container configuration
+# Applied to: prometheus, grafana, alertmanager, loki, pve-exporter, pve-exporter-nas
+
+# Default container resources for monitoring services
+lxc_cores: 1
+lxc_memory: 512
+lxc_swap: 0
+lxc_disk_size: 8
+
+# Service-specific overrides (applied via host_vars if needed)
+# prometheus: cores=2, memory=1024, disk=16
+# grafana: memory=512, disk=8
+# loki: cores=2, memory=1024, disk=32

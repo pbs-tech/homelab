@@ -1,0 +1,45 @@
+# {{ ansible_managed }}
+# SSH daemon configuration
+
+Port {{ ssh_config.port | default(22) }}
+AddressFamily any
+ListenAddress 0.0.0.0
+
+# Authentication
+PermitRootLogin {{ 'yes' if ssh_config.permit_root_login | default(false) else 'prohibit-password' }}
+PubkeyAuthentication {{ 'yes' if ssh_config.pubkey_authentication | default(true) else 'no' }}
+PasswordAuthentication {{ 'yes' if ssh_config.password_authentication | default(false) else 'no' }}
+PermitEmptyPasswords no
+ChallengeResponseAuthentication no
+
+# Key exchange and ciphers (secure defaults)
+KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512
+Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com
+MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com
+
+# Logging
+SyslogFacility AUTH
+LogLevel INFO
+
+# Session settings
+LoginGraceTime 60
+MaxAuthTries 3
+MaxSessions 10
+ClientAliveInterval 300
+ClientAliveCountMax 2
+
+# Disable unused features
+X11Forwarding no
+AllowTcpForwarding no
+AllowAgentForwarding no
+PermitTunnel no
+GatewayPorts no
+
+# Environment
+AcceptEnv LANG LC_*
+
+# Subsystems
+Subsystem sftp /usr/lib/openssh/sftp-server
+
+# Authorized keys location
+AuthorizedKeysFile {{ ssh_config.authorized_keys_file | default('.ssh/authorized_keys') }}

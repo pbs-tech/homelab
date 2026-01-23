@@ -24,6 +24,19 @@
         src: 192.168.0.0/24
         comment: SSH from management network
 
+    - name: Allow Proxmox management ports
+      community.general.ufw:
+        rule: allow
+        port: "{{ item.port }}"
+        proto: "{{ item.proto }}"
+        comment: "{{ item.comment }}"
+      loop:
+        - { port: "8006", proto: tcp, comment: "Proxmox Web UI" }
+        - { port: "3128", proto: tcp, comment: "Proxmox SPICE proxy" }
+        - { port: "5900:5999", proto: tcp, comment: "Proxmox VNC" }
+        - { port: "111", proto: tcp, comment: "Proxmox RPC" }
+      when: "'proxmox_hosts' in group_names or ansible_hostname is match('pve.*')"
+
     - name: Allow K3s API server port (6443)
       community.general.ufw:
         rule: allow
@@ -72,6 +85,24 @@
         port: 30000:32767
         comment: NodePort services
       when: k3s_security.allow_nodeports | default(false)
+
+    # Proxmox LXC container routing rules
+    # These rules allow traffic to/from LXC containers through the bridge interface
+    - name: Allow routed traffic TO container network (Proxmox hosts)
+      community.general.ufw:
+        rule: allow
+        route: true
+        dest: "{{ container_network_cidr | default('192.168.0.0/24') }}"
+        comment: Allow traffic to LXC containers
+      when: "'proxmox_hosts' in group_names or ansible_hostname is match('pve.*')"
+
+    - name: Allow routed traffic FROM container network (Proxmox hosts)
+      community.general.ufw:
+        rule: allow
+        route: true
+        src: "{{ container_network_cidr | default('192.168.0.0/24') }}"
+        comment: Allow traffic from LXC containers
+      when: "'proxmox_hosts' in group_names or ansible_hostname is match('pve.*')"
 
     - name: Enable UFW with logging
       community.general.ufw:

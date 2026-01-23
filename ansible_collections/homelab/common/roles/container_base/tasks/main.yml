@@ -16,7 +16,7 @@
   ansible.builtin.set_fact:
     container_vmid: "{{ container_id }}"
     container_hostname: "{{ inventory_hostname }}"
-    container_template: "{{ proxmox_node }}:vztmpl/{{ lxc_config.template }}"
+    container_template: "local:vztmpl/{{ lxc_config.template }}"
     container_cores: "{{ container_resources.cores }}"
     container_memory: "{{ container_resources.memory }}"
     container_swap: "{{ container_resources.swap }}"
@@ -33,8 +33,11 @@
 - name: Create LXC container using API token authentication (preferred)
   community.proxmox.proxmox:
     # API Token authentication - secure method
+    # api_user is required by the module (set to user part of token: user@realm)
+    # api_token_id should be just the token name (not full user@realm!token format)
     api_host: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
-    api_token_id: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id }}"
+    api_user: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].user }}"
+    api_token_id: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id.split('!')[1] }}"
     api_token_secret: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_secret }}"
     validate_certs: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].validate_certs }}"
     timeout: "{{ proxmox_api_defaults.timeout | default(300) }}"
@@ -49,7 +52,7 @@
     cores: "{{ container_cores }}"
     memory: "{{ container_memory }}"
     swap: "{{ container_swap }}"
-    disk: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].node }}-local:{{ container_disk_size }}"
+    disk: "local-lvm:{{ container_disk_size }}"
 
     # Network configuration
     netif: "{{ container_netif }}"
@@ -66,8 +69,8 @@
   retries: "{{ proxmox_api_defaults.retry_count | default(3) }}"
   delay: "{{ proxmox_api_defaults.retry_delay | default(5) }}"
   until: container_creation_result is succeeded
-  failed_when: false
   delegate_to: localhost
+  become: false
   tags:
     - proxmox
     - lxc
@@ -77,14 +80,15 @@
   community.proxmox.proxmox:
     # Secure API token authentication (preferred)
     api_host: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
-    api_token_id: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id }}"
+    api_user: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].user }}"
+    api_token_id: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id.split('!')[1] }}"
     api_token_secret: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_secret }}"
     validate_certs: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].validate_certs }}"
     timeout: "{{ proxmox_api_defaults.timeout | default(300) }}"
 
     # Container identification and state
     vmid: "{{ container_vmid }}"
-    node: "{{ proxmox_node }}"
+    node: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].node }}"
     state: started
 
   register: container_start_result
@@ -92,13 +96,14 @@
   delay: "{{ proxmox_api.retry_delay | default(5) }}"
   until: container_start_result is succeeded
   delegate_to: localhost
+  become: false
   tags:
     - proxmox
     - lxc
     - containers
     - state
 
-- name: Wait for container to be reachable
+- name: Wait for container SSH to be available
   ansible.builtin.wait_for:
     host: "{{ ansible_host }}"
     port: 22
@@ -106,21 +111,67 @@
     timeout: 300
     search_regex: OpenSSH
   delegate_to: localhost
+  become: false
   tags:
     - connectivity
+
+# Create ansible user in container for Ansible management
+# The pubkey parameter injects SSH key into root, but we need the ansible user
+- name: Create ansible user in container
+  ansible.builtin.shell: |
+    pct exec {{ container_vmid }} -- bash -c '
+      if ! id ansible &>/dev/null; then
+        useradd -m -s /bin/bash ansible
+        # Unlock account for SSH key-based login (set password to * instead of !)
+        usermod -p "*" ansible
+        mkdir -p /home/ansible/.ssh
+        chmod 700 /home/ansible/.ssh
+        cp /root/.ssh/authorized_keys /home/ansible/.ssh/ 2>/dev/null || true
+        chown -R ansible:ansible /home/ansible/.ssh
+        chmod 600 /home/ansible/.ssh/authorized_keys 2>/dev/null || true
+        echo "ansible ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/ansible
+        chmod 440 /etc/sudoers.d/ansible
+        echo "created"
+      else
+        # Ensure existing account is unlocked
+        usermod -p "*" ansible 2>/dev/null || true
+        echo "exists"
+      fi
+    '
+  register: ansible_user_result
+  changed_when: "'created' in ansible_user_result.stdout"
+  delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  tags:
+    - proxmox
+    - lxc
+    - containers
+    - user_setup
+
+- name: Verify ansible user SSH connectivity
+  ansible.builtin.wait_for_connection:
+    delay: 5
+    timeout: 60
+  tags:
+    - connectivity
+    - user_setup
 
 - name: Set container startup order using secure API token authentication
   community.proxmox.proxmox:
     # Secure API token authentication (preferred)
     api_host: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
-    api_token_id: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id }}"
+    api_user: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].user }}"
+    api_token_id: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id.split('!')[1] }}"
     api_token_secret: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_secret }}"
     validate_certs: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].validate_certs }}"
     timeout: "{{ proxmox_api_defaults.timeout | default(300) }}"
 
     # Container identification
     vmid: "{{ container_vmid }}"
-    node: "{{ proxmox_node }}"
+    node: "{{ proxmox_node | default(proxmox_default_node) }}"
+    hostname: "{{ container_hostname }}"
 
     # Startup configuration
     startup: "order={{ container_startup_order[group_names[0]] | default(10) }}"
@@ -132,6 +183,7 @@
   delay: "{{ proxmox_api.retry_delay | default(5) }}"
   until: container_startup_result is succeeded
   delegate_to: localhost
+  become: false
   when:
     - group_names | length > 0
     - container_startup_order is defined

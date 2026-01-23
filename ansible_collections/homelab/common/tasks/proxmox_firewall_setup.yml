@@ -1,0 +1,49 @@
+---
+# Proxmox cluster firewall configuration
+# Ensures the cluster firewall is properly configured to allow SSH and ICMP
+# while maintaining secure defaults
+
+- name: Configure Proxmox cluster firewall
+  delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  run_once: true
+  tags:
+    - proxmox
+    - firewall
+  block:
+    - name: Check current cluster firewall configuration
+      ansible.builtin.slurp:
+        src: /etc/pve/firewall/cluster.fw
+      register: cluster_fw_content
+      failed_when: false
+
+    - name: Backup existing cluster firewall configuration
+      ansible.builtin.copy:
+        src: /etc/pve/firewall/cluster.fw
+        dest: /etc/pve/firewall/cluster.fw.backup.{{ ansible_date_time.epoch }}
+        remote_src: true
+        mode: "0640"
+      when: cluster_fw_content.content is defined
+
+    - name: Deploy clean cluster firewall configuration
+      ansible.builtin.copy:
+        dest: /etc/pve/firewall/cluster.fw
+        mode: "0640"
+        content: |
+          [OPTIONS]
+          policy_in: DROP
+          policy_out: ACCEPT
+          enable: 1
+
+          [RULES]
+          IN ACCEPT -p tcp -dport 22 -log nolog # Allow SSH
+          IN ACCEPT -p tcp -dport 8006 -log nolog # Allow Proxmox Web UI
+          IN ACCEPT -p icmp # Allow ICMP/ping
+          IN ACCEPT -source 192.168.0.0/24 # Allow management network
+      register: cluster_fw_deployed
+
+    - name: Display firewall configuration status
+      ansible.builtin.debug:
+        msg: "Proxmox cluster firewall configuration {{ 'updated' if cluster_fw_deployed.changed else 'unchanged' }}"

@@ -1,0 +1,13 @@
+---
+# Networking services container configuration
+# Applied to: unbound, wireguard, adguard, traefik, openwrt
+
+# Default container resources for networking services
+lxc_cores: 1
+lxc_memory: 256
+lxc_swap: 0
+lxc_disk_size: 4
+
+# Service-specific overrides
+# traefik: memory=512, disk=8
+# adguard: memory=512, disk=8
