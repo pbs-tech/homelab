@@ -47,7 +47,6 @@
     - "{{ homeassistant_backup_dir }}"
     - "{{ homeassistant_config_dir }}/.storage"
 
-# Docker installation
 - name: Check if Docker is installed
   ansible.builtin.stat:
     path: /usr/bin/docker
@@ -56,15 +55,25 @@
 - name: Install Docker when not present
   when: not docker_binary.stat.exists
   block:
-    - name: Add Docker GPG key
-      ansible.builtin.apt_key:
+    - name: Create keyrings directory
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: "0755"
+
+    - name: Download Docker GPG key
+      ansible.builtin.get_url:
         url: https://download.docker.com/linux/ubuntu/gpg
-        state: present
+        dest: /etc/apt/keyrings/docker.asc
+        mode: "0644"
 
     - name: Add Docker repository
       ansible.builtin.apt_repository:
-        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        repo: >-
+          deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc]
+          https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
         state: present
+        filename: docker
 
     - name: Install Docker packages
       ansible.builtin.apt:
@@ -88,7 +97,6 @@
     groups: docker
     append: true
 
-# Configuration templates
 - name: Deploy docker-compose.yml
   ansible.builtin.template:
     src: docker-compose.yml.j2
@@ -140,22 +148,6 @@
     mode: "0644"
     force: false
 
-- name: Create secrets.yaml if not exists
-  ansible.builtin.copy:
-    content: |
-      # Home Assistant Secrets
-      # Add your sensitive data here
-      # Example: api_key: your_api_key_here
-{% if homeassistant_mqtt_enabled and homeassistant_mqtt_password %}
-      mqtt_password: "{{ homeassistant_mqtt_password }}"
-{% endif %}
-    dest: "{{ homeassistant_config_dir }}/secrets.yaml"
-    owner: "{{ homeassistant_user }}"
-    group: "{{ homeassistant_group }}"
-    mode: "0600"
-    force: false
-
-# Systemd service
 - name: Create Home Assistant systemd service
   ansible.builtin.template:
     src: homeassistant.service.j2
@@ -165,7 +157,6 @@
     - Reload systemd
     - Restart homeassistant
 
-# Firewall configuration
 - name: Configure UFW firewall for Home Assistant
   community.general.ufw:
     rule: allow
@@ -174,7 +165,6 @@
     comment: "Home Assistant"
   when: homeassistant_configure_firewall
 
-# Pull image and start service
 - name: Pull Home Assistant Docker image
   community.docker.docker_image:
     name: "{{ homeassistant_docker_image }}"
@@ -195,7 +185,7 @@
     method: GET
     status_code:
       - 200
-      - 401  # 401 is expected when not onboarded yet
+      - 401
   register: ha_health
   until: ha_health.status in [200, 401]
   retries: 30

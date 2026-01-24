@@ -7,10 +7,3 @@
   ansible.builtin.systemd:
     name: pve-exporter
     state: restarted
-
-- name: Restart pve-exporter container
-  community.docker.docker_container:
-    name: pve-exporter
-    state: started
-    restart: true
-  when: pve_exporter_use_docker | default(false)
