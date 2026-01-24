@@ -110,10 +110,17 @@
 
 - name: Wait for Bazarr to be ready
   ansible.builtin.uri:
-    url: "http://localhost:{{ bazarr_port }}"
+    url: "http://localhost:{{ bazarr_port }}/api/system/status"
     method: GET
-    status_code: [200, 401, 302]
+    status_code: [200, 401]
   register: bazarr_health
-  until: bazarr_health.status in [200, 401, 302]
-  retries: 12
+  until: bazarr_health.status in [200, 401]
+  retries: 30
   delay: 5
+
+- name: Display Bazarr access information
+  ansible.builtin.debug:
+    msg: |
+      Bazarr is ready!
+      Access URL: http://{{ ansible_host }}:{{ bazarr_port }}
+      Configure Sonarr/Radarr connections and subtitle providers.

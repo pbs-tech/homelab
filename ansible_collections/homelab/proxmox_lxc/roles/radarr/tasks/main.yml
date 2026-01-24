@@ -110,10 +110,17 @@
 
 - name: Wait for Radarr to be ready
   ansible.builtin.uri:
-    url: "http://localhost:{{ radarr_port }}"
+    url: "http://localhost:{{ radarr_port }}/ping"
     method: GET
-    status_code: [200, 401]
+    status_code: [200]
   register: radarr_health
-  until: radarr_health.status in [200, 401]
-  retries: 12
+  until: radarr_health.status == 200
+  retries: 30
   delay: 5
+
+- name: Display Radarr access information
+  ansible.builtin.debug:
+    msg: |
+      Radarr is ready!
+      Access URL: http://{{ ansible_host }}:{{ radarr_port }}
+      Configure authentication and add indexers via Prowlarr.

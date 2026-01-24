@@ -110,10 +110,17 @@
 
 - name: Wait for Sonarr to be ready
   ansible.builtin.uri:
-    url: "http://localhost:{{ sonarr_port }}"
+    url: "http://localhost:{{ sonarr_port }}/ping"
     method: GET
-    status_code: [200, 401]
+    status_code: [200]
   register: sonarr_health
-  until: sonarr_health.status in [200, 401]
-  retries: 12
+  until: sonarr_health.status == 200
+  retries: 30
   delay: 5
+
+- name: Display Sonarr access information
+  ansible.builtin.debug:
+    msg: |
+      Sonarr is ready!
+      Access URL: http://{{ ansible_host }}:{{ sonarr_port }}
+      Configure authentication and add indexers via Prowlarr.
