@@ -34,6 +34,14 @@
       when: inventory_hostname.startswith('loki')
       tags: [loki, logging]
 
+    - role: homelab.proxmox_lxc.alertmanager
+      when: inventory_hostname.startswith('alertmanager')
+      tags: [alertmanager, alerting]
+
+    - role: homelab.proxmox_lxc.pve_exporter
+      when: inventory_hostname.startswith('pve-exporter')
+      tags: [pve_exporter, metrics]
+
   post_tasks:
     - name: Verify monitoring services
       uri:

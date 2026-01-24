@@ -9,7 +9,7 @@
     - containers
 
 - name: Deploy bastion hosts
-  hosts: bastion_host
+  hosts: bastion_hosts
   become: true
   gather_facts: true
   pre_tasks:
