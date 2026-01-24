@@ -1,0 +1,39 @@
+# Home Assistant Docker Compose Configuration
+# Managed by Ansible - DO NOT EDIT MANUALLY
+
+services:
+  homeassistant:
+    container_name: {{ homeassistant_container_name }}
+    image: {{ homeassistant_docker_image }}:{{ homeassistant_version }}
+    restart: {{ homeassistant_docker_restart_policy }}
+    network_mode: {{ homeassistant_docker_network }}
+{% if homeassistant_docker_privileged %}
+    privileged: true
+{% endif %}
+    volumes:
+      - {{ homeassistant_config_dir }}:/config
+      - /etc/localtime:/etc/localtime:ro
+      - /run/dbus:/run/dbus:ro
+{% for volume in homeassistant_extra_volumes %}
+      - {{ volume }}
+{% endfor %}
+{% if homeassistant_usb_devices | length > 0 %}
+    devices:
+{% for device in homeassistant_usb_devices %}
+      - {{ device }}:{{ device }}
+{% endfor %}
+{% endif %}
+    environment:
+      - TZ={{ homeassistant_time_zone }}
+{% if homeassistant_memory_limit %}
+    deploy:
+      resources:
+        limits:
+          memory: {{ homeassistant_memory_limit }}
+{% endif %}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:{{ homeassistant_port }}/api/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s

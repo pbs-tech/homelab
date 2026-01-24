@@ -1,0 +1,119 @@
+---
+- name: Update system packages
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install required packages
+  ansible.builtin.apt:
+    name:
+      - curl
+      - ca-certificates
+      - gnupg
+    state: present
+
+- name: Create qbittorrent directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ qbittorrent_puid }}"
+    group: "{{ qbittorrent_pgid }}"
+    mode: "0755"
+  loop:
+    - "{{ qbittorrent_data_dir }}"
+    - "{{ qbittorrent_config_dir }}"
+
+- name: Check if Docker is installed
+  ansible.builtin.stat:
+    path: /usr/bin/docker
+  register: docker_binary
+
+- name: Install Docker when not present
+  when: not docker_binary.stat.exists
+  block:
+    - name: Add Docker GPG key
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+
+    - name: Install Docker packages
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+        update_cache: true
+
+    - name: Enable Docker service
+      ansible.builtin.systemd:
+        name: docker
+        enabled: true
+        state: started
+
+- name: Deploy docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ qbittorrent_data_dir }}/docker-compose.yml"
+    owner: root
+    group: docker
+    mode: "0640"
+  notify: Restart qbittorrent
+
+- name: Create qBittorrent systemd service
+  ansible.builtin.template:
+    src: qbittorrent.service.j2
+    dest: /etc/systemd/system/qbittorrent.service
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart qbittorrent
+
+- name: Configure UFW firewall for qBittorrent
+  community.general.ufw:
+    rule: allow
+    port: "{{ item.port }}"
+    proto: "{{ item.proto }}"
+    comment: "qBittorrent"
+  loop:
+    - { port: "{{ qbittorrent_webui_port }}", proto: "tcp" }
+    - { port: "{{ qbittorrent_torrent_port }}", proto: "tcp" }
+    - { port: "{{ qbittorrent_torrent_port }}", proto: "udp" }
+  when: qbittorrent_configure_firewall
+
+- name: Pull qBittorrent Docker image
+  community.docker.docker_image:
+    name: "{{ qbittorrent_docker_image }}"
+    tag: "{{ qbittorrent_version }}"
+    source: pull
+
+- name: Enable and start qBittorrent
+  ansible.builtin.systemd:
+    name: qbittorrent
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Wait for qBittorrent to be ready
+  ansible.builtin.uri:
+    url: "http://localhost:{{ qbittorrent_webui_port }}"
+    method: GET
+    status_code: [200, 401]
+  register: qbittorrent_health
+  until: qbittorrent_health.status in [200, 401]
+  retries: 12
+  delay: 5
+
+- name: Display qBittorrent access information
+  ansible.builtin.debug:
+    msg: |
+      qBittorrent is ready!
+      Access URL: http://{{ ansible_host }}:{{ qbittorrent_webui_port }}
+      Default credentials: admin / adminadmin
+      IMPORTANT: Change the default password immediately!

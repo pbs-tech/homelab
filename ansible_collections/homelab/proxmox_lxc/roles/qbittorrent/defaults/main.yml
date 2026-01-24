@@ -1,0 +1,16 @@
+---
+qbittorrent_version: "latest"
+qbittorrent_webui_port: 8080
+qbittorrent_torrent_port: 6881
+qbittorrent_container_name: "qbittorrent"
+qbittorrent_puid: 1000
+qbittorrent_pgid: 1000
+qbittorrent_timezone: "UTC"
+qbittorrent_config_dir: /opt/qbittorrent/config
+qbittorrent_data_dir: /opt/qbittorrent
+qbittorrent_download_dir: "/downloads"
+qbittorrent_docker_image: "lscr.io/linuxserver/qbittorrent"
+qbittorrent_docker_restart_policy: "unless-stopped"
+qbittorrent_memory_limit: "1g"
+qbittorrent_configure_firewall: true
+qbittorrent_extra_volumes: []

@@ -1,0 +1,107 @@
+---
+- name: Update system packages
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install required packages
+  ansible.builtin.apt:
+    name:
+      - curl
+      - ca-certificates
+      - gnupg
+    state: present
+
+- name: Create prowlarr directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ prowlarr_puid }}"
+    group: "{{ prowlarr_pgid }}"
+    mode: "0755"
+  loop:
+    - "{{ prowlarr_data_dir }}"
+    - "{{ prowlarr_config_dir }}"
+
+- name: Check if Docker is installed
+  ansible.builtin.stat:
+    path: /usr/bin/docker
+  register: docker_binary
+
+- name: Install Docker when not present
+  when: not docker_binary.stat.exists
+  block:
+    - name: Add Docker GPG key
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+
+    - name: Install Docker packages
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+        update_cache: true
+
+    - name: Enable Docker service
+      ansible.builtin.systemd:
+        name: docker
+        enabled: true
+        state: started
+
+- name: Deploy docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ prowlarr_data_dir }}/docker-compose.yml"
+    owner: root
+    group: docker
+    mode: "0640"
+  notify: Restart prowlarr
+
+- name: Create Prowlarr systemd service
+  ansible.builtin.template:
+    src: prowlarr.service.j2
+    dest: /etc/systemd/system/prowlarr.service
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart prowlarr
+
+- name: Configure UFW firewall for Prowlarr
+  community.general.ufw:
+    rule: allow
+    port: "{{ prowlarr_port }}"
+    proto: tcp
+    comment: "Prowlarr"
+  when: prowlarr_configure_firewall
+
+- name: Pull Prowlarr Docker image
+  community.docker.docker_image:
+    name: "{{ prowlarr_docker_image }}"
+    tag: "{{ prowlarr_version }}"
+    source: pull
+
+- name: Enable and start Prowlarr
+  ansible.builtin.systemd:
+    name: prowlarr
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Wait for Prowlarr to be ready
+  ansible.builtin.uri:
+    url: "http://localhost:{{ prowlarr_port }}"
+    method: GET
+    status_code: [200, 401]
+  register: prowlarr_health
+  until: prowlarr_health.status in [200, 401]
+  retries: 12
+  delay: 5

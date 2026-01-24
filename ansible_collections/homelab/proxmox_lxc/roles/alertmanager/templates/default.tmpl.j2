@@ -1,0 +1,26 @@
+{{ "{{" }} define "default.title" {{ "}}" }}
+[{{ "{{" }} .Status | toUpper {{ "}}" }}{{ "{{" }} if eq .Status "firing" {{ "}}" }}:{{ "{{" }} .Alerts.Firing | len {{ "}}" }}{{ "{{" }} end {{ "}}" }}] {{ "{{" }} .GroupLabels.SortedPairs.Values | join " " {{ "}}" }}
+{{ "{{" }} end {{ "}}" }}
+
+{{ "{{" }} define "default.description" {{ "}}" }}
+{{ "{{" }} range .Alerts {{ "}}" }}
+Alert: {{ "{{" }} .Labels.alertname {{ "}}" }}
+Severity: {{ "{{" }} .Labels.severity {{ "}}" }}
+Summary: {{ "{{" }} .Annotations.summary {{ "}}" }}
+Description: {{ "{{" }} .Annotations.description {{ "}}" }}
+{{ "{{" }} end {{ "}}" }}
+{{ "{{" }} end {{ "}}" }}
+
+{{ "{{" }} define "slack.default.title" {{ "}}" }}
+[{{ "{{" }} .Status | toUpper {{ "}}" }}{{ "{{" }} if eq .Status "firing" {{ "}}" }}:{{ "{{" }} .Alerts.Firing | len {{ "}}" }}{{ "{{" }} end {{ "}}" }}] {{ "{{" }} .GroupLabels.SortedPairs.Values | join " " {{ "}}" }}
+{{ "{{" }} end {{ "}}" }}
+
+{{ "{{" }} define "slack.default.text" {{ "}}" }}
+{{ "{{" }} range .Alerts {{ "}}" }}
+*Alert:* {{ "{{" }} .Labels.alertname {{ "}}" }}
+*Severity:* {{ "{{" }} .Labels.severity {{ "}}" }}
+*Instance:* {{ "{{" }} .Labels.instance {{ "}}" }}
+*Summary:* {{ "{{" }} .Annotations.summary {{ "}}" }}
+*Description:* {{ "{{" }} .Annotations.description {{ "}}" }}
+{{ "{{" }} end {{ "}}" }}
+{{ "{{" }} end {{ "}}" }}
