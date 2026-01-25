@@ -44,10 +44,11 @@
 
   post_tasks:
     - name: Verify monitoring services
-      uri:
+      ansible.builtin.uri:
         url: http://{{ ansible_host }}:{{ service_port }}
         method: GET
         timeout: 30
         status_code: [200, 302]
       delegate_to: localhost
+      become: false
       when: service_port is defined
