@@ -3,6 +3,8 @@ services:
   bazarr:
     image: {{ bazarr_docker_image }}:{{ bazarr_version }}
     container_name: {{ bazarr_container_name }}
+    security_opt:
+      - no-new-privileges:true
     environment:
       - PUID={{ bazarr_puid }}
       - PGID={{ bazarr_pgid }}

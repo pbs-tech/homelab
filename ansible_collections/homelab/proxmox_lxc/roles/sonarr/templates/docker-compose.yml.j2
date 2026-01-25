@@ -3,6 +3,8 @@ services:
   sonarr:
     image: {{ sonarr_docker_image }}:{{ sonarr_version }}
     container_name: {{ sonarr_container_name }}
+    security_opt:
+      - no-new-privileges:true
     environment:
       - PUID={{ sonarr_puid }}
       - PGID={{ sonarr_pgid }}

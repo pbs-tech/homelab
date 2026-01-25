@@ -92,8 +92,8 @@
     state: started
 
   register: container_start_result
-  retries: "{{ proxmox_api.retry_count | default(3) }}"
-  delay: "{{ proxmox_api.retry_delay | default(5) }}"
+  retries: "{{ proxmox_api_defaults.retry_count | default(3) }}"
+  delay: "{{ proxmox_api_defaults.retry_delay | default(5) }}"
   until: container_start_result is succeeded
   delegate_to: localhost
   become: false
@@ -170,7 +170,7 @@
 
     # Container identification
     vmid: "{{ container_vmid }}"
-    node: "{{ proxmox_node | default(proxmox_default_node) }}"
+    node: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].node }}"
     hostname: "{{ container_hostname }}"
 
     # Startup configuration
@@ -179,8 +179,8 @@
     update: true
 
   register: container_startup_result
-  retries: "{{ proxmox_api.retry_count | default(3) }}"
-  delay: "{{ proxmox_api.retry_delay | default(5) }}"
+  retries: "{{ proxmox_api_defaults.retry_count | default(3) }}"
+  delay: "{{ proxmox_api_defaults.retry_delay | default(5) }}"
   until: container_startup_result is succeeded
   delegate_to: localhost
   become: false

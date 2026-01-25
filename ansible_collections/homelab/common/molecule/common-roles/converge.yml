@@ -30,6 +30,14 @@
         mode: 0644
 
   tasks:
+    # Test docker role
+    - name: Test docker role
+      ansible.builtin.include_role:
+        name: homelab.common.docker
+      vars:
+        docker_ensure_group: true
+      tags: [docker]
+
     # Test common_setup role
     - name: Test common setup role
       ansible.builtin.include_role:

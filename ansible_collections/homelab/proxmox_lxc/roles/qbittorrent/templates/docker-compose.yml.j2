@@ -3,6 +3,8 @@ services:
   qbittorrent:
     image: {{ qbittorrent_docker_image }}:{{ qbittorrent_version }}
     container_name: {{ qbittorrent_container_name }}
+    security_opt:
+      - no-new-privileges:true
     environment:
       - PUID={{ qbittorrent_puid }}
       - PGID={{ qbittorrent_pgid }}

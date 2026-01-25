@@ -3,6 +3,8 @@ services:
   prowlarr:
     image: {{ prowlarr_docker_image }}:{{ prowlarr_version }}
     container_name: {{ prowlarr_container_name }}
+    security_opt:
+      - no-new-privileges:true
     environment:
       - PUID={{ prowlarr_puid }}
       - PGID={{ prowlarr_pgid }}

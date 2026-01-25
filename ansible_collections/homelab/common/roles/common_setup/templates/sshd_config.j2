@@ -6,7 +6,7 @@ AddressFamily any
 ListenAddress 0.0.0.0
 
 # Authentication
-PermitRootLogin {{ 'yes' if ssh_config.permit_root_login | default(false) else 'prohibit-password' }}
+PermitRootLogin {{ 'prohibit-password' if ssh_config.permit_root_login | default(false) else 'no' }}
 PubkeyAuthentication {{ 'yes' if ssh_config.pubkey_authentication | default(true) else 'no' }}
 PasswordAuthentication {{ 'yes' if ssh_config.password_authentication | default(false) else 'no' }}
 PermitEmptyPasswords no

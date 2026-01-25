@@ -3,6 +3,8 @@ services:
   radarr:
     image: {{ radarr_docker_image }}:{{ radarr_version }}
     container_name: {{ radarr_container_name }}
+    security_opt:
+      - no-new-privileges:true
     environment:
       - PUID={{ radarr_puid }}
       - PGID={{ radarr_pgid }}

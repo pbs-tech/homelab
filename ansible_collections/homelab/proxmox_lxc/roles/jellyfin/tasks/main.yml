@@ -14,6 +14,24 @@
       - gnupg
     state: present
 
+# Install Docker using common role
+- name: Install Docker
+  ansible.builtin.include_role:
+    name: homelab.common.docker
+  vars:
+    docker_ensure_group: true
+
+# Validate PUID/PGID - ensure user/group exist or will be created by container
+- name: Validate PUID/PGID configuration
+  ansible.builtin.assert:
+    that:
+      - jellyfin_puid is defined
+      - jellyfin_pgid is defined
+      - jellyfin_puid | int > 0
+      - jellyfin_pgid | int > 0
+    fail_msg: "jellyfin_puid and jellyfin_pgid must be defined and greater than 0"
+    quiet: true
+
 - name: Create jellyfin directories
   ansible.builtin.file:
     path: "{{ item }}"
@@ -25,50 +43,6 @@
     - "{{ jellyfin_data_dir }}"
     - "{{ jellyfin_config_dir }}"
     - "{{ jellyfin_cache_dir }}"
-
-- name: Check if Docker is installed
-  ansible.builtin.stat:
-    path: /usr/bin/docker
-  register: docker_binary
-
-- name: Install Docker when not present
-  when: not docker_binary.stat.exists
-  block:
-    - name: Create keyrings directory
-      ansible.builtin.file:
-        path: /etc/apt/keyrings
-        state: directory
-        mode: "0755"
-
-    - name: Download Docker GPG key
-      ansible.builtin.get_url:
-        url: https://download.docker.com/linux/ubuntu/gpg
-        dest: /etc/apt/keyrings/docker.asc
-        mode: "0644"
-
-    - name: Add Docker repository
-      ansible.builtin.apt_repository:
-        repo: >-
-          deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc]
-          https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
-        state: present
-        filename: docker
-
-    - name: Install Docker packages
-      ansible.builtin.apt:
-        name:
-          - docker-ce
-          - docker-ce-cli
-          - containerd.io
-          - docker-compose-plugin
-        state: present
-        update_cache: true
-
-    - name: Enable Docker service
-      ansible.builtin.systemd:
-        name: docker
-        enabled: true
-        state: started
 
 - name: Deploy docker-compose.yml
   ansible.builtin.template:
@@ -104,6 +78,10 @@
     name: "{{ jellyfin_docker_image }}"
     tag: "{{ jellyfin_version }}"
     source: pull
+  retries: 3
+  delay: 10
+  register: docker_pull_result
+  until: docker_pull_result is succeeded
 
 - name: Enable and start Jellyfin
   ansible.builtin.systemd:
@@ -121,6 +99,12 @@
   until: jellyfin_health.status == 200
   retries: 30
   delay: 10
+  ignore_errors: true
+
+- name: Warn if Jellyfin health check failed
+  ansible.builtin.debug:
+    msg: "Warning: Jellyfin health check did not pass. Service may still be starting."
+  when: jellyfin_health is failed
 
 - name: Display Jellyfin access information
   ansible.builtin.debug:

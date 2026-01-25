@@ -14,6 +14,12 @@
   vars:
     ansible_service_user: ansible
     ansible_service_group: ansible
+    # SSH key file - tries multiple common key paths
+    ansible_ssh_public_key_file: >-
+      {{ lookup('first_found', {
+        'files': ['id_ed25519.pub', 'id_rsa.pub', 'id_ecdsa.pub'],
+        'paths': ['~/.ssh']
+      }) }}
 
   tasks:
     - name: Create ansible group
@@ -41,7 +47,7 @@
     - name: Copy SSH public key to ansible user
       ansible.posix.authorized_key:
         user: "{{ ansible_service_user }}"
-        key: "{{ lookup('file', '~/.ssh/id_ed25519.pub') }}"
+        key: "{{ lookup('file', ansible_ssh_public_key_file) }}"
         state: present
 
     - name: Configure passwordless sudo for ansible user

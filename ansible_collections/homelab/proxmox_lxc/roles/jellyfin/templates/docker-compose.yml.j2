@@ -4,6 +4,8 @@ services:
     image: {{ jellyfin_docker_image }}:{{ jellyfin_version }}
     container_name: {{ jellyfin_container_name }}
     user: "{{ jellyfin_puid }}:{{ jellyfin_pgid }}"
+    security_opt:
+      - no-new-privileges:true
     environment:
       - TZ={{ jellyfin_timezone }}
     volumes:

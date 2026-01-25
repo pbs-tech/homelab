@@ -17,6 +17,13 @@
       - dbus
     state: present
 
+# Install Docker using common role
+- name: Install Docker
+  ansible.builtin.include_role:
+    name: homelab.common.docker
+  vars:
+    docker_ensure_group: true
+
 - name: Create homeassistant group
   ansible.builtin.group:
     name: "{{ homeassistant_group }}"
@@ -47,61 +54,11 @@
     - "{{ homeassistant_backup_dir }}"
     - "{{ homeassistant_config_dir }}/.storage"
 
-- name: Check if Docker is installed
-  ansible.builtin.stat:
-    path: /usr/bin/docker
-  register: docker_binary
-
-- name: Install Docker when not present
-  when: not docker_binary.stat.exists
-  block:
-    - name: Create keyrings directory
-      ansible.builtin.file:
-        path: /etc/apt/keyrings
-        state: directory
-        mode: "0755"
-
-    - name: Download Docker GPG key
-      ansible.builtin.get_url:
-        url: https://download.docker.com/linux/ubuntu/gpg
-        dest: /etc/apt/keyrings/docker.asc
-        mode: "0644"
-
-    - name: Add Docker repository
-      ansible.builtin.apt_repository:
-        repo: >-
-          deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc]
-          https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
-        state: present
-        filename: docker
-
-    - name: Install Docker packages
-      ansible.builtin.apt:
-        name:
-          - docker-ce
-          - docker-ce-cli
-          - containerd.io
-          - docker-compose-plugin
-        state: present
-        update_cache: true
-
-    - name: Enable Docker service
-      ansible.builtin.systemd:
-        name: docker
-        enabled: true
-        state: started
-
-- name: Add homeassistant user to docker group
-  ansible.builtin.user:
-    name: "{{ homeassistant_user }}"
-    groups: docker
-    append: true
-
 - name: Deploy docker-compose.yml
   ansible.builtin.template:
     src: docker-compose.yml.j2
     dest: "{{ homeassistant_data_dir }}/docker-compose.yml"
-    owner: root
+    owner: "{{ homeassistant_user }}"
     group: docker
     mode: "0640"
   notify: Restart homeassistant
@@ -117,9 +74,17 @@
     dest: "{{ homeassistant_config_dir }}/configuration.yaml"
     owner: "{{ homeassistant_user }}"
     group: "{{ homeassistant_group }}"
-    mode: "0644"
+    mode: "0600"
   when: not ha_config_file.stat.exists
   notify: Restart homeassistant
+
+- name: Ensure configuration.yaml has correct permissions
+  ansible.builtin.file:
+    path: "{{ homeassistant_config_dir }}/configuration.yaml"
+    owner: "{{ homeassistant_user }}"
+    group: "{{ homeassistant_group }}"
+    mode: "0600"
+  when: ha_config_file.stat.exists
 
 - name: Create empty automations.yaml if not exists
   ansible.builtin.copy:
@@ -127,7 +92,7 @@
     dest: "{{ homeassistant_config_dir }}/automations.yaml"
     owner: "{{ homeassistant_user }}"
     group: "{{ homeassistant_group }}"
-    mode: "0644"
+    mode: "0600"
     force: false
 
 - name: Create empty scripts.yaml if not exists
@@ -136,7 +101,7 @@
     dest: "{{ homeassistant_config_dir }}/scripts.yaml"
     owner: "{{ homeassistant_user }}"
     group: "{{ homeassistant_group }}"
-    mode: "0644"
+    mode: "0600"
     force: false
 
 - name: Create empty scenes.yaml if not exists
@@ -145,7 +110,7 @@
     dest: "{{ homeassistant_config_dir }}/scenes.yaml"
     owner: "{{ homeassistant_user }}"
     group: "{{ homeassistant_group }}"
-    mode: "0644"
+    mode: "0600"
     force: false
 
 - name: Create Home Assistant systemd service
@@ -170,6 +135,10 @@
     name: "{{ homeassistant_docker_image }}"
     tag: "{{ homeassistant_version }}"
     source: pull
+  retries: 3
+  delay: 10
+  register: docker_pull_result
+  until: docker_pull_result is succeeded
 
 - name: Enable and start Home Assistant
   ansible.builtin.systemd:
@@ -190,6 +159,12 @@
   until: ha_health.status in [200, 401]
   retries: 30
   delay: 10
+  ignore_errors: true
+
+- name: Warn if Home Assistant health check failed
+  ansible.builtin.debug:
+    msg: "Warning: Home Assistant health check did not pass. Service may still be starting."
+  when: ha_health is failed
 
 - name: Display Home Assistant access information
   ansible.builtin.debug:
