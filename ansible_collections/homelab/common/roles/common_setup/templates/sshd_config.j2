@@ -1,18 +1,25 @@
 # {{ ansible_managed }}
 # SSH daemon configuration
+# Variables are sourced from ssh_config dict with secure defaults
 
-Port {{ ssh_config.port | default(22) }}
+{% set _ssh_port = (ssh_config.port | default(22)) if ssh_config is defined else 22 %}
+{% set _permit_root = (ssh_config.permit_root_login | default(false)) if ssh_config is defined else false %}
+{% set _pubkey_auth = (ssh_config.pubkey_authentication | default(true)) if ssh_config is defined else true %}
+{% set _password_auth = (ssh_config.password_authentication | default(false)) if ssh_config is defined else false %}
+{% set _auth_keys_file = (ssh_config.authorized_keys_file | default('.ssh/authorized_keys')) if ssh_config is defined else '.ssh/authorized_keys' %}
+
+Port {{ _ssh_port }}
 AddressFamily any
 ListenAddress 0.0.0.0
 
-# Authentication
-PermitRootLogin {{ 'prohibit-password' if ssh_config.permit_root_login | default(false) else 'no' }}
-PubkeyAuthentication {{ 'yes' if ssh_config.pubkey_authentication | default(true) else 'no' }}
-PasswordAuthentication {{ 'yes' if ssh_config.password_authentication | default(false) else 'no' }}
+# Authentication - secure defaults
+PermitRootLogin {{ 'prohibit-password' if _permit_root else 'no' }}
+PubkeyAuthentication {{ 'yes' if _pubkey_auth else 'no' }}
+PasswordAuthentication {{ 'yes' if _password_auth else 'no' }}
 PermitEmptyPasswords no
 ChallengeResponseAuthentication no
 
-# Key exchange and ciphers (secure defaults)
+# Key exchange and ciphers (secure defaults - modern algorithms only)
 KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512
 Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com
 MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com
@@ -28,7 +35,7 @@ MaxSessions 10
 ClientAliveInterval 300
 ClientAliveCountMax 2
 
-# Disable unused features
+# Disable unused features for security
 X11Forwarding no
 AllowTcpForwarding no
 AllowAgentForwarding no
@@ -42,4 +49,4 @@ AcceptEnv LANG LC_*
 Subsystem sftp /usr/lib/openssh/sftp-server
 
 # Authorized keys location
-AuthorizedKeysFile {{ ssh_config.authorized_keys_file | default('.ssh/authorized_keys') }}
+AuthorizedKeysFile {{ _auth_keys_file }}

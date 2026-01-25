@@ -1,4 +1,7 @@
 ---
+# Docker Compose file for qBittorrent
+# Managed by Ansible - {{ ansible_managed }}
+
 services:
   qbittorrent:
     image: {{ qbittorrent_docker_image }}:{{ qbittorrent_version }}

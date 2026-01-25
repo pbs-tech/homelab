@@ -1,4 +1,7 @@
 ---
+# Docker Compose file for Jellyfin
+# Managed by Ansible - {{ ansible_managed }}
+
 services:
   jellyfin:
     image: {{ jellyfin_docker_image }}:{{ jellyfin_version }}

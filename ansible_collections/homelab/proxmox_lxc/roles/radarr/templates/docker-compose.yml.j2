@@ -1,4 +1,7 @@
 ---
+# Docker Compose file for Radarr
+# Managed by Ansible - {{ ansible_managed }}
+
 services:
   radarr:
     image: {{ radarr_docker_image }}:{{ radarr_version }}

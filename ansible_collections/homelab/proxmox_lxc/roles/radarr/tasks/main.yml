@@ -32,6 +32,27 @@
     fail_msg: "radarr_puid and radarr_pgid must be defined and greater than 0"
     quiet: true
 
+# Ensure group exists for PGID (required for directory ownership)
+- name: Ensure media group exists for Radarr
+  ansible.builtin.group:
+    name: "{{ radarr_group_name | default('media') }}"
+    gid: "{{ radarr_pgid }}"
+    system: true
+    state: present
+  when: radarr_ensure_user | default(true)
+
+# Ensure user exists for PUID (required for directory ownership)
+- name: Ensure media user exists for Radarr
+  ansible.builtin.user:
+    name: "{{ radarr_user_name | default('media') }}"
+    uid: "{{ radarr_puid }}"
+    group: "{{ radarr_group_name | default('media') }}"
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+    state: present
+  when: radarr_ensure_user | default(true)
+
 - name: Create radarr directories
   ansible.builtin.file:
     path: "{{ item }}"
@@ -61,12 +82,14 @@
     - Reload systemd
     - Restart radarr
 
-- name: Configure UFW firewall for Radarr
+- name: Configure UFW firewall for Radarr (restricted access)
   community.general.ufw:
     rule: allow
     port: "{{ radarr_port }}"
     proto: tcp
-    comment: "Radarr"
+    src: "{{ item }}"
+    comment: "Radarr ({{ item }})"
+  loop: "{{ radarr_allowed_sources | default([traefik_ip | default('192.168.0.205'), '127.0.0.1']) }}"
   when: radarr_configure_firewall
 
 - name: Pull Radarr Docker image
@@ -87,20 +110,29 @@
     daemon_reload: true
 
 - name: Wait for Radarr to be ready
-  ansible.builtin.uri:
-    url: "http://localhost:{{ radarr_port }}/ping"
-    method: GET
-    status_code: [200]
-  register: radarr_health
-  until: radarr_health.status == 200
-  retries: 30
-  delay: 5
-  ignore_errors: true
+  block:
+    - name: Check Radarr health endpoint
+      ansible.builtin.uri:
+        url: "http://localhost:{{ radarr_port }}/ping"
+        method: GET
+        status_code: [200]
+      register: radarr_health
+      until: radarr_health.status == 200
+      retries: 30
+      delay: 5
 
-- name: Warn if Radarr health check failed
-  ansible.builtin.debug:
-    msg: "Warning: Radarr health check did not pass. Service may still be starting."
-  when: radarr_health is failed
+  rescue:
+    - name: Warn about Radarr health check failure
+      ansible.builtin.debug:
+        msg: |
+          WARNING: Radarr health check did not pass after 150 seconds.
+          The service may still be starting or there may be a configuration issue.
+          Please verify manually: http://{{ ansible_host }}:{{ radarr_port }}
+
+    - name: Fail if strict health checks are enabled
+      ansible.builtin.fail:
+        msg: "Radarr health check failed and strict mode is enabled"
+      when: radarr_strict_health_check | default(false)
 
 - name: Display Radarr access information
   ansible.builtin.debug:

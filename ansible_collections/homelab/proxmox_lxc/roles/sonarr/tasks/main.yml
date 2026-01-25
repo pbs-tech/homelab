@@ -32,6 +32,27 @@
     fail_msg: "sonarr_puid and sonarr_pgid must be defined and greater than 0"
     quiet: true
 
+# Ensure group exists for PGID (required for directory ownership)
+- name: Ensure media group exists for Sonarr
+  ansible.builtin.group:
+    name: "{{ sonarr_group_name | default('media') }}"
+    gid: "{{ sonarr_pgid }}"
+    system: true
+    state: present
+  when: sonarr_ensure_user | default(true)
+
+# Ensure user exists for PUID (required for directory ownership)
+- name: Ensure media user exists for Sonarr
+  ansible.builtin.user:
+    name: "{{ sonarr_user_name | default('media') }}"
+    uid: "{{ sonarr_puid }}"
+    group: "{{ sonarr_group_name | default('media') }}"
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+    state: present
+  when: sonarr_ensure_user | default(true)
+
 - name: Create sonarr directories
   ansible.builtin.file:
     path: "{{ item }}"
@@ -61,12 +82,14 @@
     - Reload systemd
     - Restart sonarr
 
-- name: Configure UFW firewall for Sonarr
+- name: Configure UFW firewall for Sonarr (restricted access)
   community.general.ufw:
     rule: allow
     port: "{{ sonarr_port }}"
     proto: tcp
-    comment: "Sonarr"
+    src: "{{ item }}"
+    comment: "Sonarr ({{ item }})"
+  loop: "{{ sonarr_allowed_sources | default([traefik_ip | default('192.168.0.205'), '127.0.0.1']) }}"
   when: sonarr_configure_firewall
 
 - name: Pull Sonarr Docker image
@@ -87,20 +110,29 @@
     daemon_reload: true
 
 - name: Wait for Sonarr to be ready
-  ansible.builtin.uri:
-    url: "http://localhost:{{ sonarr_port }}/ping"
-    method: GET
-    status_code: [200]
-  register: sonarr_health
-  until: sonarr_health.status == 200
-  retries: 30
-  delay: 5
-  ignore_errors: true
+  block:
+    - name: Check Sonarr health endpoint
+      ansible.builtin.uri:
+        url: "http://localhost:{{ sonarr_port }}/ping"
+        method: GET
+        status_code: [200]
+      register: sonarr_health
+      until: sonarr_health.status == 200
+      retries: 30
+      delay: 5
 
-- name: Warn if Sonarr health check failed
-  ansible.builtin.debug:
-    msg: "Warning: Sonarr health check did not pass. Service may still be starting."
-  when: sonarr_health is failed
+  rescue:
+    - name: Warn about Sonarr health check failure
+      ansible.builtin.debug:
+        msg: |
+          WARNING: Sonarr health check did not pass after 150 seconds.
+          The service may still be starting or there may be a configuration issue.
+          Please verify manually: http://{{ ansible_host }}:{{ sonarr_port }}
+
+    - name: Fail if strict health checks are enabled
+      ansible.builtin.fail:
+        msg: "Sonarr health check failed and strict mode is enabled"
+      when: sonarr_strict_health_check | default(false)
 
 - name: Display Sonarr access information
   ansible.builtin.debug:

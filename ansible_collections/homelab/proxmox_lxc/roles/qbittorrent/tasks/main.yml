@@ -32,6 +32,27 @@
     fail_msg: "qbittorrent_puid and qbittorrent_pgid must be defined and greater than 0"
     quiet: true
 
+# Ensure group exists for PGID (required for directory ownership)
+- name: Ensure media group exists for qBittorrent
+  ansible.builtin.group:
+    name: "{{ qbittorrent_group_name | default('media') }}"
+    gid: "{{ qbittorrent_pgid }}"
+    system: true
+    state: present
+  when: qbittorrent_ensure_user | default(true)
+
+# Ensure user exists for PUID (required for directory ownership)
+- name: Ensure media user exists for qBittorrent
+  ansible.builtin.user:
+    name: "{{ qbittorrent_user_name | default('media') }}"
+    uid: "{{ qbittorrent_puid }}"
+    group: "{{ qbittorrent_group_name | default('media') }}"
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+    state: present
+  when: qbittorrent_ensure_user | default(true)
+
 - name: Create qbittorrent directories
   ansible.builtin.file:
     path: "{{ item }}"
@@ -61,16 +82,25 @@
     - Reload systemd
     - Restart qbittorrent
 
-- name: Configure UFW firewall for qBittorrent
+- name: Configure UFW firewall for qBittorrent WebUI (restricted access)
   community.general.ufw:
     rule: allow
-    port: "{{ item.port }}"
-    proto: "{{ item.proto }}"
-    comment: "qBittorrent"
+    port: "{{ qbittorrent_webui_port }}"
+    proto: tcp
+    src: "{{ item }}"
+    comment: "qBittorrent WebUI ({{ item }})"
+  loop: "{{ qbittorrent_allowed_sources | default([traefik_ip | default('192.168.0.205'), '127.0.0.1']) }}"
+  when: qbittorrent_configure_firewall
+
+- name: Configure UFW firewall for qBittorrent torrent ports (open for BitTorrent)
+  community.general.ufw:
+    rule: allow
+    port: "{{ qbittorrent_torrent_port }}"
+    proto: "{{ item }}"
+    comment: "qBittorrent torrent traffic"
   loop:
-    - { port: "{{ qbittorrent_webui_port }}", proto: "tcp" }
-    - { port: "{{ qbittorrent_torrent_port }}", proto: "tcp" }
-    - { port: "{{ qbittorrent_torrent_port }}", proto: "udp" }
+    - tcp
+    - udp
   when: qbittorrent_configure_firewall
 
 - name: Pull qBittorrent Docker image
@@ -91,20 +121,29 @@
     daemon_reload: true
 
 - name: Wait for qBittorrent to be ready
-  ansible.builtin.uri:
-    url: "http://localhost:{{ qbittorrent_webui_port }}"
-    method: GET
-    status_code: [200, 401]
-  register: qbittorrent_health
-  until: qbittorrent_health.status in [200, 401]
-  retries: 18
-  delay: 5
-  ignore_errors: true
+  block:
+    - name: Check qBittorrent health endpoint
+      ansible.builtin.uri:
+        url: "http://localhost:{{ qbittorrent_webui_port }}"
+        method: GET
+        status_code: [200, 401]
+      register: qbittorrent_health
+      until: qbittorrent_health.status in [200, 401]
+      retries: 24
+      delay: 5
 
-- name: Warn if qBittorrent health check failed
-  ansible.builtin.debug:
-    msg: "Warning: qBittorrent health check did not pass. Service may still be starting."
-  when: qbittorrent_health is failed
+  rescue:
+    - name: Warn about qBittorrent health check failure
+      ansible.builtin.debug:
+        msg: |
+          WARNING: qBittorrent health check did not pass after 120 seconds.
+          The service may still be starting or there may be a configuration issue.
+          Please verify manually: http://{{ ansible_host }}:{{ qbittorrent_webui_port }}
+
+    - name: Fail if strict health checks are enabled
+      ansible.builtin.fail:
+        msg: "qBittorrent health check failed and strict mode is enabled"
+      when: qbittorrent_strict_health_check | default(false)
 
 - name: Display qBittorrent access information
   ansible.builtin.debug:

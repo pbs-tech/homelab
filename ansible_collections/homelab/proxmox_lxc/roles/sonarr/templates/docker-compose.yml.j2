@@ -1,4 +1,7 @@
 ---
+# Docker Compose file for Sonarr
+# Managed by Ansible - {{ ansible_managed }}
+
 services:
   sonarr:
     image: {{ sonarr_docker_image }}:{{ sonarr_version }}

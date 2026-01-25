@@ -122,12 +122,14 @@
     - Reload systemd
     - Restart homeassistant
 
-- name: Configure UFW firewall for Home Assistant
+- name: Configure UFW firewall for Home Assistant (restricted access)
   community.general.ufw:
     rule: allow
     port: "{{ homeassistant_port }}"
     proto: tcp
-    comment: "Home Assistant"
+    src: "{{ item }}"
+    comment: "Home Assistant ({{ item }})"
+  loop: "{{ homeassistant_allowed_sources | default([traefik_ip | default('192.168.0.205'), '127.0.0.1']) }}"
   when: homeassistant_configure_firewall
 
 - name: Pull Home Assistant Docker image
@@ -149,22 +151,31 @@
   register: homeassistant_service
 
 - name: Wait for Home Assistant to be ready
-  ansible.builtin.uri:
-    url: "http://localhost:{{ homeassistant_port }}/api/"
-    method: GET
-    status_code:
-      - 200
-      - 401
-  register: ha_health
-  until: ha_health.status in [200, 401]
-  retries: 30
-  delay: 10
-  ignore_errors: true
+  block:
+    - name: Check Home Assistant health endpoint
+      ansible.builtin.uri:
+        url: "http://localhost:{{ homeassistant_port }}/api/"
+        method: GET
+        status_code:
+          - 200
+          - 401
+      register: ha_health
+      until: ha_health.status in [200, 401]
+      retries: 30
+      delay: 10
 
-- name: Warn if Home Assistant health check failed
-  ansible.builtin.debug:
-    msg: "Warning: Home Assistant health check did not pass. Service may still be starting."
-  when: ha_health is failed
+  rescue:
+    - name: Warn about Home Assistant health check failure
+      ansible.builtin.debug:
+        msg: |
+          WARNING: Home Assistant health check did not pass after 300 seconds.
+          The service may still be starting or there may be a configuration issue.
+          Please verify manually: http://{{ ansible_host }}:{{ homeassistant_port }}
+
+    - name: Fail if strict health checks are enabled
+      ansible.builtin.fail:
+        msg: "Home Assistant health check failed and strict mode is enabled"
+      when: homeassistant_strict_health_check | default(false)
 
 - name: Display Home Assistant access information
   ansible.builtin.debug:

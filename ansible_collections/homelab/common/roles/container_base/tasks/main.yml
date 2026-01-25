@@ -12,6 +12,34 @@
   block:
     - name: Run API validation tasks
       ansible.builtin.include_tasks: ../../tasks/proxmox_api_validation.yml
+
+# Validate and parse API token
+# Token format should be: user@realm!tokenname
+# We need to extract just 'tokenname' for api_token_id parameter
+- name: Validate API token format
+  ansible.builtin.assert:
+    that:
+      - proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id is defined
+      - "'!' in proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id"
+    fail_msg: >-
+      API token ID must be in format 'user@realm!tokenname'.
+      Got: {{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id | default('undefined') }}
+    quiet: true
+  delegate_to: localhost
+  run_once: true
+  tags:
+    - validation
+    - proxmox
+
+- name: Extract API token name from full token ID
+  ansible.builtin.set_fact:
+    _api_token_name: >-
+      {{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id.split('!')[1]
+         if '!' in proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id
+         else proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id }}
+  delegate_to: localhost
+  run_once: true
+
 - name: Set container configuration variables
   ansible.builtin.set_fact:
     container_vmid: "{{ container_id }}"
@@ -37,7 +65,7 @@
     # api_token_id should be just the token name (not full user@realm!token format)
     api_host: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
     api_user: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].user }}"
-    api_token_id: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id.split('!')[1] }}"
+    api_token_id: "{{ _api_token_name }}"
     api_token_secret: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_secret }}"
     validate_certs: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].validate_certs }}"
     timeout: "{{ proxmox_api_defaults.timeout | default(300) }}"
@@ -81,7 +109,7 @@
     # Secure API token authentication (preferred)
     api_host: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
     api_user: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].user }}"
-    api_token_id: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id.split('!')[1] }}"
+    api_token_id: "{{ _api_token_name }}"
     api_token_secret: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_secret }}"
     validate_certs: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].validate_certs }}"
     timeout: "{{ proxmox_api_defaults.timeout | default(300) }}"
@@ -117,29 +145,66 @@
 
 # Create ansible user in container for Ansible management
 # The pubkey parameter injects SSH key into root, but we need the ansible user
+- name: Validate container_vmid is numeric (security check)
+  ansible.builtin.assert:
+    that:
+      - container_vmid is defined
+      - container_vmid | string | regex_search('^[0-9]+$')
+    fail_msg: "container_vmid must be a numeric value. Got: {{ container_vmid | default('undefined') }}"
+    quiet: true
+  tags:
+    - validation
+    - security
+
 - name: Create ansible user in container
-  ansible.builtin.shell: |
-    pct exec {{ container_vmid }} -- bash -c '
-      if ! id ansible &>/dev/null; then
+  ansible.builtin.shell:
+    # Use set -e for strict error handling
+    cmd: |
+      set -euo pipefail
+      pct exec "{{ container_vmid | int }}" -- bash -c '
+        set -euo pipefail
+
+        # Check if ansible user already exists
+        if id ansible &>/dev/null; then
+          # Ensure existing account is unlocked for SSH key auth
+          usermod -p "*" ansible || true
+          echo "exists"
+          exit 0
+        fi
+
+        # Create ansible user with home directory
         useradd -m -s /bin/bash ansible
+
         # Unlock account for SSH key-based login (set password to * instead of !)
         usermod -p "*" ansible
+
+        # Setup SSH directory with proper permissions
         mkdir -p /home/ansible/.ssh
         chmod 700 /home/ansible/.ssh
-        cp /root/.ssh/authorized_keys /home/ansible/.ssh/ 2>/dev/null || true
-        chown -R ansible:ansible /home/ansible/.ssh
-        chmod 600 /home/ansible/.ssh/authorized_keys 2>/dev/null || true
+
+        # Copy SSH authorized_keys from root if available
+        if [ -f /root/.ssh/authorized_keys ]; then
+          cp /root/.ssh/authorized_keys /home/ansible/.ssh/
+          chown -R ansible:ansible /home/ansible/.ssh
+          chmod 600 /home/ansible/.ssh/authorized_keys
+        fi
+
+        # Configure passwordless sudo
         echo "ansible ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/ansible
         chmod 440 /etc/sudoers.d/ansible
+
+        # Validate sudoers file syntax
+        visudo -cf /etc/sudoers.d/ansible
+
         echo "created"
-      else
-        # Ensure existing account is unlocked
-        usermod -p "*" ansible 2>/dev/null || true
-        echo "exists"
-      fi
-    '
+      '
+    executable: /bin/bash
   register: ansible_user_result
   changed_when: "'created' in ansible_user_result.stdout"
+  failed_when:
+    - ansible_user_result.rc != 0
+    - "'exists' not in ansible_user_result.stdout"
+    - "'created' not in ansible_user_result.stdout"
   delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
   become: true
   vars:
@@ -163,7 +228,7 @@
     # Secure API token authentication (preferred)
     api_host: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
     api_user: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].user }}"
-    api_token_id: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id.split('!')[1] }}"
+    api_token_id: "{{ _api_token_name }}"
     api_token_secret: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_secret }}"
     validate_certs: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].validate_certs }}"
     timeout: "{{ proxmox_api_defaults.timeout | default(300) }}"

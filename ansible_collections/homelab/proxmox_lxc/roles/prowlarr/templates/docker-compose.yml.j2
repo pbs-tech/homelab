@@ -1,4 +1,7 @@
 ---
+# Docker Compose file for Prowlarr
+# Managed by Ansible - {{ ansible_managed }}
+
 services:
   prowlarr:
     image: {{ prowlarr_docker_image }}:{{ prowlarr_version }}

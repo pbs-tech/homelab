@@ -1,4 +1,7 @@
 ---
+# Docker Compose file for Bazarr
+# Managed by Ansible - {{ ansible_managed }}
+
 services:
   bazarr:
     image: {{ bazarr_docker_image }}:{{ bazarr_version }}

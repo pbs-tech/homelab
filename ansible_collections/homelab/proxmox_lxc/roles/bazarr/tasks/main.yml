@@ -32,6 +32,27 @@
     fail_msg: "bazarr_puid and bazarr_pgid must be defined and greater than 0"
     quiet: true
 
+# Ensure group exists for PGID (required for directory ownership)
+- name: Ensure media group exists for Bazarr
+  ansible.builtin.group:
+    name: "{{ bazarr_group_name | default('media') }}"
+    gid: "{{ bazarr_pgid }}"
+    system: true
+    state: present
+  when: bazarr_ensure_user | default(true)
+
+# Ensure user exists for PUID (required for directory ownership)
+- name: Ensure media user exists for Bazarr
+  ansible.builtin.user:
+    name: "{{ bazarr_user_name | default('media') }}"
+    uid: "{{ bazarr_puid }}"
+    group: "{{ bazarr_group_name | default('media') }}"
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+    state: present
+  when: bazarr_ensure_user | default(true)
+
 - name: Create bazarr directories
   ansible.builtin.file:
     path: "{{ item }}"
@@ -61,12 +82,14 @@
     - Reload systemd
     - Restart bazarr
 
-- name: Configure UFW firewall for Bazarr
+- name: Configure UFW firewall for Bazarr (restricted access)
   community.general.ufw:
     rule: allow
     port: "{{ bazarr_port }}"
     proto: tcp
-    comment: "Bazarr"
+    src: "{{ item }}"
+    comment: "Bazarr ({{ item }})"
+  loop: "{{ bazarr_allowed_sources | default([traefik_ip | default('192.168.0.205'), '127.0.0.1']) }}"
   when: bazarr_configure_firewall
 
 - name: Pull Bazarr Docker image
@@ -87,20 +110,29 @@
     daemon_reload: true
 
 - name: Wait for Bazarr to be ready
-  ansible.builtin.uri:
-    url: "http://localhost:{{ bazarr_port }}/api/system/status"
-    method: GET
-    status_code: [200, 401]
-  register: bazarr_health
-  until: bazarr_health.status in [200, 401]
-  retries: 30
-  delay: 5
-  ignore_errors: true
+  block:
+    - name: Check Bazarr health endpoint
+      ansible.builtin.uri:
+        url: "http://localhost:{{ bazarr_port }}/api/system/status"
+        method: GET
+        status_code: [200, 401]
+      register: bazarr_health
+      until: bazarr_health.status in [200, 401]
+      retries: 30
+      delay: 5
 
-- name: Warn if Bazarr health check failed
-  ansible.builtin.debug:
-    msg: "Warning: Bazarr health check did not pass. Service may still be starting."
-  when: bazarr_health is failed
+  rescue:
+    - name: Warn about Bazarr health check failure
+      ansible.builtin.debug:
+        msg: |
+          WARNING: Bazarr health check did not pass after 150 seconds.
+          The service may still be starting or there may be a configuration issue.
+          Please verify manually: http://{{ ansible_host }}:{{ bazarr_port }}
+
+    - name: Fail if strict health checks are enabled
+      ansible.builtin.fail:
+        msg: "Bazarr health check failed and strict mode is enabled"
+      when: bazarr_strict_health_check | default(false)
 
 - name: Display Bazarr access information
   ansible.builtin.debug:
