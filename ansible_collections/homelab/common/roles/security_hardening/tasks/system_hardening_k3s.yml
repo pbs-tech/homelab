@@ -47,17 +47,6 @@
     - {path: "/etc/shadow", mode: "0600"}
     - {path: "/etc/gshadow", mode: "0600"}
 
-- name: Configure process accounting
-  ansible.builtin.apt:
-    name: acct
-    state: present
-
-- name: Enable process accounting
-  ansible.builtin.systemd:
-    name: acct
-    state: started
-    enabled: true
-
 - name: Configure K3s-specific security settings
   block:
     - name: Ensure K3s directories exist with proper permissions
