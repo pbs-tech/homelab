@@ -21,6 +21,18 @@
     mode: "0755"
   tags: config
 
+- name: Create empty blocklist file (will be populated later)
+  ansible.builtin.copy:
+    content: "# Security blocklist - auto-generated\n"
+    dest: /etc/unbound/unbound.conf.d/security-blocklist.conf
+    owner: root
+    group: root
+    mode: "0644"
+    force: false
+  tags:
+    - config
+    - blocklist
+
 - name: Deploy Unbound main configuration
   ansible.builtin.template:
     src: unbound.conf.j2

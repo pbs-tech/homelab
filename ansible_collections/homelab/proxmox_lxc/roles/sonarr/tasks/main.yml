@@ -1,0 +1,142 @@
+---
+# Sonarr deployment tasks
+
+- name: Update system packages
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install required packages
+  ansible.builtin.apt:
+    name:
+      - curl
+      - ca-certificates
+      - gnupg
+    state: present
+
+# Install Docker using common role
+- name: Install Docker
+  ansible.builtin.include_role:
+    name: homelab.common.docker
+  vars:
+    docker_ensure_group: true
+
+# Validate PUID/PGID - ensure user/group exist or will be created by container
+- name: Validate PUID/PGID configuration
+  ansible.builtin.assert:
+    that:
+      - sonarr_puid is defined
+      - sonarr_pgid is defined
+      - sonarr_puid | int > 0
+      - sonarr_pgid | int > 0
+    fail_msg: "sonarr_puid and sonarr_pgid must be defined and greater than 0"
+    quiet: true
+
+# Ensure group exists for PGID (required for directory ownership)
+- name: Ensure media group exists for Sonarr
+  ansible.builtin.group:
+    name: "{{ sonarr_group_name | default('media') }}"
+    gid: "{{ sonarr_pgid }}"
+    system: true
+    state: present
+  when: sonarr_ensure_user | default(true)
+
+# Ensure user exists for PUID (required for directory ownership)
+- name: Ensure media user exists for Sonarr
+  ansible.builtin.user:
+    name: "{{ sonarr_user_name | default('media') }}"
+    uid: "{{ sonarr_puid }}"
+    group: "{{ sonarr_group_name | default('media') }}"
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+    state: present
+  when: sonarr_ensure_user | default(true)
+
+- name: Create sonarr directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ sonarr_puid }}"
+    group: "{{ sonarr_pgid }}"
+    mode: "0755"
+  loop:
+    - "{{ sonarr_data_dir }}"
+    - "{{ sonarr_config_dir }}"
+
+- name: Deploy docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ sonarr_data_dir }}/docker-compose.yml"
+    owner: root
+    group: docker
+    mode: "0640"
+  notify: Restart sonarr
+
+- name: Create Sonarr systemd service
+  ansible.builtin.template:
+    src: sonarr.service.j2
+    dest: /etc/systemd/system/sonarr.service
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart sonarr
+
+- name: Configure UFW firewall for Sonarr (restricted access)
+  community.general.ufw:
+    rule: allow
+    port: "{{ sonarr_port }}"
+    proto: tcp
+    src: "{{ item }}"
+    comment: "Sonarr ({{ item }})"
+  loop: "{{ sonarr_allowed_sources | default([traefik_ip | default('192.168.0.205'), '127.0.0.1']) }}"
+  when: sonarr_configure_firewall
+
+- name: Pull Sonarr Docker image
+  community.docker.docker_image:
+    name: "{{ sonarr_docker_image }}"
+    tag: "{{ sonarr_version }}"
+    source: pull
+  retries: 3
+  delay: 10
+  register: docker_pull_result
+  until: docker_pull_result is succeeded
+
+- name: Enable and start Sonarr
+  ansible.builtin.systemd:
+    name: sonarr
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Wait for Sonarr to be ready
+  block:
+    - name: Check Sonarr health endpoint
+      ansible.builtin.uri:
+        url: "http://localhost:{{ sonarr_port }}/ping"
+        method: GET
+        status_code: [200]
+      register: sonarr_health
+      until: sonarr_health.status == 200
+      retries: 30
+      delay: 5
+
+  rescue:
+    - name: Warn about Sonarr health check failure
+      ansible.builtin.debug:
+        msg: |
+          WARNING: Sonarr health check did not pass after 150 seconds.
+          The service may still be starting or there may be a configuration issue.
+          Please verify manually: http://{{ ansible_host }}:{{ sonarr_port }}
+
+    - name: Fail if strict health checks are enabled
+      ansible.builtin.fail:
+        msg: "Sonarr health check failed and strict mode is enabled"
+      when: sonarr_strict_health_check | default(false)
+
+- name: Display Sonarr access information
+  ansible.builtin.debug:
+    msg: |
+      Sonarr is ready!
+      Access URL: http://{{ ansible_host }}:{{ sonarr_port }}
+      Configure authentication and add indexers via Prowlarr.

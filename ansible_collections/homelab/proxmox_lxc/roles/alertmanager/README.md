@@ -15,21 +15,6 @@ Deploys and configures Prometheus AlertManager as a centralized alert handling s
 - **API Access** - RESTful API for programmatic alert handling
 - **Template Support** - Customizable notification templates
 
-## Features (Current Implementation)
-
-**Note**: This role is currently a basic implementation providing:
-- User and group creation for alertmanager service
-- Directory structure setup for configuration and data
-- Foundation for full AlertManager deployment
-
-**Planned Features** (to be implemented):
-- Complete AlertManager binary installation
-- Configuration file templating
-- Systemd service management
-- Alert routing configuration
-- Notification channel integration
-- Web UI setup
-
 ## Requirements
 
 - Proxmox VE with LXC support

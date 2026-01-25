@@ -15,21 +15,6 @@ Deploys and configures Proxmox VE Exporter to expose Proxmox Virtual Environment
 - **Prometheus Integration** - Native Prometheus scrape target format
 - **Configurable Scraping** - Selective metric collection for performance
 
-## Features (Current Implementation)
-
-**Note**: This role is currently a basic implementation providing:
-- User and group creation for pve-exporter service
-- Directory structure setup for configuration and data
-- Foundation for full PVE Exporter deployment
-
-**Planned Features** (to be implemented):
-- Complete PVE Exporter installation (Docker or binary)
-- Configuration file templating with Proxmox API credentials
-- Systemd service management
-- Multi-node Proxmox monitoring setup
-- SSL/TLS certificate configuration
-- Metric filtering and optimization
-
 ## Requirements
 
 - Proxmox VE with LXC support (or dedicated monitoring VM)

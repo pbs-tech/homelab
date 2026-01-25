@@ -1,26 +1,169 @@
 ---
 # AlertManager deployment tasks
-# TODO: Implement AlertManager configuration
 
-- name: Display AlertManager role status
-  ansible.builtin.debug:
-    msg: "AlertManager role is a stub - implementation pending"
+- name: Update system packages
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install required packages
+  ansible.builtin.apt:
+    name:
+      - curl
+      - tar
+    state: present
+
+- name: Create alertmanager group
+  ansible.builtin.group:
+    name: "{{ alertmanager_group }}"
+    system: true
+    state: present
 
 - name: Create alertmanager user
   ansible.builtin.user:
-    name: alertmanager
+    name: "{{ alertmanager_user }}"
     system: true
-    shell: /bin/false
-    home: /var/lib/alertmanager
-    create_home: true
+    shell: /usr/sbin/nologin
+    group: "{{ alertmanager_group }}"
+    home: "{{ alertmanager_data_dir }}"
+    create_home: false
 
 - name: Create alertmanager directories
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
-    owner: alertmanager
-    group: alertmanager
+    owner: "{{ alertmanager_user }}"
+    group: "{{ alertmanager_group }}"
     mode: "0755"
   loop:
-    - /etc/alertmanager
-    - /var/lib/alertmanager
+    - "{{ alertmanager_config_dir }}"
+    - "{{ alertmanager_data_dir }}"
+    - "{{ alertmanager_templates_dir }}"
+
+- name: Check if alertmanager binary exists
+  ansible.builtin.stat:
+    path: "{{ alertmanager_bin_dir }}/alertmanager"
+  register: alertmanager_binary
+
+- name: Check installed alertmanager version
+  ansible.builtin.command:
+    cmd: "{{ alertmanager_bin_dir }}/alertmanager --version"
+  register: alertmanager_installed_version
+  changed_when: false
+  failed_when: false
+  when: alertmanager_binary.stat.exists
+
+- name: Set alertmanager needs install fact
+  ansible.builtin.set_fact:
+    alertmanager_needs_install: >-
+      {{
+        not alertmanager_binary.stat.exists or
+        (alertmanager_installed_version.stdout is defined and
+         alertmanager_version not in alertmanager_installed_version.stdout)
+      }}
+
+- name: Download AlertManager
+  ansible.builtin.get_url:
+    # yamllint disable-line rule:line-length
+    url: "https://github.com/prometheus/alertmanager/releases/download/v{{ alertmanager_version }}/alertmanager-{{ alertmanager_version }}.linux-amd64.tar.gz"
+    dest: "/tmp/alertmanager-{{ alertmanager_version }}.linux-amd64.tar.gz"
+    mode: "0644"
+  when: alertmanager_needs_install
+
+- name: Extract AlertManager
+  ansible.builtin.unarchive:
+    src: "/tmp/alertmanager-{{ alertmanager_version }}.linux-amd64.tar.gz"
+    dest: /tmp
+    remote_src: true
+    creates: "/tmp/alertmanager-{{ alertmanager_version }}.linux-amd64"
+  when: alertmanager_needs_install
+
+- name: Copy AlertManager binaries
+  ansible.builtin.copy:
+    src: "/tmp/alertmanager-{{ alertmanager_version }}.linux-amd64/{{ item }}"
+    dest: "{{ alertmanager_bin_dir }}/{{ item }}"
+    mode: "0755"
+    owner: root
+    group: root
+    remote_src: true
+  loop:
+    - alertmanager
+    - amtool
+  when: alertmanager_needs_install
+  notify: Restart alertmanager
+
+- name: Clean up downloaded archive
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "/tmp/alertmanager-{{ alertmanager_version }}.linux-amd64.tar.gz"
+    - "/tmp/alertmanager-{{ alertmanager_version }}.linux-amd64"
+  when: alertmanager_needs_install
+
+- name: Create AlertManager configuration
+  ansible.builtin.template:
+    src: alertmanager.yml.j2
+    dest: "{{ alertmanager_config_dir }}/alertmanager.yml"
+    owner: "{{ alertmanager_user }}"
+    group: "{{ alertmanager_group }}"
+    mode: "0640"
+    validate: "{{ alertmanager_bin_dir }}/amtool check-config %s"
+  notify: Restart alertmanager
+
+- name: Deploy notification templates
+  ansible.builtin.template:
+    src: default.tmpl.j2
+    dest: "{{ alertmanager_templates_dir }}/default.tmpl"
+    owner: "{{ alertmanager_user }}"
+    group: "{{ alertmanager_group }}"
+    mode: "0644"
+  notify: Reload alertmanager
+
+- name: Deploy custom notification templates
+  ansible.builtin.copy:
+    content: "{{ item.content }}"
+    dest: "{{ alertmanager_templates_dir }}/{{ item.name }}.tmpl"
+    owner: "{{ alertmanager_user }}"
+    group: "{{ alertmanager_group }}"
+    mode: "0644"
+  loop: "{{ alertmanager_custom_templates }}"
+  when: alertmanager_custom_templates | length > 0
+  notify: Reload alertmanager
+
+- name: Create AlertManager systemd service
+  ansible.builtin.template:
+    src: alertmanager.service.j2
+    dest: /etc/systemd/system/alertmanager.service
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart alertmanager
+
+- name: Configure UFW firewall for AlertManager
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+    comment: "AlertManager"
+  loop:
+    - "{{ alertmanager_port }}"
+    - "{{ alertmanager_cluster_port }}"
+  when: alertmanager_configure_firewall
+
+- name: Enable and start AlertManager
+  ansible.builtin.systemd:
+    name: alertmanager
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Wait for AlertManager to be ready
+  ansible.builtin.uri:
+    url: "http://localhost:{{ alertmanager_port }}/-/ready"
+    method: GET
+    status_code: 200
+  register: alertmanager_health
+  until: alertmanager_health.status == 200
+  retries: 12
+  delay: 5

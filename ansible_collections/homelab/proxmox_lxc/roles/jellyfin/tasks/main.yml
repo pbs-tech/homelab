@@ -1,0 +1,153 @@
+---
+# Jellyfin deployment tasks
+
+- name: Update system packages
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install required packages
+  ansible.builtin.apt:
+    name:
+      - curl
+      - ca-certificates
+      - gnupg
+    state: present
+
+# Install Docker using common role
+- name: Install Docker
+  ansible.builtin.include_role:
+    name: homelab.common.docker
+  vars:
+    docker_ensure_group: true
+
+# Validate PUID/PGID - ensure user/group exist or will be created by container
+- name: Validate PUID/PGID configuration
+  ansible.builtin.assert:
+    that:
+      - jellyfin_puid is defined
+      - jellyfin_pgid is defined
+      - jellyfin_puid | int > 0
+      - jellyfin_pgid | int > 0
+    fail_msg: "jellyfin_puid and jellyfin_pgid must be defined and greater than 0"
+    quiet: true
+
+# Ensure group exists for PGID (required for directory ownership)
+- name: Ensure media group exists for Jellyfin
+  ansible.builtin.group:
+    name: "{{ jellyfin_group_name | default('media') }}"
+    gid: "{{ jellyfin_pgid }}"
+    system: true
+    state: present
+  when: jellyfin_ensure_user | default(true)
+
+# Ensure user exists for PUID (required for directory ownership)
+- name: Ensure media user exists for Jellyfin
+  ansible.builtin.user:
+    name: "{{ jellyfin_user_name | default('media') }}"
+    uid: "{{ jellyfin_puid }}"
+    group: "{{ jellyfin_group_name | default('media') }}"
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+    state: present
+  when: jellyfin_ensure_user | default(true)
+
+- name: Create jellyfin directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ jellyfin_puid }}"
+    group: "{{ jellyfin_pgid }}"
+    mode: "0755"
+  loop:
+    - "{{ jellyfin_data_dir }}"
+    - "{{ jellyfin_config_dir }}"
+    - "{{ jellyfin_cache_dir }}"
+
+- name: Deploy docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ jellyfin_data_dir }}/docker-compose.yml"
+    owner: root
+    group: docker
+    mode: "0640"
+  notify: Restart jellyfin
+
+- name: Create Jellyfin systemd service
+  ansible.builtin.template:
+    src: jellyfin.service.j2
+    dest: /etc/systemd/system/jellyfin.service
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart jellyfin
+
+- name: Configure UFW firewall for Jellyfin HTTP (restricted access)
+  community.general.ufw:
+    rule: allow
+    port: "{{ jellyfin_port }}"
+    proto: tcp
+    src: "{{ item }}"
+    comment: "Jellyfin HTTP ({{ item }})"
+  loop: "{{ jellyfin_allowed_sources | default([traefik_ip | default('192.168.0.205'), '127.0.0.1']) }}"
+  when: jellyfin_configure_firewall
+
+- name: Configure UFW firewall for Jellyfin HTTPS (restricted access)
+  community.general.ufw:
+    rule: allow
+    port: "{{ jellyfin_https_port }}"
+    proto: tcp
+    src: "{{ item }}"
+    comment: "Jellyfin HTTPS ({{ item }})"
+  loop: "{{ jellyfin_allowed_sources | default([traefik_ip | default('192.168.0.205'), '127.0.0.1']) }}"
+  when: jellyfin_configure_firewall
+
+- name: Pull Jellyfin Docker image
+  community.docker.docker_image:
+    name: "{{ jellyfin_docker_image }}"
+    tag: "{{ jellyfin_version }}"
+    source: pull
+  retries: 3
+  delay: 10
+  register: docker_pull_result
+  until: docker_pull_result is succeeded
+
+- name: Enable and start Jellyfin
+  ansible.builtin.systemd:
+    name: jellyfin
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Wait for Jellyfin to be ready
+  block:
+    - name: Check Jellyfin health endpoint
+      ansible.builtin.uri:
+        url: "http://localhost:{{ jellyfin_port }}/health"
+        method: GET
+        status_code: [200]
+      register: jellyfin_health
+      until: jellyfin_health.status == 200
+      retries: 30
+      delay: 10
+
+  rescue:
+    - name: Warn about Jellyfin health check failure
+      ansible.builtin.debug:
+        msg: |
+          WARNING: Jellyfin health check did not pass after 300 seconds.
+          The service may still be starting or there may be a configuration issue.
+          Please verify manually: http://{{ ansible_host }}:{{ jellyfin_port }}
+
+    - name: Fail if strict health checks are enabled
+      ansible.builtin.fail:
+        msg: "Jellyfin health check failed and strict mode is enabled"
+      when: jellyfin_strict_health_check | default(false)
+
+- name: Display Jellyfin access information
+  ansible.builtin.debug:
+    msg: |
+      Jellyfin is ready!
+      Access URL: http://{{ ansible_host }}:{{ jellyfin_port }}
+      Complete initial setup through the web interface.

@@ -25,13 +25,20 @@
     insertafter: ^#.*facilities.*
   notify: restart rsyslog
 
+- name: Check if syslog user exists
+  ansible.builtin.getent:
+    database: passwd
+    key: syslog
+  register: syslog_user
+  failed_when: false
+
 - name: Create K3s log directories
   ansible.builtin.file:
     path: /var/log/k3s
     state: directory
     mode: "0755"
-    owner: syslog
-    group: adm
+    owner: "{{ 'syslog' if syslog_user.ansible_facts is defined else 'root' }}"
+    group: "{{ 'adm' if syslog_user.ansible_facts is defined else 'root' }}"
 
 - name: Configure log rotation for K3s logs
   ansible.builtin.copy:
@@ -44,7 +51,7 @@
           delaycompress
           {% endif %}
           missingok
-          create 0644 syslog adm
+          create 0644 root root
           postrotate
               systemctl reload rsyslog > /dev/null 2>&1 || true
           endscript

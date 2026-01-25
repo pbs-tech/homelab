@@ -1,0 +1,122 @@
+---
+# Bootstrap playbook to create ansible user on Proxmox hosts
+# Run with: ansible-playbook playbooks/bootstrap-proxmox.yml --ask-pass
+#
+# This playbook creates a dedicated 'ansible' user for Ansible operations
+# instead of using root directly, which is more secure and avoids
+# Proxmox's custom authorized_keys location for root.
+
+- name: Bootstrap Proxmox hosts with ansible user
+  hosts: proxmox_hosts
+  gather_facts: true
+  become: true
+
+  vars:
+    ansible_service_user: ansible
+    ansible_service_group: ansible
+    # SSH key file - tries multiple common key paths
+    ansible_ssh_public_key_file: >-
+      {{ lookup('first_found', {
+        'files': ['id_ed25519.pub', 'id_rsa.pub', 'id_ecdsa.pub'],
+        'paths': ['~/.ssh']
+      }) }}
+
+  tasks:
+    - name: Create ansible group
+      ansible.builtin.group:
+        name: "{{ ansible_service_group }}"
+        state: present
+
+    - name: Create ansible user
+      ansible.builtin.user:
+        name: "{{ ansible_service_user }}"
+        group: "{{ ansible_service_group }}"
+        groups: sudo
+        shell: /bin/bash
+        create_home: true
+        state: present
+
+    - name: Create .ssh directory for ansible user
+      ansible.builtin.file:
+        path: "/home/{{ ansible_service_user }}/.ssh"
+        state: directory
+        owner: "{{ ansible_service_user }}"
+        group: "{{ ansible_service_group }}"
+        mode: "0700"
+
+    - name: Copy SSH public key to ansible user
+      ansible.posix.authorized_key:
+        user: "{{ ansible_service_user }}"
+        key: "{{ lookup('file', ansible_ssh_public_key_file) }}"
+        state: present
+
+    - name: Configure passwordless sudo for ansible user
+      ansible.builtin.copy:
+        content: "{{ ansible_service_user }} ALL=(ALL) NOPASSWD: ALL\n"
+        dest: "/etc/sudoers.d/{{ ansible_service_user }}"
+        mode: "0440"
+        owner: root
+        group: root
+        validate: 'visudo -cf %s'
+
+    - name: Ensure sudo group has sudo privileges
+      ansible.builtin.lineinfile:
+        path: /etc/sudoers
+        regexp: '^%sudo'
+        line: '%sudo ALL=(ALL:ALL) ALL'
+        validate: 'visudo -cf %s'
+
+    # UFW route rules for LXC container access
+    - name: Check if UFW is installed
+      ansible.builtin.command: which ufw
+      register: ufw_check
+      changed_when: false
+      failed_when: false
+
+    - name: Configure UFW route rules for LXC containers
+      when: ufw_check.rc == 0
+      block:
+        - name: Allow routed traffic TO container network
+          community.general.ufw:
+            rule: allow
+            route: true
+            dest: "{{ container_network_cidr | default('192.168.0.0/24') }}"
+            comment: Allow traffic to LXC containers
+
+        - name: Allow routed traffic FROM container network
+          community.general.ufw:
+            rule: allow
+            route: true
+            src: "{{ container_network_cidr | default('192.168.0.0/24') }}"
+            comment: Allow traffic from LXC containers
+
+    # Proxmox cluster firewall configuration
+    - name: Configure Proxmox cluster firewall
+      ansible.builtin.copy:
+        dest: /etc/pve/firewall/cluster.fw
+        mode: "0640"
+        backup: true
+        content: |
+          [OPTIONS]
+          policy_in: DROP
+          policy_out: ACCEPT
+          enable: 1
+
+          [RULES]
+          IN ACCEPT -p tcp -dport 22 -log nolog # Allow SSH
+          IN ACCEPT -p tcp -dport 8006 -log nolog # Allow Proxmox Web UI
+          IN ACCEPT -p icmp # Allow ICMP/ping
+          IN ACCEPT -source 192.168.0.0/24 # Allow management network
+      run_once: true
+
+    - name: Display completion message
+      ansible.builtin.debug:
+        msg: |
+          Ansible user '{{ ansible_service_user }}' has been created on {{ inventory_hostname }}.
+          UFW route rules configured for LXC container access.
+          Proxmox cluster firewall configured.
+
+          You can now update your inventory to use:
+            ansible_user: ansible
+
+          Test with: ssh ansible@{{ ansible_host }}

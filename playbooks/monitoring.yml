@@ -10,9 +10,13 @@
     - name: Ensure monitoring containers exist
       include_role:
         name: homelab.common.container_base
-      when:
-        - inventory_hostname.endswith('-lxc')
-        - container_id is defined
+      vars:
+        container_resources:
+          cores: "{{ lxc_cores | default(1) }}"
+          memory: "{{ lxc_memory | default(512) }}"
+          swap: "{{ lxc_swap | default(0) }}"
+          disk_size: "{{ lxc_disk_size | default(8) }}"
+      when: container_id is defined
 
   roles:
     - role: homelab.common.common_setup
@@ -30,12 +34,21 @@
       when: inventory_hostname.startswith('loki')
       tags: [loki, logging]
 
+    - role: homelab.proxmox_lxc.alertmanager
+      when: inventory_hostname.startswith('alertmanager')
+      tags: [alertmanager, alerting]
+
+    - role: homelab.proxmox_lxc.pve_exporter
+      when: inventory_hostname.startswith('pve-exporter')
+      tags: [pve_exporter, metrics]
+
   post_tasks:
     - name: Verify monitoring services
-      uri:
+      ansible.builtin.uri:
         url: http://{{ ansible_host }}:{{ service_port }}
         method: GET
         timeout: 30
         status_code: [200, 302]
       delegate_to: localhost
+      become: false
       when: service_port is defined

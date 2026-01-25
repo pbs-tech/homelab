@@ -1,0 +1,29 @@
+---
+# Docker Compose file for qBittorrent
+# Managed by Ansible - {{ ansible_managed }}
+
+services:
+  qbittorrent:
+    image: {{ qbittorrent_docker_image }}:{{ qbittorrent_version }}
+    container_name: {{ qbittorrent_container_name }}
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - PUID={{ qbittorrent_puid }}
+      - PGID={{ qbittorrent_pgid }}
+      - TZ={{ qbittorrent_timezone }}
+      - WEBUI_PORT={{ qbittorrent_webui_port }}
+    volumes:
+      - {{ qbittorrent_config_dir }}:/config
+      - {{ qbittorrent_download_dir }}:/downloads
+{% for volume in qbittorrent_extra_volumes %}
+      - {{ volume }}
+{% endfor %}
+    ports:
+      - {{ qbittorrent_webui_port }}:{{ qbittorrent_webui_port }}
+      - {{ qbittorrent_torrent_port }}:6881
+      - {{ qbittorrent_torrent_port }}:6881/udp
+    restart: {{ qbittorrent_docker_restart_policy }}
+{% if qbittorrent_memory_limit %}
+    mem_limit: {{ qbittorrent_memory_limit }}
+{% endif %}

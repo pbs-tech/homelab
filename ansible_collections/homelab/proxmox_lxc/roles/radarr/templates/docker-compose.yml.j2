@@ -1,0 +1,27 @@
+---
+# Docker Compose file for Radarr
+# Managed by Ansible - {{ ansible_managed }}
+
+services:
+  radarr:
+    image: {{ radarr_docker_image }}:{{ radarr_version }}
+    container_name: {{ radarr_container_name }}
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - PUID={{ radarr_puid }}
+      - PGID={{ radarr_pgid }}
+      - TZ={{ radarr_timezone }}
+    volumes:
+      - {{ radarr_config_dir }}:/config
+      - {{ radarr_media_dir }}:/movies
+      - {{ radarr_download_dir }}:/downloads
+{% for volume in radarr_extra_volumes %}
+      - {{ volume }}
+{% endfor %}
+    ports:
+      - {{ radarr_port }}:7878
+    restart: {{ radarr_docker_restart_policy }}
+{% if radarr_memory_limit %}
+    mem_limit: {{ radarr_memory_limit }}
+{% endif %}

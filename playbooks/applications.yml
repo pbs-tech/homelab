@@ -10,18 +10,21 @@
     - name: Ensure automation containers exist
       include_role:
         name: homelab.common.container_base
-      when:
-        - inventory_hostname.endswith('-lxc')
-        - container_id is defined
+      vars:
+        container_resources:
+          cores: "{{ lxc_cores | default(2) }}"
+          memory: "{{ lxc_memory | default(1024) }}"
+          swap: "{{ lxc_swap | default(0) }}"
+          disk_size: "{{ lxc_disk_size | default(16) }}"
+      when: container_id is defined
 
   roles:
     - role: homelab.common.common_setup
       tags: [common_setup]
 
-    # Add automation service roles as they are developed
-    # - role: homelab.proxmox_lxc.homeassistant
-    #   when: inventory_hostname.startswith('homeassistant')
-    #   tags: [homeassistant, automation]
+    - role: homelab.proxmox_lxc.homeassistant
+      when: inventory_hostname is search('homeassistant')
+      tags: [homeassistant, automation]
 
 - name: Deploy NAS services
   hosts: nas_services
@@ -32,18 +35,41 @@
     - name: Ensure NAS containers exist
       include_role:
         name: homelab.common.container_base
-      when:
-        - inventory_hostname.endswith('-lxc')
-        - container_id is defined
+      vars:
+        container_resources:
+          cores: "{{ lxc_cores | default(1) }}"
+          memory: "{{ lxc_memory | default(512) }}"
+          swap: "{{ lxc_swap | default(0) }}"
+          disk_size: "{{ lxc_disk_size | default(8) }}"
+      when: container_id is defined
 
   roles:
     - role: homelab.common.common_setup
       tags: [common_setup]
 
-    # Add NAS service roles as they are developed
-    # - role: homelab.proxmox_lxc.sonarr
-    #   when: inventory_hostname.startswith('sonarr')
-    #   tags: [sonarr, media]
+    - role: homelab.proxmox_lxc.sonarr
+      when: inventory_hostname is search('sonarr')
+      tags: [sonarr, media]
+
+    - role: homelab.proxmox_lxc.radarr
+      when: inventory_hostname is search('radarr')
+      tags: [radarr, media]
+
+    - role: homelab.proxmox_lxc.bazarr
+      when: inventory_hostname is search('bazarr')
+      tags: [bazarr, media]
+
+    - role: homelab.proxmox_lxc.prowlarr
+      when: inventory_hostname is search('prowlarr')
+      tags: [prowlarr, media]
+
+    - role: homelab.proxmox_lxc.qbittorrent
+      when: inventory_hostname is search('qbittorrent')
+      tags: [qbittorrent, media]
+
+    - role: homelab.proxmox_lxc.jellyfin
+      when: inventory_hostname is search('jellyfin')
+      tags: [jellyfin, media]
 
   post_tasks:
     - name: Verify application services

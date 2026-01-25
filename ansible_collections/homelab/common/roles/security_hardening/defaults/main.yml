@@ -1,4 +1,8 @@
 ---
+# Container network CIDR for Proxmox LXC routing rules
+# This allows UFW to permit traffic to/from LXC containers
+container_network_cidr: "192.168.0.0/24"
+
 # Pi-specific security hardening defaults
 pi_security_hardening:
   # Firewall configuration (works with existing UFW setup)
@@ -8,15 +12,20 @@ pi_security_hardening:
   # SSH hardening (adapted for Pi environment)
   ssh_hardening:
     port: 22
-    permit_root_login: false
+    # Options: 'yes', 'prohibit-password', 'no'
+    # 'prohibit-password' allows key-based root login (recommended for Ansible)
+    permit_root_login: 'prohibit-password'
     password_authentication: false
     pubkey_authentication: true
     max_auth_tries: 3
     client_alive_interval: 300
     client_alive_count_max: 2
     # Pi-specific settings
-    allow_tcp_forwarding: true # Needed for K3s tunneling
+    allow_tcp_forwarding: true  # Needed for K3s tunneling
     gateway_ports: false
+    # Users allowed to SSH (defaults to ansible_user if not specified)
+    # For Proxmox hosts, include 'ansible' user; for Pi nodes, include 'pbs'
+    allowed_users: []  # Empty means use ansible_user variable
 
   # Fail2ban configuration
   fail2ban:

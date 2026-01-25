@@ -25,8 +25,7 @@
     - regexp: "^#?Port"
       line: "Port {{ pi_security_hardening.ssh_hardening.port }}"
     - regexp: "^#?PermitRootLogin"
-      line: >-
-        PermitRootLogin {{ 'yes' if pi_security_hardening.ssh_hardening.permit_root_login else 'no' }}
+      line: "PermitRootLogin {{ pi_security_hardening.ssh_hardening.permit_root_login }}"
     - regexp: "^#?PasswordAuthentication"
       line: >-
         PasswordAuthentication {{ 'yes' if pi_security_hardening.ssh_hardening.password_authentication else 'no' }}
@@ -54,11 +53,11 @@
       line: PermitEmptyPasswords no
   notify: Restart ssh
 
-- name: Add K3s-specific SSH security settings
+- name: Add SSH security settings
   ansible.builtin.blockinfile:
     path: /etc/ssh/sshd_config
     block: |
-      # K3s-specific SSH configuration
+      # SSH security configuration (managed by Ansible)
       HostKeyAlgorithms ssh-ed25519,ssh-rsa
       KexAlgorithms curve25519-sha256@libssh.org,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512
       Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com
@@ -67,10 +66,9 @@
       MaxSessions 10
       MaxStartups 10:30:60
 
-      # Allow K3s management users
-      AllowUsers {{ ansible_user }}
-      AllowGroups sudo
-    marker: # {mark} ANSIBLE MANAGED K3S SSH SECURITY
+      # Allowed users for SSH access
+      AllowUsers {{ (pi_security_hardening.ssh_hardening.allowed_users | length > 0) | ternary(pi_security_hardening.ssh_hardening.allowed_users | join(' '), ansible_user) }}
+    marker: # {mark} ANSIBLE MANAGED SSH SECURITY
   notify: Restart ssh
 
 - name: Test SSH configuration

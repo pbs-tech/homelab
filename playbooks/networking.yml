@@ -11,9 +11,13 @@
     - name: Ensure networking containers exist
       include_role:
         name: homelab.common.container_base
-      when:
-        - inventory_hostname.endswith('-lxc')
-        - container_id is defined
+      vars:
+        container_resources:
+          cores: "{{ lxc_cores | default(1) }}"
+          memory: "{{ lxc_memory | default(256) }}"
+          swap: "{{ lxc_swap | default(0) }}"
+          disk_size: "{{ lxc_disk_size | default(4) }}"
+      when: container_id is defined
 
   roles:
     - role: homelab.common.common_setup
@@ -47,7 +51,7 @@
   post_tasks:
     - name: Verify networking services
       uri:
-        url: http://{{ ansible_host }}:{{ service_port | default(80) }}"
+        url: "http://{{ ansible_host }}:{{ service_port | default(80) }}"
         method: GET
         timeout: 30
         status_code: [200, 301, 302, 404]

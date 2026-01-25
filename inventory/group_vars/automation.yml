@@ -1,0 +1,9 @@
+---
+# Automation services container configuration
+# Applied to: homeassistant
+
+# Container resources for automation services
+lxc_cores: 2
+lxc_memory: 1024
+lxc_swap: 0
+lxc_disk_size: 16

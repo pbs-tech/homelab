@@ -1,8 +1,94 @@
 ---
 # Home Assistant default variables
-homeassistant_version: "latest"
+
+# Version configuration
+homeassistant_version: "stable"
 homeassistant_port: 8123
-homeassistant_config_dir: /var/lib/homeassistant/config
-homeassistant_data_dir: /var/lib/homeassistant
+
+# User and group
 homeassistant_user: homeassistant
 homeassistant_group: homeassistant
+
+# Directory configuration
+homeassistant_config_dir: /var/lib/homeassistant/config
+homeassistant_data_dir: /var/lib/homeassistant
+homeassistant_backup_dir: /var/lib/homeassistant/backups
+
+# Installation method: docker (recommended)
+homeassistant_install_method: "docker"
+
+# Docker configuration
+homeassistant_docker_image: "ghcr.io/home-assistant/home-assistant"
+homeassistant_docker_network: "host"
+homeassistant_docker_restart_policy: "unless-stopped"
+homeassistant_docker_privileged: false
+
+# Container name
+homeassistant_container_name: "homeassistant"
+
+# Network settings
+homeassistant_ssl_enabled: false
+
+# Basic Home Assistant configuration
+homeassistant_name: "Home"
+homeassistant_latitude: 0.0
+homeassistant_longitude: 0.0
+homeassistant_elevation: 0
+homeassistant_unit_system: "metric"
+homeassistant_time_zone: "UTC"
+homeassistant_currency: "USD"
+homeassistant_country: "US"
+
+# Traefik integration
+homeassistant_traefik_enabled: true
+homeassistant_domain: "homeassistant.homelab.local"
+homeassistant_external_url: ""
+homeassistant_internal_url: ""
+
+# Trusted proxies for reverse proxy
+homeassistant_trusted_proxies:
+  - "192.168.0.205"
+  - "127.0.0.1"
+
+# MQTT integration (disabled by default)
+homeassistant_mqtt_enabled: false
+homeassistant_mqtt_broker: ""
+homeassistant_mqtt_port: 1883
+homeassistant_mqtt_user: ""
+homeassistant_mqtt_password: ""
+homeassistant_mqtt_discovery: true
+
+# Database configuration
+homeassistant_db_type: "sqlite"
+homeassistant_db_purge_keep_days: 10
+homeassistant_db_commit_interval: 1
+
+# External database (for postgresql)
+homeassistant_db_host: ""
+homeassistant_db_port: 5432
+homeassistant_db_name: "homeassistant"
+homeassistant_db_user: "homeassistant"
+homeassistant_db_password: ""
+
+# USB device passthrough (empty by default)
+homeassistant_usb_devices: []
+
+# Network discovery
+homeassistant_enable_mdns: true
+homeassistant_enable_upnp: true
+
+# Backup configuration
+homeassistant_backup_enabled: false
+homeassistant_backup_retention_days: 7
+
+# Resource limits
+homeassistant_memory_limit: "2g"
+
+# Firewall configuration
+homeassistant_configure_firewall: true
+
+# Additional Docker volumes
+homeassistant_extra_volumes: []
+
+# Custom components (HACS)
+homeassistant_hacs_enabled: false
