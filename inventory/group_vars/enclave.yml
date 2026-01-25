@@ -1,0 +1,140 @@
+---
+# Secure Enclave infrastructure configuration
+# Applied to: enclave-bastion, enclave-router, kali-attacker, and all vulnerable targets
+#
+# IMPORTANT: This group contains intentionally vulnerable systems for security testing.
+# All hosts in this group are network-isolated from production infrastructure.
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ENCLAVE NETWORK CONFIGURATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Management network (accessible from production bastion)
+enclave_management_network: 192.168.0.248/29  # 192.168.0.248-255
+
+# Isolated pentesting network
+enclave_isolated_network: 10.10.0.0/24
+
+# Network bridge for isolation
+enclave_bridge: vmbr1
+
+# Gateway for isolated network
+enclave_gateway: 10.10.0.1
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DEFAULT CONTAINER RESOURCES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Default resources for enclave containers (can be overridden per-host)
+lxc_cores: 2
+lxc_memory: 2048
+lxc_swap: 512
+lxc_disk_size: 20
+
+# Unprivileged by default for security
+lxc_unprivileged: true
+
+# Don't auto-start enclave containers (manual start for security)
+lxc_onboot: false
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ENCLAVE HOSTS DEFINITION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+enclave_infrastructure_hosts:
+  enclave-bastion:
+    ansible_host: 192.168.0.250
+    container_id: 250
+    description: "Secure jump host for enclave access"
+    network: management
+    lxc_cores: 2
+    lxc_memory: 2048
+    lxc_onboot: true  # Bastion should start on boot
+
+  enclave-router:
+    ansible_host: 192.168.0.251
+    container_id: 251
+    description: "Network router and firewall for enclave"
+    network: dual-homed
+    isolated_ip: 10.10.0.1
+    lxc_cores: 2
+    lxc_memory: 1024
+    lxc_onboot: true  # Router should start on boot
+
+  kali-attacker:
+    ansible_host: 192.168.0.252
+    container_id: 252
+    description: "Kali Linux pentesting workstation"
+    network: dual-homed
+    isolated_ip: 10.10.0.10
+    lxc_cores: 4
+    lxc_memory: 4096
+    lxc_disk_size: 50
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ENCLAVE SECURITY SETTINGS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# SSH configuration for enclave hosts
+enclave_ssh_config:
+  port: 22
+  permit_root_login: "prohibit-password"
+  password_authentication: false
+  pubkey_authentication: true
+  max_auth_tries: 3
+  login_grace_time: 30
+  client_alive_interval: 300
+  client_alive_count_max: 2
+
+# Firewall rules for enclave hosts
+enclave_firewall_enabled: true
+
+# Audit logging configuration
+enclave_audit_enabled: true
+enclave_audit_retention_days: 90
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# FEATURE FLAGS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Enable/disable optional features
+enclave_features:
+  # Traffic capture for learning (requires additional disk space)
+  traffic_capture: false
+  # CTF challenge mode with flags
+  ctf_mode: false
+  # WireGuard VPN access
+  vpn_access: false
+  # Web dashboard
+  dashboard: false
+  # Automatic snapshots for quick reset
+  snapshots: true
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PROXMOX DEPLOYMENT SETTINGS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Proxmox node for enclave deployment
+enclave_proxmox_node: pve_mac
+
+# Storage pool for enclave containers
+enclave_storage: local-lvm
+
+# LXC template
+enclave_template: "local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# MONITORING INTEGRATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Export metrics to production Prometheus (optional)
+enclave_export_metrics: false
+enclave_metrics_port: 9100
+
+# Alert on enclave activity
+enclave_alerting:
+  enabled: true
+  # Alert channels (uses production alertmanager)
+  alert_on_start: true
+  alert_on_access: false  # Can be noisy during active testing
+  alert_on_shutdown: true

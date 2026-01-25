@@ -19,3 +19,15 @@
   ansible.builtin.service:
     name: fail2ban
     state: restarted
+
+- name: Restart wireguard enclave
+  ansible.builtin.systemd:
+    name: wg-quick@wg-enclave
+    state: restarted
+  ignore_errors: true
+
+- name: Restart enclave dashboard
+  ansible.builtin.systemd:
+    name: enclave-dashboard
+    state: restarted
+  ignore_errors: true

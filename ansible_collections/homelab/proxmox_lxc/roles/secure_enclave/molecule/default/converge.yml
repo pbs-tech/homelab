@@ -1,63 +1,268 @@
 ---
 # Molecule converge playbook for secure_enclave role
-# Tests role syntax and variable validation
+# Tests role syntax, variable validation, and script generation
 
 - name: Converge
   hosts: all
   gather_facts: true
   become: true
 
+  vars:
+    # Override for testing without Proxmox
+    enclave_security_acknowledged: true
+    # Disable actual deployment, just test configuration
+    molecule_test_mode: true
+
   tasks:
-    - name: Test role variable defaults
+    - name: Display test information
       ansible.builtin.debug:
         msg:
-          - "Testing secure_enclave role variables..."
-          - "Enclave network: {{ enclave_network.isolated_subnet | default('not set') }}"
-          - "Bastion IP: {{ enclave_bastion.ip_address | default('not set') }}"
+          - "╔══════════════════════════════════════════════════════════════╗"
+          - "║       SECURE ENCLAVE MOLECULE TEST - CONVERGE PHASE         ║"
+          - "╚══════════════════════════════════════════════════════════════╝"
 
     - name: Include role defaults
       ansible.builtin.include_vars:
         file: ../../defaults/main.yml
 
-    - name: Validate network configuration
+    # ═══════════════════════════════════════════════════════════════════════════
+    # CORE CONFIGURATION VALIDATION
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    - name: Validate network configuration structure
       ansible.builtin.assert:
         that:
+          - enclave_network is defined
+          - enclave_network is mapping
           - enclave_network.isolated_subnet is defined
           - enclave_network.management_subnet is defined
-          - enclave_bastion.ip_address is defined
-          - enclave_router.lan_ip is defined
-        fail_msg: "Network configuration variables not properly defined"
-        success_msg: "Network configuration validated successfully"
+          - enclave_network.bridge_name is defined
+          - enclave_network.vlan_id is defined
+        fail_msg: "Network configuration structure is invalid"
+        success_msg: "Network configuration structure validated"
 
-    - name: Validate firewall rules
+    - name: Validate network CIDR format
+      ansible.builtin.assert:
+        that:
+          - enclave_network.isolated_subnet | regex_search('^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$')
+          - enclave_network.management_subnet | regex_search('^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$')
+        fail_msg: "Network CIDR format is invalid"
+        success_msg: "Network CIDR format validated"
+
+    - name: Validate bastion configuration
+      ansible.builtin.assert:
+        that:
+          - enclave_bastion is defined
+          - enclave_bastion.container_id is defined
+          - enclave_bastion.hostname is defined
+          - enclave_bastion.ip_address is defined
+          - enclave_bastion.cores > 0
+          - enclave_bastion.memory > 0
+          - enclave_bastion.disk_size > 0
+        fail_msg: "Bastion configuration is invalid"
+        success_msg: "Bastion configuration validated"
+
+    - name: Validate router configuration
+      ansible.builtin.assert:
+        that:
+          - enclave_router is defined
+          - enclave_router.container_id is defined
+          - enclave_router.wan_ip is defined
+          - enclave_router.lan_ip is defined
+          - enclave_router.capabilities is defined
+          - "'NET_ADMIN' in enclave_router.capabilities"
+        fail_msg: "Router configuration is invalid"
+        success_msg: "Router configuration validated"
+
+    - name: Validate attacker VM configuration
+      ansible.builtin.assert:
+        that:
+          - enclave_attacker is defined
+          - enclave_attacker.vm_id is defined
+          - enclave_attacker.management_ip is defined
+          - enclave_attacker.isolated_ip is defined
+          - enclave_attacker.cores >= 2
+          - enclave_attacker.memory >= 2048
+        fail_msg: "Attacker VM configuration is invalid"
+        success_msg: "Attacker VM configuration validated"
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # VULNERABLE TARGETS VALIDATION
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    - name: Validate vulnerable targets catalog
+      ansible.builtin.assert:
+        that:
+          - enclave_vulnerable_vms_catalog is defined
+          - enclave_vulnerable_vms_catalog is mapping
+          - enclave_vulnerable_vms_catalog.dvwa is defined
+          - enclave_vulnerable_vms_catalog.juice_shop is defined
+        fail_msg: "Vulnerable targets catalog is invalid"
+        success_msg: "Vulnerable targets catalog validated"
+
+    - name: Validate enabled targets exist in catalog
+      ansible.builtin.assert:
+        that:
+          - item in enclave_vulnerable_vms_catalog
+        fail_msg: "Enabled target '{{ item }}' not found in catalog"
+        success_msg: "Target '{{ item }}' exists in catalog"
+      loop: "{{ enclave_enabled_targets }}"
+
+    - name: Validate target configuration structure
+      ansible.builtin.assert:
+        that:
+          - enclave_vulnerable_vms_catalog[item].vm_id is defined
+          - enclave_vulnerable_vms_catalog[item].hostname is defined
+          - enclave_vulnerable_vms_catalog[item].ip_address is defined
+          - enclave_vulnerable_vms_catalog[item].deployment_type is defined
+        fail_msg: "Target '{{ item }}' configuration is incomplete"
+        success_msg: "Target '{{ item }}' configuration validated"
+      loop: "{{ enclave_enabled_targets }}"
+
+    - name: Validate Docker-based targets have image
+      ansible.builtin.assert:
+        that:
+          - enclave_vulnerable_vms_catalog[item].docker_image is defined
+        fail_msg: "Docker target '{{ item }}' missing docker_image"
+        success_msg: "Docker target '{{ item }}' has image defined"
+      loop: "{{ enclave_enabled_targets }}"
+      when: enclave_vulnerable_vms_catalog[item].deployment_type == 'docker'
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # FIREWALL RULES VALIDATION
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    - name: Validate firewall rules exist
       ansible.builtin.assert:
         that:
           - enclave_firewall_rules is defined
           - enclave_firewall_rules | length > 0
-        fail_msg: "Firewall rules not properly defined"
-        success_msg: "Firewall rules validated successfully"
+        fail_msg: "Firewall rules not defined"
+        success_msg: "Firewall rules exist"
 
-    - name: Validate monitoring configuration
+    - name: Validate production blocking rules
       ansible.builtin.assert:
         that:
-          - enclave_monitoring.enabled is defined
-          - enclave_monitoring.audit_logging is defined
-        fail_msg: "Monitoring configuration not properly defined"
-        success_msg: "Monitoring configuration validated successfully"
+          - enclave_firewall_rules | selectattr('action', 'equalto', 'DROP') | list | length > 0
+        fail_msg: "No DROP rules found - production may not be protected"
+        success_msg: "Production blocking rules validated"
 
-    - name: Validate auto-shutdown configuration
+    - name: Validate internal traffic rules
       ansible.builtin.assert:
         that:
-          - enclave_auto_shutdown.enabled is defined
-          - enclave_auto_shutdown.idle_timeout_hours is defined
-          - enclave_auto_shutdown.shutdown_schedule is defined
-        fail_msg: "Auto-shutdown configuration not properly defined"
-        success_msg: "Auto-shutdown configuration validated successfully"
+          - enclave_firewall_rules | selectattr('action', 'equalto', 'ACCEPT') | list | length > 0
+        fail_msg: "No ACCEPT rules found - enclave may not function"
+        success_msg: "Internal traffic rules validated"
 
-    - name: Test task file syntax
-      ansible.builtin.include_tasks:
-        file: ../../tasks/main.yml
-      ignore_errors: true
-      tags:
-        - never
-        - syntax-test
+    # ═══════════════════════════════════════════════════════════════════════════
+    # OPTIONAL FEATURES VALIDATION
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    - name: Validate traffic capture configuration
+      ansible.builtin.assert:
+        that:
+          - enclave_traffic_capture is defined
+          - enclave_traffic_capture.enabled is defined
+          - enclave_traffic_capture.capture_dir is defined
+          - enclave_traffic_capture.retention_days is defined
+        fail_msg: "Traffic capture configuration is invalid"
+        success_msg: "Traffic capture configuration validated"
+
+    - name: Validate CTF mode configuration
+      ansible.builtin.assert:
+        that:
+          - enclave_ctf_mode is defined
+          - enclave_ctf_mode.enabled is defined
+          - enclave_ctf_mode.flag_format is defined
+          - enclave_ctf_mode.default_flags is defined
+        fail_msg: "CTF mode configuration is invalid"
+        success_msg: "CTF mode configuration validated"
+
+    - name: Validate VPN configuration
+      ansible.builtin.assert:
+        that:
+          - enclave_vpn is defined
+          - enclave_vpn.enabled is defined
+          - enclave_vpn.wireguard is defined
+          - enclave_vpn.wireguard.listen_port is defined
+          - enclave_vpn.wireguard.vpn_subnet is defined
+        fail_msg: "VPN configuration is invalid"
+        success_msg: "VPN configuration validated"
+
+    - name: Validate credential management configuration
+      ansible.builtin.assert:
+        that:
+          - enclave_credentials is defined
+          - enclave_credentials.credential_file is defined
+          - enclave_credentials.ssh_key_type in ['ed25519', 'rsa', 'ecdsa']
+        fail_msg: "Credential management configuration is invalid"
+        success_msg: "Credential management configuration validated"
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # RESOURCE LIMITS VALIDATION
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    - name: Validate resource limits
+      ansible.builtin.assert:
+        that:
+          - enclave_resource_limits is defined
+          - enclave_resource_limits.max_total_cores > 0
+          - enclave_resource_limits.max_total_memory_mb > 0
+          - enclave_resource_limits.max_total_disk_gb > 0
+        fail_msg: "Resource limits configuration is invalid"
+        success_msg: "Resource limits validated"
+
+    - name: Calculate total resource allocation
+      ansible.builtin.set_fact:
+        total_cores: >-
+          {{ enclave_bastion.cores + enclave_router.cores + enclave_attacker.cores +
+             (enclave_enabled_targets | map('extract', enclave_vulnerable_vms_catalog) |
+              map(attribute='cores') | sum) }}
+        total_memory: >-
+          {{ enclave_bastion.memory + enclave_router.memory + enclave_attacker.memory +
+             (enclave_enabled_targets | map('extract', enclave_vulnerable_vms_catalog) |
+              map(attribute='memory') | sum) }}
+
+    - name: Validate total resources within limits
+      ansible.builtin.assert:
+        that:
+          - total_cores | int <= enclave_resource_limits.max_total_cores
+          - total_memory | int <= enclave_resource_limits.max_total_memory_mb
+        fail_msg: "Total resource allocation exceeds limits"
+        success_msg: "Total resource allocation within limits (Cores: {{ total_cores }}, Memory: {{ total_memory }}MB)"
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # TEMPLATE RENDERING TEST
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    - name: Test usage banner template rendering
+      ansible.builtin.assert:
+        that:
+          - enclave_usage_banner is defined
+          - "'PENTESTING ENVIRONMENT' in enclave_usage_banner"
+          - "'logged and monitored' in enclave_usage_banner"
+        fail_msg: "Usage banner template rendering failed"
+        success_msg: "Usage banner template renders correctly"
+
+    - name: Display converge summary
+      ansible.builtin.debug:
+        msg:
+          - ""
+          - "╔══════════════════════════════════════════════════════════════╗"
+          - "║           CONVERGE PHASE COMPLETED SUCCESSFULLY             ║"
+          - "╚══════════════════════════════════════════════════════════════╝"
+          - ""
+          - "Configuration Summary:"
+          - "  Network: {{ enclave_network.isolated_subnet }}"
+          - "  Bastion: {{ enclave_bastion.ip_address }}"
+          - "  Router: {{ enclave_router.lan_ip }}"
+          - "  Attacker: {{ enclave_attacker.isolated_ip }}"
+          - "  Targets: {{ enclave_enabled_targets | join(', ') }}"
+          - "  Total Cores: {{ total_cores }}"
+          - "  Total Memory: {{ total_memory }}MB"
+          - ""
+          - "Optional Features:"
+          - "  Traffic Capture: {{ enclave_traffic_capture.enabled }}"
+          - "  CTF Mode: {{ enclave_ctf_mode.enabled }}"
+          - "  VPN Access: {{ enclave_vpn.enabled }}"
+          - ""
