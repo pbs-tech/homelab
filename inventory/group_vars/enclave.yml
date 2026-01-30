@@ -34,8 +34,20 @@ lxc_disk_size: 20
 # Unprivileged by default for security
 lxc_unprivileged: true
 
-# Don't auto-start enclave containers (manual start for security)
-lxc_onboot: false
+# Auto-start on boot (controlled by enclave_persistent_mode when deployed via infrastructure.yml)
+# For standalone deployment, this defaults to false for safety
+lxc_onboot: "{{ enclave_persistent_mode | default(false) }}"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PERSISTENT MODE CONFIGURATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# When true, enclave runs as persistent infrastructure:
+# - All components auto-start on Proxmox boot
+# - Auto-shutdown is disabled
+# - Behaves like other infrastructure phases
+# Default: false (temporary mode for safety)
+enclave_persistent_mode: false
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # ENCLAVE HOSTS DEFINITION

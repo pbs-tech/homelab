@@ -56,3 +56,11 @@
     - cluster
     - phase5
   when: not skip_k3s | default(false)
+
+- name: Deploy secure enclave (security research)
+  import_playbook: enclave.yml
+  tags:
+    - enclave
+    - security-research
+    - phase6
+  when: not skip_enclave | default(true)

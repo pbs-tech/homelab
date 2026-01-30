@@ -26,7 +26,7 @@
 
     nameserver: "{{ homelab_network.dns_servers | join(' ') }}"
     searchdomain: "{{ homelab_domain }}"
-    onboot: true
+    onboot: "{{ enclave_persistent_onboot | default(true) }}"
     unprivileged: true
 
     state: present

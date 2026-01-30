@@ -73,6 +73,9 @@ ansible-playbook playbooks/infrastructure.yml --tags "monitoring,phase3"
 ansible-playbook playbooks/infrastructure.yml --tags "applications,phase4"
 # K3s cluster
 ansible-playbook playbooks/infrastructure.yml --tags "k3s,phase5"
+# Secure enclave (requires explicit acknowledgement and opt-in)
+ansible-playbook playbooks/infrastructure.yml --tags "enclave,phase6" \
+  -e enclave_security_acknowledged=true -e enclave_persistent_mode=true -e skip_enclave=false
 
 # LEGACY APPROACH - Still supported for backwards compatibility
 ansible-playbook site.yml                                    # Deploy entire infrastructure
@@ -103,15 +106,38 @@ ansible-playbook test-security-hardening.yml
 the security risks by setting `enclave_security_acknowledged: true` in your inventory or via
 extra vars (`-e enclave_security_acknowledged=true`).
 
+The secure enclave can be deployed in two modes:
+
+- **Temporary mode** (default): Auto-shutdown after 4h idle, components don't auto-start on boot
+- **Persistent mode**: Runs continuously like other infrastructure, all components auto-start on boot
+
 ```bash
-# Deploy complete secure enclave for pentesting and security research
-ansible-playbook playbooks/secure-enclave.yml -e enclave_security_acknowledged=true
+# Deploy enclave in TEMPORARY mode (auto-shutdown enabled)
+ansible-playbook playbooks/enclave.yml -e enclave_security_acknowledged=true
+
+# Deploy enclave in PERSISTENT mode (runs continuously, integrated with infrastructure)
+ansible-playbook playbooks/enclave.yml \
+  -e enclave_security_acknowledged=true \
+  -e enclave_persistent_mode=true
+
+# Deploy as Phase 6 of infrastructure (persistent mode)
+ansible-playbook playbooks/infrastructure.yml --tags "enclave,phase6" \
+  -e enclave_security_acknowledged=true \
+  -e enclave_persistent_mode=true \
+  -e skip_enclave=false
+
+# Makefile shortcuts
+make deploy-enclave              # Temporary mode
+make deploy-enclave-persistent   # Persistent mode
+make deploy-phase6               # Same as deploy-enclave-persistent
+make enclave-status              # Check enclave status
+make enclave-shutdown            # Emergency shutdown all VMs
 
 # Deploy specific enclave components
-ansible-playbook playbooks/secure-enclave.yml --tags network,firewall  # Network isolation only
-ansible-playbook playbooks/secure-enclave.yml --tags infrastructure    # Bastion and router
-ansible-playbook playbooks/secure-enclave.yml --tags attacker          # Kali attacker VM
-ansible-playbook playbooks/secure-enclave.yml --tags vulnerable        # Vulnerable targets
+ansible-playbook playbooks/enclave.yml --tags network,firewall  # Network isolation only
+ansible-playbook playbooks/enclave.yml --tags infrastructure    # Bastion and router
+ansible-playbook playbooks/enclave.yml --tags attacker          # Kali attacker VM
+ansible-playbook playbooks/enclave.yml --tags vulnerable        # Vulnerable targets
 
 # Access enclave (from production bastion)
 ssh pbs@192.168.0.250  # Enclave bastion
@@ -492,7 +518,8 @@ ansible-galaxy collection install *.tar.gz --force
 │   ├── networking.yml               # Phase 2: DNS, VPN, reverse proxy
 │   ├── monitoring.yml               # Phase 3: Prometheus, Grafana, Loki
 │   ├── applications.yml             # Phase 4: Home automation, NAS services
-│   └── secure-enclave.yml           # Secure pentesting environment deployment
+│   ├── enclave.yml                  # Phase 6: Secure enclave (persistent/temporary modes)
+│   └── secure-enclave.yml           # Legacy secure enclave deployment
 ├── tests/                           # Fast validation tests (< 5 min total)
 │   ├── quick-smoke-test.yml         # 30s validation of critical components
 │   ├── validate-infrastructure.yml  # Infrastructure health checks

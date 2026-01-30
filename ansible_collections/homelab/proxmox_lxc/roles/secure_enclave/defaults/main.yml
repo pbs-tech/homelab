@@ -33,6 +33,17 @@
 # Acknowledge security risks before deployment (must be set to true)
 enclave_security_acknowledged: false
 
+# Persistent mode - when true, enclave components:
+# - Start automatically on Proxmox boot (lxc_onboot: true for all components)
+# - Do not auto-shutdown on idle
+# - Remain running like other infrastructure components
+# Default: false (temporary mode for safety)
+enclave_persistent_mode: false
+
+# Override for onboot setting (derived from persistent_mode)
+# When persistent_mode is true, all components auto-start on boot
+enclave_persistent_onboot: "{{ enclave_persistent_mode | default(false) }}"
+
 # Enclave network configuration
 enclave_network:
   # Management network (accessible from production bastion)
@@ -389,8 +400,9 @@ enclave_monitoring:
   metrics_port: 9100
 
 # Auto-shutdown configuration (safety feature)
+# Disabled when enclave_persistent_mode is true
 enclave_auto_shutdown:
-  enabled: true
+  enabled: "{{ not (enclave_persistent_mode | default(false)) }}"
   # Automatically shutdown vulnerable VMs when not in use
   idle_timeout_hours: 4
   # Schedule for automatic shutdown (cron format)
