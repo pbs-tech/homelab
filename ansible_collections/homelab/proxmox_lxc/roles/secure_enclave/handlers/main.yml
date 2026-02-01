@@ -24,10 +24,10 @@
   ansible.builtin.systemd:
     name: wg-quick@wg-enclave
     state: restarted
-  ignore_errors: true
+  failed_when: false
 
 - name: Restart enclave dashboard
   ansible.builtin.systemd:
     name: enclave-dashboard
     state: restarted
-  ignore_errors: true
+  failed_when: false

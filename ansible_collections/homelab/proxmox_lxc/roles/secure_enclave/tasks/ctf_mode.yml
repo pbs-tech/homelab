@@ -386,6 +386,10 @@
 
 - name: Deploy CTFd scoreboard container
   when: enclave_ctf_mode.scoreboard.use_ctfd | default(false)
+  tags:
+    - ctf
+    - ctfd
+    - docker
   block:
     - name: Install Docker for CTFd
       ansible.builtin.apt:
@@ -423,10 +427,6 @@
         executable: /bin/bash
       delegate_to: "{{ enclave_bastion.hostname }}"
       changed_when: true
-  tags:
-    - ctf
-    - ctfd
-    - docker
 
 - name: Display CTF mode information
   ansible.builtin.debug:

@@ -73,7 +73,7 @@
         port: 22
         delay: 5
         timeout: 60
-      ignore_errors: true
+      failed_when: false
       tags:
         - verify
 

@@ -48,6 +48,7 @@
 
 - name: Generate WireGuard server public key
   ansible.builtin.shell: |
+    set -o pipefail
     cat /etc/wireguard/server_private.key | wg pubkey
   args:
     executable: /bin/bash
