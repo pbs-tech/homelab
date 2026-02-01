@@ -31,6 +31,7 @@ make test
 make test-infrastructure        # LXC containers, K3s nodes health
 make test-security             # Security hardening validation
 make test-services             # Service functionality checks
+make test-enclave              # Secure enclave network isolation and security
 make test-api                  # Proxmox API authentication
 
 # Direct playbook execution

@@ -404,6 +404,19 @@
     - dashboard
     - html
 
+- name: Generate API authentication token
+  ansible.builtin.copy:
+    dest: /opt/enclave-dashboard/.api_token
+    content: "{{ lookup('community.general.random_string', length=64, special=false) }}"
+    mode: '0600'
+    owner: root
+    group: root
+  delegate_to: "{{ enclave_bastion.hostname }}"
+  when: enclave_dashboard.auth_enabled | default(true)
+  tags:
+    - dashboard
+    - security
+
 - name: Create simple API script
   ansible.builtin.copy:
     dest: /opt/enclave-dashboard/api/status.py
@@ -415,9 +428,12 @@
       import subprocess
       import http.server
       import socketserver
+      import os
       from datetime import datetime
 
       PORT = {{ enclave_dashboard.port | default(8080) }}
+      AUTH_ENABLED = {{ enclave_dashboard.auth_enabled | default(true) | lower }}
+      TOKEN_FILE = '/opt/enclave-dashboard/.api_token'
 
       def get_vm_status():
           """Get status of enclave VMs"""
@@ -469,7 +485,37 @@
 
           return status
 
+      def get_api_token():
+          """Read API token from file"""
+          try:
+              with open(TOKEN_FILE, 'r') as f:
+                  return f.read().strip()
+          except FileNotFoundError:
+              return None
+
       class StatusHandler(http.server.SimpleHTTPRequestHandler):
+          def check_auth(self):
+              """Check if request is authenticated for sensitive endpoints"""
+              if not AUTH_ENABLED:
+                  return True
+              auth_header = self.headers.get('Authorization', '')
+              if auth_header.startswith('Bearer '):
+                  token = auth_header[7:]
+                  expected_token = get_api_token()
+                  return expected_token and token == expected_token
+              return False
+
+          def send_unauthorized(self):
+              """Send 401 Unauthorized response"""
+              self.send_response(401)
+              self.send_header('Content-type', 'application/json')
+              self.send_header('WWW-Authenticate', 'Bearer realm="Enclave API"')
+              self.end_headers()
+              self.wfile.write(json.dumps({
+                  'error': 'Unauthorized',
+                  'message': 'Valid API token required. Use Authorization: Bearer <token>'
+              }).encode())
+
           def do_GET(self):
               if self.path == '/api/status':
                   self.send_response(200)
@@ -478,6 +524,9 @@
                   self.end_headers()
                   self.wfile.write(json.dumps(get_vm_status()).encode())
               elif self.path == '/api/credentials':
+                  if not self.check_auth():
+                      self.send_unauthorized()
+                      return
                   self.send_response(200)
                   self.send_header('Content-type', 'text/markdown')
                   self.end_headers()
@@ -487,6 +536,9 @@
                   except FileNotFoundError:
                       self.wfile.write(b'Credentials file not found')
               elif self.path == '/api/logs':
+                  if not self.check_auth():
+                      self.send_unauthorized()
+                      return
                   self.send_response(200)
                   self.send_header('Content-type', 'text/plain')
                   self.end_headers()
@@ -567,9 +619,13 @@
       - "Access URL: http://{{ enclave_bastion.ip_address }}:{{ enclave_dashboard.port | default(8080) }}"
       - ""
       - "API Endpoints:"
-      - "  /api/status      - Get enclave status (JSON)"
-      - "  /api/credentials - View target credentials"
-      - "  /api/logs        - View audit logs"
+      - "  /api/status      - Get enclave status (JSON) [public]"
+      - "  /api/credentials - View target credentials [requires auth]"
+      - "  /api/logs        - View audit logs [requires auth]"
+      - ""
+      - "Authentication (auth_enabled={{ enclave_dashboard.auth_enabled | default(true) }}):"
+      - "  Token location: /opt/enclave-dashboard/.api_token"
+      - "  Usage: curl -H 'Authorization: Bearer <token>' http://{{ enclave_bastion.ip_address }}:{{ enclave_dashboard.port | default(8080) }}/api/credentials"
       - ""
       - "The dashboard auto-refreshes every {{ enclave_dashboard.refresh_interval | default(30) }} seconds."
   tags:

@@ -155,43 +155,42 @@
       done
 
       # Also check challenge definitions for inline flags
+      # Note: Using environment variables to safely pass user input to Python
+      # This prevents command injection via malicious flag values
       if [ "$FOUND" = "false" ] && command -v python3 &> /dev/null; then
-        FOUND=$(python3 -c "
+        export CTF_FLAG="$FLAG"
+        export CTF_CHALLENGES_FILE="$CHALLENGES_FILE"
+        RESULT=$(python3 << 'PYTHON_EOF'
       import yaml
       import sys
-      with open('$CHALLENGES_FILE', 'r') as f:
-        data = yaml.safe_load(f)
-      for c in data.get('challenges', []):
-        if c.get('flag') == '$FLAG':
-          print('true')
-          print(c.get('points', 100))
-          print(c.get('name', 'Unknown'))
-          sys.exit(0)
+      import os
+
+      flag = os.environ.get('CTF_FLAG', '')
+      challenges_file = os.environ.get('CTF_CHALLENGES_FILE', '')
+
+      try:
+          with open(challenges_file, 'r') as f:
+              data = yaml.safe_load(f)
+          for c in data.get('challenges', []):
+              if c.get('flag') == flag:
+                  print('true')
+                  print(c.get('points', 100))
+                  print(c.get('name', 'Unknown'))
+                  sys.exit(0)
+      except Exception:
+          pass
       print('false')
       print(0)
       print('')
-      " 2>/dev/null | head -1 || echo "false")
+      PYTHON_EOF
+      )
+        FOUND=$(echo "$RESULT" | head -1)
 
         if [ "$FOUND" = "true" ]; then
-          POINTS=$(python3 -c "
-      import yaml
-      with open('$CHALLENGES_FILE', 'r') as f:
-        data = yaml.safe_load(f)
-      for c in data.get('challenges', []):
-        if c.get('flag') == '$FLAG':
-          print(c.get('points', 100))
-          break
-      " 2>/dev/null || echo "100")
-          CHALLENGE_NAME=$(python3 -c "
-      import yaml
-      with open('$CHALLENGES_FILE', 'r') as f:
-        data = yaml.safe_load(f)
-      for c in data.get('challenges', []):
-        if c.get('flag') == '$FLAG':
-          print(c.get('name', 'Unknown'))
-          break
-      " 2>/dev/null || echo "Unknown")
+          POINTS=$(echo "$RESULT" | sed -n '2p')
+          CHALLENGE_NAME=$(echo "$RESULT" | sed -n '3p')
         fi
+        unset CTF_FLAG CTF_CHALLENGES_FILE
       fi
 
       if [ "$FOUND" = "true" ]; then
@@ -399,6 +398,28 @@
         state: present
       delegate_to: "{{ enclave_bastion.hostname }}"
 
+    - name: Check if CTFd secret key exists
+      ansible.builtin.stat:
+        path: /opt/ctf/scoreboard/.ctfd_secret_key
+      register: ctfd_secret_stat
+      delegate_to: "{{ enclave_bastion.hostname }}"
+
+    - name: Generate CTFd secret key (only if not exists)
+      ansible.builtin.copy:
+        dest: /opt/ctf/scoreboard/.ctfd_secret_key
+        content: "{{ lookup('community.general.random_string', length=64, special=false) }}"
+        mode: '0600'
+        owner: root
+        group: root
+      delegate_to: "{{ enclave_bastion.hostname }}"
+      when: not ctfd_secret_stat.stat.exists
+
+    - name: Read CTFd secret key
+      ansible.builtin.slurp:
+        src: /opt/ctf/scoreboard/.ctfd_secret_key
+      register: ctfd_secret_key_content
+      delegate_to: "{{ enclave_bastion.hostname }}"
+
     - name: Create CTFd docker-compose file
       ansible.builtin.copy:
         dest: /opt/ctf/scoreboard/docker-compose.yml
@@ -412,7 +433,7 @@
               volumes:
                 - ctfd_data:/var/lib/ctfd
               environment:
-                - SECRET_KEY=changeme_{{ ansible_date_time.epoch }}
+                - SECRET_KEY={{ ctfd_secret_key_content.content | b64decode | trim }}
                 - DATABASE_URL=sqlite:////var/lib/ctfd/ctfd.db
               restart: unless-stopped
           volumes:

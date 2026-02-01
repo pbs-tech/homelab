@@ -100,6 +100,10 @@ test-services: ## Validate service functionality
 	@echo "$(YELLOW)Running service validation tests...$(NC)"
 	@ansible-playbook tests/validate-services.yml
 
+test-enclave: ## Validate secure enclave (network isolation, security)
+	@echo "$(YELLOW)Running secure enclave validation tests...$(NC)"
+	@ansible-playbook tests/validate-enclave.yml
+
 test-api: ## Validate Proxmox API authentication
 	@echo "$(YELLOW)Testing Proxmox API token authentication...$(NC)"
 	@ansible-playbook test-proxmox-api-tokens.yml

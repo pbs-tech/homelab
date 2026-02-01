@@ -162,6 +162,22 @@ The Proxmox LXC collection inherits:
 - Service configuration patterns
 - Network topology
 
+### Secure Enclave Integration
+
+The `secure_enclave` role in proxmox_lxc uses common collection roles for:
+
+- **Security hardening** - Applied to bastion host and enclave infrastructure
+- **Container base** - Used for LXC-based enclave components
+- **Common setup** - System configuration for enclave VMs
+
+The enclave provides an isolated pentesting environment with:
+- Network isolation (10.10.0.0/24 subnet)
+- Credential management and documentation
+- CTF challenge mode with scoring
+- Web dashboard for monitoring
+- Traffic capture capabilities
+- VPN access for remote testing
+
 ## Best Practices
 
 ### Configuration Management

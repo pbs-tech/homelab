@@ -53,6 +53,41 @@ The Secure Enclave provides a safe, isolated environment for:
    - Metasploitable3 (10.10.0.101) - Intentionally vulnerable VM
    - Easily extensible for additional targets
 
+### Advanced Features
+
+5. **Web Dashboard** (`dashboard.yml`)
+   - Real-time status monitoring of all enclave VMs
+   - Network topology visualization
+   - Quick action buttons for common operations
+   - API endpoints for programmatic access (with authentication)
+   - Auto-refreshing interface
+
+6. **CTF Challenge Mode** (`ctf_mode.yml`)
+   - Capture The Flag competition support
+   - Challenge definitions with difficulty levels
+   - Flag submission and validation system
+   - Scoreboard tracking for multiple players
+   - Hint system with point penalties
+   - Optional CTFd integration for full competition management
+
+7. **Credential Management** (`credential_management.yml`)
+   - Centralized credential documentation for all targets
+   - Auto-generated credential reports (Markdown/JSON)
+   - Secure SSH key management for enclave access
+   - Quick lookup commands (`enclave-creds`)
+
+8. **Traffic Capture** (`traffic_capture.yml`)
+   - Network packet capture tools (tcpdump, tshark)
+   - Automated capture rotation and storage
+   - Analysis helpers for learning and forensics
+   - Configurable filters and interfaces
+
+9. **VPN Access** (`vpn_access.yml`)
+   - WireGuard VPN for secure remote access
+   - Automatic client configuration generation
+   - QR code support for mobile clients
+   - Access control and logging
+
 ## Network Architecture
 
 ### High-Level Architecture Diagram
@@ -216,7 +251,7 @@ ansible-galaxy collection install homelab.proxmox_lxc
 Deploy the entire secure enclave (requires security acknowledgement):
 
 ```bash
-ansible-playbook playbooks/secure-enclave.yml -e enclave_security_acknowledged=true
+ansible-playbook playbooks/enclave.yml -e enclave_security_acknowledged=true
 ```
 
 ### Selective Deployment
@@ -225,16 +260,28 @@ Deploy specific components using tags:
 
 ```bash
 # Network isolation only
-ansible-playbook playbooks/secure-enclave.yml --tags network,firewall -e enclave_security_acknowledged=true
+ansible-playbook playbooks/enclave.yml --tags network,firewall -e enclave_security_acknowledged=true
 
 # Bastion and infrastructure
-ansible-playbook playbooks/secure-enclave.yml --tags infrastructure -e enclave_security_acknowledged=true
+ansible-playbook playbooks/enclave.yml --tags infrastructure -e enclave_security_acknowledged=true
 
 # Attacker VM only
-ansible-playbook playbooks/secure-enclave.yml --tags attacker -e enclave_security_acknowledged=true
+ansible-playbook playbooks/enclave.yml --tags attacker -e enclave_security_acknowledged=true
 
 # Vulnerable targets only
-ansible-playbook playbooks/secure-enclave.yml --tags vulnerable -e enclave_security_acknowledged=true
+ansible-playbook playbooks/enclave.yml --tags vulnerable -e enclave_security_acknowledged=true
+
+# Deploy dashboard
+ansible-playbook playbooks/enclave.yml --tags dashboard -e enclave_security_acknowledged=true
+
+# Enable CTF mode
+ansible-playbook playbooks/enclave.yml --tags ctf -e enclave_security_acknowledged=true
+
+# Deploy traffic capture tools
+ansible-playbook playbooks/enclave.yml --tags traffic-capture -e enclave_security_acknowledged=true
+
+# Enable VPN access
+ansible-playbook playbooks/enclave.yml --tags vpn -e enclave_security_acknowledged=true
 ```
 
 ### Accessing the Enclave
@@ -269,6 +316,22 @@ Available on the enclave bastion:
 - `enclave-monitor` - Real-time monitoring dashboard
 - `router-status` - Display router and firewall status (on router VM)
 
+**Credential Management:**
+- `enclave-creds <target>` - Show credentials for a specific target
+- `enclave-creds list` - List all available targets
+- `enclave-creds report` - Display the full credential report
+
+**CTF Mode:**
+- `ctf-challenges` - List available CTF challenges
+- `ctf-submit <player> <flag>` - Submit a flag for scoring
+- `ctf-scoreboard` - View the current scoreboard
+- `ctf-hint <challenge>` - Get a hint (costs points)
+
+**Traffic Capture:**
+- `enclave-capture start` - Start capturing network traffic
+- `enclave-capture stop` - Stop capture and save file
+- `enclave-capture analyze <file>` - Analyze a capture file
+
 ## Configuration
 
 ### Default Variables
@@ -292,6 +355,36 @@ enclave_monitoring:
   enabled: true
   audit_logging: true
   metrics_enabled: true
+
+# Dashboard (web-based monitoring)
+enclave_dashboard:
+  enabled: false
+  port: 8080
+  auth_enabled: true  # Protects /api/credentials and /api/logs endpoints
+  refresh_interval: 30
+
+# CTF Challenge Mode
+enclave_ctf_mode:
+  enabled: false
+  flag_format: "FLAG{%s}"
+  hints_enabled: true
+  hint_penalty_percent: 10
+  scoreboard:
+    use_ctfd: false  # Use full CTFd container
+    port: 8000
+
+# Traffic Capture
+enclave_traffic_capture:
+  enabled: false
+  capture_dir: /opt/captures
+  max_file_size_mb: 100
+  file_rotation_count: 5
+
+# VPN Access
+enclave_vpn:
+  enabled: false
+  listen_port: 51820
+  client_config_dir: /etc/wireguard/clients
 ```
 
 ### Adding Vulnerable VMs
@@ -471,7 +564,7 @@ Update vulnerable target VMs quarterly to latest versions:
 
 ```bash
 # Update DVWA
-ansible-playbook playbooks/secure-enclave.yml --tags vulnerable -e "update_vulnerable_vms=true"
+ansible-playbook playbooks/enclave.yml --tags vulnerable -e "update_vulnerable_vms=true"
 
 # Or manually
 ssh root@10.10.0.100
@@ -651,7 +744,7 @@ enclave_vulnerable_vms:
     docker_image: bkimminich/juice-shop
 
 # 3. Re-run deployment (only deploys new VM)
-ansible-playbook playbooks/secure-enclave.yml --tags vulnerable
+ansible-playbook playbooks/enclave.yml --tags vulnerable
 
 # 4. Verify deployment
 ssh root@10.10.0.10
@@ -775,7 +868,7 @@ enclave_auto_shutdown:
   shutdown_schedule: "0 4 * * *"  # Changed from 2 AM to 4 AM
 
 # Re-deploy auto-shutdown configuration
-ansible-playbook playbooks/secure-enclave.yml --tags auto-shutdown
+ansible-playbook playbooks/enclave.yml --tags auto-shutdown
 
 # Option 3: One-time manual override
 ssh pbs@192.168.0.250
@@ -830,7 +923,7 @@ sudo /usr/local/bin/enclave-firewall-init
 sudo iptables -L -n -v | grep "Block Prometheus"  # Verify rule exists
 
 # Option 2: Re-deploy network isolation
-ansible-playbook playbooks/secure-enclave.yml --tags network,firewall
+ansible-playbook playbooks/enclave.yml --tags network,firewall
 
 # Option 3: Manual rule addition (temporary)
 sudo iptables -I FORWARD 1 -s 10.10.0.0/24 -d 192.168.0.200 -j DROP -m comment --comment "Block Prometheus"
@@ -888,7 +981,7 @@ df -h    # Check available disk
 **Verification**:
 ```bash
 # Re-run deployment with validation
-ansible-playbook playbooks/secure-enclave.yml --tags validation
+ansible-playbook playbooks/enclave.yml --tags validation
 ```
 
 ---

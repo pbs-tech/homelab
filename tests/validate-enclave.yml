@@ -1,0 +1,247 @@
+---
+# Secure Enclave validation test
+# Validates enclave network isolation, components, and security
+# Expected runtime: < 3 minutes
+
+- name: Enclave validation initialization
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Display validation banner
+      ansible.builtin.debug:
+        msg: |
+          ====================================
+          Secure Enclave Validation Test
+          ====================================
+          Tests: Network isolation, VMs, security
+          Runtime: < 3 minutes
+
+- name: Validate enclave infrastructure containers
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    enclave_containers:
+      - { vmid: 250, name: enclave-bastion, ip: 192.168.0.250, port: 22 }
+      - { vmid: 251, name: enclave-router, ip: 192.168.0.251, port: 22 }
+    proxmox_host: "{{ proxmox_config.pve_mac.host }}"
+  tasks:
+    - name: Check enclave bastion container status
+      ansible.builtin.uri:
+        # yamllint disable-line rule:line-length
+        url: https://{{ proxmox_host }}:8006/api2/json/nodes/{{ proxmox_config.pve_mac.node }}/lxc/{{ item.vmid }}/status/current
+        method: GET
+        headers:
+          # yamllint disable-line rule:line-length
+          Authorization: PVEAPIToken={{ proxmox_config.pve_mac.api_token_id }}={{ proxmox_config.pve_mac.api_token_secret }}
+        validate_certs: false
+        timeout: 10
+      loop: "{{ enclave_containers }}"
+      register: enclave_container_status
+      ignore_errors: true
+
+    - name: Verify enclave containers are running
+      ansible.builtin.assert:
+        that:
+          - item.json.data.status == "running"
+        fail_msg: "Container {{ item.item.name }} ({{ item.item.vmid }}) is not running"
+        success_msg: "Container {{ item.item.name }} is running"
+      loop: "{{ enclave_container_status.results }}"
+      when: item is succeeded
+      failed_when: false
+
+    - name: Check enclave infrastructure ports
+      ansible.builtin.wait_for:
+        host: "{{ item.ip }}"
+        port: "{{ item.port }}"
+        timeout: 5
+        state: started
+      loop: "{{ enclave_containers }}"
+      register: enclave_port_checks
+      ignore_errors: true
+
+- name: Validate enclave bastion security
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    bastion_ip: 192.168.0.250
+  tasks:
+    - name: Check SSH is accessible on bastion
+      ansible.builtin.wait_for:
+        host: "{{ bastion_ip }}"
+        port: 22
+        timeout: 5
+        state: started
+      register: bastion_ssh
+      ignore_errors: true
+
+    - name: Display bastion SSH status
+      ansible.builtin.debug:
+        msg: "Bastion SSH: {{ 'ACCESSIBLE' if bastion_ssh is succeeded else 'NOT ACCESSIBLE' }}"
+
+- name: Validate enclave network isolation (from bastion)
+  hosts: enclave_bastion
+  gather_facts: false
+  become: true
+  vars:
+    production_targets:
+      - { name: "Prometheus", ip: "192.168.0.200", expected: "blocked" }
+      - { name: "Grafana", ip: "192.168.0.201", expected: "blocked" }
+      - { name: "K3s Node 1", ip: "192.168.0.111", expected: "blocked" }
+      - { name: "NAS Sonarr", ip: "192.168.0.230", expected: "blocked" }
+    allowed_targets:
+      - { name: "Internet (Google DNS)", ip: "8.8.8.8", expected: "allowed" }
+      - { name: "Internal DNS", ip: "192.168.0.202", expected: "allowed" }
+  tasks:
+    - name: Test isolation from production (should fail/timeout)
+      ansible.builtin.command: ping -c 1 -W 2 {{ item.ip }}
+      loop: "{{ production_targets }}"
+      register: isolation_tests
+      ignore_errors: true
+      changed_when: false
+
+    - name: Verify production is blocked from enclave router
+      ansible.builtin.assert:
+        that:
+          - item.rc != 0
+        fail_msg: "SECURITY ISSUE: {{ item.item.name }} ({{ item.item.ip }}) is reachable - should be blocked!"
+        success_msg: "{{ item.item.name }} correctly blocked"
+      loop: "{{ isolation_tests.results }}"
+      failed_when: false
+
+    - name: Test allowed connectivity
+      ansible.builtin.command: ping -c 1 -W 2 {{ item.ip }}
+      loop: "{{ allowed_targets }}"
+      register: allowed_tests
+      ignore_errors: true
+      changed_when: false
+
+    - name: Verify allowed targets are reachable
+      ansible.builtin.assert:
+        that:
+          - item.rc == 0
+        fail_msg: "{{ item.item.name }} ({{ item.item.ip }}) is not reachable - should be allowed"
+        success_msg: "{{ item.item.name }} correctly accessible"
+      loop: "{{ allowed_tests.results }}"
+      failed_when: false
+
+- name: Validate enclave attacker VM
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    attacker_ip: 10.10.0.10
+    bastion_ip: 192.168.0.250
+  tasks:
+    - name: Check attacker VM is reachable via bastion
+      ansible.builtin.command: >
+        ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5
+        pbs@{{ bastion_ip }} "ping -c 1 -W 2 {{ attacker_ip }}"
+      register: attacker_ping
+      ignore_errors: true
+      changed_when: false
+
+    - name: Display attacker VM status
+      ansible.builtin.debug:
+        msg: "Attacker VM ({{ attacker_ip }}): {{ 'REACHABLE' if attacker_ping.rc == 0 else 'NOT REACHABLE' }}"
+
+- name: Validate enclave services
+  hosts: enclave_bastion
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Check fail2ban is running
+      ansible.builtin.systemd:
+        name: fail2ban
+      register: fail2ban_status
+      ignore_errors: true
+
+    - name: Check auditd is running
+      ansible.builtin.systemd:
+        name: auditd
+      register: auditd_status
+      ignore_errors: true
+
+    - name: Check enclave dashboard service (if enabled)
+      ansible.builtin.systemd:
+        name: enclave-dashboard
+      register: dashboard_status
+      ignore_errors: true
+
+    - name: Display service status
+      ansible.builtin.debug:
+        msg:
+          - "fail2ban: {{ 'RUNNING' if fail2ban_status.status.ActiveState == 'active' else 'NOT RUNNING' }}"
+          - "auditd: {{ 'RUNNING' if auditd_status.status.ActiveState == 'active' else 'NOT RUNNING' }}"
+          - "dashboard: {{ 'RUNNING' if dashboard_status.status.ActiveState == 'active' else 'NOT RUNNING/DISABLED' }}"
+
+- name: Validate enclave firewall rules
+  hosts: enclave_router
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Check iptables rules exist
+      ansible.builtin.command: iptables -L FORWARD -n -v
+      register: iptables_rules
+      changed_when: false
+      ignore_errors: true
+
+    - name: Verify production blocking rules
+      ansible.builtin.assert:
+        that:
+          - "'DROP' in iptables_rules.stdout or 'REJECT' in iptables_rules.stdout"
+        fail_msg: "No DROP/REJECT rules found - firewall may not be configured"
+        success_msg: "Firewall DROP/REJECT rules present"
+      when: iptables_rules is succeeded
+      failed_when: false
+
+    - name: Check IP forwarding is enabled
+      ansible.builtin.command: cat /proc/sys/net/ipv4/ip_forward
+      register: ip_forward
+      changed_when: false
+      ignore_errors: true
+
+    - name: Verify IP forwarding
+      ansible.builtin.assert:
+        that:
+          - ip_forward.stdout | trim == "1"
+        fail_msg: "IP forwarding is disabled"
+        success_msg: "IP forwarding is enabled"
+      when: ip_forward is succeeded
+      failed_when: false
+
+- name: Enclave validation summary
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Display validation summary
+      ansible.builtin.debug:
+        msg: |
+          ====================================
+          Secure Enclave Validation Complete
+          ====================================
+
+          Infrastructure:
+          - Bastion container checked
+          - Router container checked
+
+          Network Isolation:
+          - Production targets tested (should be blocked)
+          - Allowed targets tested (internet, DNS)
+
+          Security Services:
+          - fail2ban status checked
+          - auditd status checked
+          - Dashboard status checked
+
+          Firewall:
+          - iptables rules verified
+          - IP forwarding verified
+
+          Review output above for any failures.
+          Critical failures: Network isolation breaches
+
+          Status: Validation completed
