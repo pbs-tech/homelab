@@ -2,7 +2,7 @@
 # Provides common development and deployment tasks
 
 .DEFAULT_GOAL := help
-.PHONY: help install install-dev lint lint-yaml lint-ansible lint-markdown lint-fix test test-quick test-infrastructure test-security test-services test-api test-molecule test-molecule-smoke test-molecule-all test-molecule-common test-molecule-common-roles test-molecule-k3s test-molecule-k3s-pi test-molecule-proxmox test-molecule-proxmox-integration molecule-converge molecule-converge-smoke molecule-converge-common molecule-converge-k3s molecule-converge-proxmox molecule-verify molecule-verify-common molecule-verify-k3s molecule-verify-proxmox molecule-destroy molecule-reset deploy deploy-phase1 deploy-phase2 deploy-security validate clean security-scan docs performance drift-check release monitor backup restore status ci-status
+.PHONY: help install install-dev lint lint-yaml lint-ansible lint-markdown lint-fix test test-quick test-infrastructure test-security test-services test-api test-molecule test-molecule-smoke test-molecule-all test-molecule-common test-molecule-common-roles test-molecule-k3s test-molecule-k3s-pi test-molecule-proxmox test-molecule-proxmox-integration molecule-converge molecule-converge-smoke molecule-converge-common molecule-converge-k3s molecule-converge-proxmox molecule-verify molecule-verify-common molecule-verify-k3s molecule-verify-proxmox molecule-destroy molecule-reset deploy deploy-phase1 deploy-phase2 deploy-security deploy-enclave deploy-enclave-persistent deploy-phase6 enclave-status enclave-shutdown validate clean security-scan docs performance drift-check release monitor backup restore status ci-status
 
 # Colors for output
 YELLOW := \033[1;33m
@@ -99,6 +99,10 @@ test-security: ## Validate security configuration
 test-services: ## Validate service functionality
 	@echo "$(YELLOW)Running service validation tests...$(NC)"
 	@ansible-playbook tests/validate-services.yml
+
+test-enclave: ## Validate secure enclave (network isolation, security)
+	@echo "$(YELLOW)Running secure enclave validation tests...$(NC)"
+	@ansible-playbook tests/validate-enclave.yml
 
 test-api: ## Validate Proxmox API authentication
 	@echo "$(YELLOW)Testing Proxmox API token authentication...$(NC)"
@@ -266,6 +270,33 @@ deploy-phase2: lint ## Deploy Phase 2 (Networking)
 deploy-security: lint ## Deploy security-focused configuration
 	@echo "$(YELLOW)Deploying security configuration...$(NC)"
 	ansible-playbook security-deploy.yml
+
+# ============================================
+# Secure Enclave Targets
+# ============================================
+
+deploy-enclave: lint ## Deploy secure enclave (temporary mode - auto-shutdown enabled)
+	@echo "$(YELLOW)Deploying Secure Enclave (temporary mode)...$(NC)"
+	@echo "$(RED)WARNING: This deploys intentionally vulnerable systems$(NC)"
+	ansible-playbook playbooks/enclave.yml -e enclave_security_acknowledged=true
+
+deploy-enclave-persistent: lint ## Deploy secure enclave (persistent mode - runs continuously)
+	@echo "$(YELLOW)Deploying Secure Enclave (persistent mode)...$(NC)"
+	@echo "$(RED)WARNING: This deploys intentionally vulnerable systems that auto-start on boot$(NC)"
+	ansible-playbook playbooks/enclave.yml \
+		-e enclave_security_acknowledged=true \
+		-e enclave_persistent_mode=true
+
+deploy-phase6: deploy-enclave-persistent ## Deploy Phase 6 (Secure Enclave - persistent)
+
+enclave-status: ## Show secure enclave status
+	@echo "$(YELLOW)Secure Enclave Status$(NC)"
+	@echo "====================="
+	@ssh -o ConnectTimeout=3 pbs@192.168.0.250 'enclave-status' 2>/dev/null || echo "$(RED)Enclave bastion not reachable$(NC)"
+
+enclave-shutdown: ## Emergency shutdown of all enclave VMs
+	@echo "$(YELLOW)Shutting down all enclave VMs...$(NC)"
+	@ssh -o ConnectTimeout=3 pbs@192.168.0.250 'enclave-shutdown' 2>/dev/null || echo "$(RED)Enclave bastion not reachable$(NC)"
 
 validate: lint test ## Run full validation (lint + test)
 	@echo "$(GREEN)Full validation completed successfully!$(NC)"

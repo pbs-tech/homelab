@@ -97,6 +97,40 @@
     - safety
     - auto-shutdown
 
+- name: Include credential management tasks
+  ansible.builtin.include_tasks: credential_management.yml
+  tags:
+    - credentials
+    - management
+
+- name: Include traffic capture configuration tasks
+  ansible.builtin.include_tasks: traffic_capture.yml
+  when: enclave_traffic_capture.enabled | default(false)
+  tags:
+    - traffic-capture
+    - forensics
+
+- name: Include CTF challenge mode tasks
+  ansible.builtin.include_tasks: ctf_mode.yml
+  when: enclave_ctf_mode.enabled | default(false)
+  tags:
+    - ctf
+    - challenges
+
+- name: Include WireGuard VPN access tasks
+  ansible.builtin.include_tasks: vpn_access.yml
+  when: enclave_vpn.enabled | default(false)
+  tags:
+    - vpn
+    - wireguard
+
+- name: Include dashboard deployment tasks
+  ansible.builtin.include_tasks: dashboard.yml
+  when: enclave_dashboard.enabled | default(false)
+  tags:
+    - dashboard
+    - web
+
 - name: Display enclave access information
   ansible.builtin.debug:
     msg:

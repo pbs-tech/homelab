@@ -33,6 +33,17 @@
 # Acknowledge security risks before deployment (must be set to true)
 enclave_security_acknowledged: false
 
+# Persistent mode - when true, enclave components:
+# - Start automatically on Proxmox boot (lxc_onboot: true for all components)
+# - Do not auto-shutdown on idle
+# - Remain running like other infrastructure components
+# Default: false (temporary mode for safety)
+enclave_persistent_mode: false
+
+# Override for onboot setting (derived from persistent_mode)
+# When persistent_mode is true, all components auto-start on boot
+enclave_persistent_onboot: "{{ enclave_persistent_mode | default(false) }}"
+
 # Enclave network configuration
 enclave_network:
   # Management network (accessible from production bastion)
@@ -73,10 +84,21 @@ enclave_router:
 # Kali Linux version configuration
 # Update quarterly when new Kali releases are available (Jan, Apr, Jul, Oct)
 # See README.md Maintenance section for update procedures
-enclave_kali_version: "2024.3"
+#
+# To get SHA256 checksum for a new release:
+#   1. Visit https://www.kali.org/get-kali/#kali-installer-images
+#   2. Download the SHA256SUMS file for your desired version
+#   3. Find the checksum for kali-linux-<version>-installer-amd64.iso
+#   4. Or use: curl -s https://cdimage.kali.org/kali-<version>/SHA256SUMS | grep installer-amd64.iso
+#
+enclave_kali_version: "2024.4"
 enclave_kali_iso_checksums:
   "2024.3": "sha256:c5cf31f246fb34a5080e2be5827e8c6eb1f86c7c63ffea67fbcd9cad4b1a8fb0"
-  "2024.4": "sha256:UPDATE_WHEN_AVAILABLE"  # Placeholder for next release
+  # Kali 2024.4 released December 2024
+  # Checksum from: https://cdimage.kali.org/kali-2024.4/SHA256SUMS
+  "2024.4": "sha256:05096787bdfad22a027c72e945b6d16cee8f0a98d5ee9bd3f0a2827c0f7b5d0d"
+  # Future versions - add checksums as they are released
+  "2025.1": "sha256:PLACEHOLDER_UPDATE_WHEN_RELEASED"
 
 # Attacker VM configuration (Kali Linux)
 enclave_attacker:
@@ -94,29 +116,230 @@ enclave_attacker:
   iso_checksum: "{{ enclave_kali_iso_checksums[enclave_kali_version] }}"
 
 # Vulnerable VM templates
-enclave_vulnerable_vms:
-  - name: dvwa
+# Each target can be enabled/disabled via enclave_enabled_targets list
+# Default targets: dvwa, juice_shop (lightweight, modern vulnerabilities)
+enclave_enabled_targets:
+  - dvwa
+  - juice_shop
+
+# Full catalog of available vulnerable targets
+enclave_vulnerable_vms_catalog:
+  dvwa:
     vm_id: 253
     hostname: dvwa-target
     ip_address: 10.10.0.100
-    description: "Damn Vulnerable Web Application"
+    description: "Damn Vulnerable Web Application - Classic PHP vulnerabilities"
     cores: 2
     memory: 2048
     disk_size: 20
-    # Will be deployed via Docker on Ubuntu LXC
     deployment_type: docker
     docker_image: vulnerables/web-dvwa
+    service_port: 80
+    credentials:
+      admin: password
+      gordonb: abc123
+      "1337": charley
+      pablo: letmein
+      smithy: password
+    vulnerabilities:
+      - SQL Injection
+      - XSS (Reflected/Stored)
+      - Command Injection
+      - File Upload
+      - CSRF
+      - File Inclusion
+    difficulty_levels: [low, medium, high, impossible]
+    documentation_url: "https://github.com/digininja/DVWA"
 
-  - name: metasploitable3
+  juice_shop:
+    vm_id: 255
+    hostname: juice-shop
+    ip_address: 10.10.0.102
+    description: "OWASP Juice Shop - Modern JavaScript vulnerabilities"
+    cores: 2
+    memory: 2048
+    disk_size: 15
+    deployment_type: docker
+    docker_image: bkimminich/juice-shop
+    service_port: 3000
+    credentials:
+      "admin@juice-sh.op": admin123
+    vulnerabilities:
+      - Broken Access Control
+      - Injection (SQL, NoSQL, LDAP)
+      - Cryptographic Failures
+      - Security Misconfiguration
+      - XSS (DOM, Reflected, Stored)
+      - Broken Authentication
+      - Sensitive Data Exposure
+    difficulty_levels: [trivial, easy, medium, hard, insane]
+    documentation_url: "https://owasp.org/www-project-juice-shop/"
+    ctf_mode: true
+
+  webgoat:
+    vm_id: 256
+    hostname: webgoat
+    ip_address: 10.10.0.103
+    description: "OWASP WebGoat - Interactive security training"
+    cores: 2
+    memory: 2048
+    disk_size: 15
+    deployment_type: docker
+    docker_image: webgoat/webgoat
+    service_port: 8080
+    secondary_port: 9090  # WebWolf
+    credentials:
+      guest: guest
+    vulnerabilities:
+      - A1 Broken Access Control
+      - A2 Cryptographic Failures
+      - A3 Injection
+      - A5 Security Misconfiguration
+      - A7 Cross-Site Scripting
+    difficulty_levels: [beginner, intermediate, advanced]
+    documentation_url: "https://owasp.org/www-project-webgoat/"
+
+  hackazon:
+    vm_id: 257
+    hostname: hackazon
+    ip_address: 10.10.0.104
+    description: "Hackazon - Vulnerable e-commerce platform"
+    cores: 2
+    memory: 2048
+    disk_size: 20
+    deployment_type: docker
+    docker_image: ianwijaya/hackazon
+    service_port: 80
+    credentials:
+      test_user: test_user
+    vulnerabilities:
+      - SQL Injection
+      - XSS
+      - Authentication Bypass
+      - Business Logic Flaws
+      - REST API Vulnerabilities
+    difficulty_levels: [easy, medium, hard]
+    documentation_url: "https://github.com/rapid7/hackazon"
+
+  mutillidae:
+    vm_id: 258
+    hostname: mutillidae
+    ip_address: 10.10.0.105
+    description: "OWASP Mutillidae II - Multi-vulnerability platform"
+    cores: 2
+    memory: 2048
+    disk_size: 15
+    deployment_type: docker
+    docker_image: citizenstig/nowasp
+    service_port: 80
+    credentials:
+      admin: adminpass
+      anonymous: ""
+    vulnerabilities:
+      - OWASP Top 10 (all categories)
+      - HTML5 Web Storage
+      - Click-jacking
+      - JavaScript Validation Bypass
+    difficulty_levels: [0, 1, 2, 3, 4, 5]
+    documentation_url: "https://github.com/webpwnized/mutillidae"
+
+  vulnerable_wordpress:
+    vm_id: 259
+    hostname: vuln-wordpress
+    ip_address: 10.10.0.106
+    description: "Vulnerable WordPress installation"
+    cores: 2
+    memory: 2048
+    disk_size: 20
+    deployment_type: docker
+    docker_image: wpscanteam/vulnerablewordpress
+    service_port: 80
+    credentials:
+      admin: admin
+    vulnerabilities:
+      - Plugin Vulnerabilities
+      - Theme Vulnerabilities
+      - Core Vulnerabilities
+      - User Enumeration
+    difficulty_levels: [easy, medium]
+    documentation_url: "https://github.com/wpscanteam/VulnerableWordpress"
+
+  tiredful_api:
+    vm_id: 260
+    hostname: tiredful-api
+    ip_address: 10.10.0.107
+    description: "Tiredful API - Vulnerable REST API"
+    cores: 1
+    memory: 1024
+    disk_size: 10
+    deployment_type: docker
+    docker_image: tuxotron/tiredful-api
+    service_port: 8000
+    credentials:
+      user1: pass1
+      admin: admin
+    vulnerabilities:
+      - IDOR
+      - JWT Vulnerabilities
+      - API Rate Limiting
+      - Broken Authentication
+      - SQL Injection
+    difficulty_levels: [easy, medium, hard]
+    documentation_url: "https://github.com/payatu/Tiredful-API"
+
+  graphql_vulnerable:
+    vm_id: 261
+    hostname: graphql-vuln
+    ip_address: 10.10.0.108
+    description: "Damn Vulnerable GraphQL Application"
+    cores: 1
+    memory: 1024
+    disk_size: 10
+    deployment_type: docker
+    docker_image: dolevf/dvga
+    service_port: 5013
+    credentials:
+      admin: admin
+    vulnerabilities:
+      - GraphQL Injection
+      - Introspection Attacks
+      - Batch Queries DoS
+      - Authorization Bypass
+    difficulty_levels: [beginner, expert]
+    documentation_url: "https://github.com/dolevf/Damn-Vulnerable-GraphQL-Application"
+
+  metasploitable3:
     vm_id: 254
     hostname: metasploitable3
     ip_address: 10.10.0.101
-    description: "Metasploitable3 - Intentionally vulnerable VM"
+    description: "Metasploitable3 - Full vulnerable server (Ubuntu)"
     cores: 2
     memory: 2048
     disk_size: 40
     deployment_type: vm
-    # ISO will be built from https://github.com/rapid7/metasploitable3
+    iso_url: "https://github.com/rapid7/metasploitable3/releases"
+    credentials:
+      vagrant: vagrant
+      leia_organa: help_me_obi_wan
+      luke_skywalker: like_my_father
+      han_solo: nerf_herder
+    vulnerabilities:
+      - ProFTPd Backdoor
+      - Unreal IRC Backdoor
+      - Apache Struts
+      - Drupal
+      - Jenkins
+      - ManageEngine
+      - phpMyAdmin
+      - WordPress
+    difficulty_levels: [medium, hard]
+    documentation_url: "https://github.com/rapid7/metasploitable3"
+
+# Build the actual list from enabled targets
+enclave_vulnerable_vms: >-
+  {{
+    enclave_enabled_targets | map('extract', enclave_vulnerable_vms_catalog) | list
+  }}
 
 # Firewall rules for network isolation
 enclave_firewall_rules:
@@ -177,8 +400,9 @@ enclave_monitoring:
   metrics_port: 9100
 
 # Auto-shutdown configuration (safety feature)
+# Disabled when enclave_persistent_mode is true
 enclave_auto_shutdown:
-  enabled: true
+  enabled: "{{ not (enclave_persistent_mode | default(false)) }}"
   # Automatically shutdown vulnerable VMs when not in use
   idle_timeout_hours: 4
   # Schedule for automatic shutdown (cron format)
@@ -262,3 +486,164 @@ enclave_resource_limits:
   # Warning thresholds
   warn_memory_percent: 80
   warn_disk_percent: 80
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TRAFFIC CAPTURE & ANALYSIS CONFIGURATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+enclave_traffic_capture:
+  enabled: false  # Enable for learning/forensics, disable for performance
+  interface: "{{ enclave_network.bridge_name }}"
+  # Storage for pcap files
+  capture_dir: /var/log/enclave/captures
+  # Maximum capture file size (MB)
+  max_file_size_mb: 100
+  # Rotation count
+  file_rotation_count: 10
+  # Capture filter (BPF syntax)
+  capture_filter: "net {{ enclave_network.isolated_subnet }}"
+  # Auto-start capture when enclave starts
+  auto_start: false
+  # Real-time analysis with zeek/suricata (requires additional resources)
+  realtime_analysis: false
+  # Retention period (days)
+  retention_days: 7
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CTF CHALLENGE MODE CONFIGURATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+enclave_ctf_mode:
+  enabled: false
+  # Flag format for challenges
+  flag_format: "FLAG{%s}"
+  # Scoreboard configuration
+  scoreboard:
+    enabled: false
+    port: 8888
+    # CTFd Docker image for full scoreboard
+    use_ctfd: false
+    ctfd_image: ctfd/ctfd:latest
+  # Pre-planted flags for challenges (override per-target)
+  default_flags:
+    easy: "FLAG{welcome_to_the_enclave}"
+    medium: "FLAG{not_so_easy_now}"
+    hard: "FLAG{you_are_getting_good}"
+    expert: "FLAG{true_hacker_status}"
+  # Challenge categories
+  categories:
+    - web
+    - pwn
+    - forensics
+    - crypto
+    - network
+    - misc
+  # Time limit for CTF sessions (hours, 0 = unlimited)
+  time_limit_hours: 0
+  # Hints system
+  hints_enabled: true
+  hint_penalty_percent: 10
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WIREGUARD VPN ACCESS CONFIGURATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+enclave_vpn:
+  enabled: false
+  # WireGuard configuration
+  wireguard:
+    # VPN server on bastion
+    listen_port: 51820
+    # VPN network (separate from enclave internal)
+    vpn_subnet: 10.20.0.0/24
+    server_ip: 10.20.0.1
+    # DNS for VPN clients (use enclave router for isolated DNS)
+    dns_servers:
+      - "{{ enclave_router.lan_ip }}"
+    # Allowed client IPs (CIDR notation)
+    allowed_ips:
+      - 10.20.0.0/24
+      - "{{ enclave_network.isolated_subnet }}"
+    # Persistent keepalive for NAT traversal
+    persistent_keepalive: 25
+    # Maximum clients
+    max_clients: 10
+  # Client configurations will be generated and stored here
+  client_config_dir: /etc/wireguard/clients
+  # QR code generation for mobile clients
+  generate_qr_codes: true
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CREDENTIAL MANAGEMENT CONFIGURATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+enclave_credentials:
+  # Store credentials in a central location for reference
+  credential_file: /root/.enclave-credentials
+  # Generate report of all target credentials
+  generate_report: true
+  report_file: /root/TARGET_CREDENTIALS.md
+  # Rotate default credentials on deployment (recommended for shared environments)
+  rotate_on_deploy: false
+  # SSH key for enclave access (will be generated if not provided)
+  ssh_key_path: /root/.ssh/enclave_id_ed25519
+  ssh_key_type: ed25519
+  # Vault integration (for production secrets)
+  vault_integration:
+    enabled: false
+    vault_addr: ""
+    vault_path: "secret/enclave"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WEB DASHBOARD CONFIGURATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+enclave_dashboard:
+  enabled: false
+  # Dashboard container
+  container_id: 262
+  hostname: enclave-dashboard
+  ip_address: 10.10.0.200
+  port: 8080
+  # Authentication
+  auth_enabled: true
+  # Features
+  features:
+    vm_status: true
+    network_map: true
+    traffic_monitor: true
+    credential_viewer: true
+    ctf_scoreboard: true
+    audit_log_viewer: true
+  # Dashboard refresh interval (seconds)
+  refresh_interval: 30
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ADVANCED DEPLOYMENT OPTIONS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+enclave_advanced:
+  # Deploy targets in parallel for faster setup
+  parallel_deployment: true
+  max_parallel_jobs: 3
+  # Health check configuration
+  health_check:
+    enabled: true
+    interval_seconds: 60
+    timeout_seconds: 10
+    unhealthy_threshold: 3
+  # Snapshot configuration for quick reset
+  snapshots:
+    enabled: true
+    # Create snapshot after initial deployment
+    create_on_deploy: true
+    snapshot_name: "enclave-pristine"
+    # Auto-restore to snapshot on scheduled shutdown
+    restore_on_shutdown: false
+  # Network segmentation (advanced)
+  network_segments:
+    # Separate networks for different difficulty levels
+    enabled: false
+    easy_subnet: 10.10.1.0/24
+    medium_subnet: 10.10.2.0/24
+    hard_subnet: 10.10.3.0/24

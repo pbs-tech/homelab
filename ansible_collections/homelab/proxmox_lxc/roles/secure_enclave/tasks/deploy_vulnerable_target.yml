@@ -26,7 +26,7 @@
 
     nameserver: "{{ homelab_network.dns_servers | join(' ') }}"
     searchdomain: "{{ homelab_domain }}"
-    onboot: false  # Manual start for safety
+    onboot: "{{ enclave_persistent_onboot | default(false) }}"
     unprivileged: "{{ target_vm.deployment_type == 'docker' | ternary(false, true) }}"
 
     features: "{{ target_vm.deployment_type == 'docker' | ternary(['nesting=1', 'keyctl=1'], []) }}"

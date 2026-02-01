@@ -51,7 +51,7 @@
       is disabled. Please choose one of the following options:
 
       Option 1: Enable automatic download (RECOMMENDED)
-        ansible-playbook playbooks/secure-enclave.yml \
+        ansible-playbook playbooks/enclave.yml \
           -e enclave_attacker_download_iso=true
 
       Option 2: Manual download
@@ -60,7 +60,7 @@
         3. Re-run playbook
 
       Option 3: Deploy LXC-based attacker (FASTER)
-        ansible-playbook playbooks/secure-enclave.yml \
+        ansible-playbook playbooks/enclave.yml \
           -e enclave_attacker_use_lxc=true
 
       ═══════════════════════════════════════════════════════════
@@ -106,7 +106,7 @@
 
     nameserver: "{{ homelab_network.dns_servers | join(' ') }}"
     searchdomain: "{{ homelab_domain }}"
-    onboot: false  # Manual start for security
+    onboot: "{{ enclave_persistent_onboot | default(false) }}"
     unprivileged: false  # Need privileged for some pentesting tools
 
     features:
