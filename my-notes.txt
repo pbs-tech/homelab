@@ -1,0 +1,6 @@
+
+
+Error in phase 1 or 2 sshing into lxc containers after creating 'requires sudo password'
+
+
+Wireguard issue restarting the service in phase 2 or 3 (confirm)
