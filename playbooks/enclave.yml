@@ -1,0 +1,87 @@
+---
+# Secure Enclave deployment (Phase 6)
+# Isolated pentesting and security research environment
+#
+# SECURITY NOTICE: This phase deploys intentionally vulnerable systems.
+# Network isolation ensures complete separation from production infrastructure.
+#
+# Usage:
+#   Temporary mode (default - auto-shutdown enabled):
+#     ansible-playbook playbooks/enclave.yml -e enclave_security_acknowledged=true
+#
+#   Persistent mode (runs continuously like other infrastructure):
+#     ansible-playbook playbooks/enclave.yml \
+#       -e enclave_security_acknowledged=true \
+#       -e enclave_persistent_mode=true
+
+- name: Validate enclave prerequisites
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Check security acknowledgement
+      ansible.builtin.assert:
+        that:
+          - enclave_security_acknowledged | default(false) | bool
+        fail_msg: |
+          Security acknowledgement required. Set enclave_security_acknowledged=true
+          via inventory or extra vars (-e enclave_security_acknowledged=true)
+        success_msg: Security acknowledgement confirmed
+      tags:
+        - always
+
+    - name: Display enclave deployment mode
+      ansible.builtin.debug:
+        msg:
+          - "Enclave Deployment Mode: {{ 'PERSISTENT' if enclave_persistent_mode | default(false) else 'TEMPORARY' }}"
+          - "Auto-shutdown: {{ 'DISABLED' if enclave_persistent_mode | default(false) else 'ENABLED (4h idle)' }}"
+          - "Auto-start on boot: {{ 'ENABLED' if enclave_persistent_mode | default(false) else 'DISABLED' }}"
+      tags:
+        - always
+
+- name: Deploy Secure Enclave Infrastructure
+  hosts: localhost
+  gather_facts: true
+  become: false
+  vars_files:
+    - ../ansible_collections/homelab/common/inventory/group_vars/all.yml
+  pre_tasks:
+    - name: Set persistent mode defaults
+      ansible.builtin.set_fact:
+        enclave_persistent_mode: "{{ enclave_persistent_mode | default(false) }}"
+        enclave_persistent_onboot: "{{ enclave_persistent_mode | default(false) }}"
+      tags:
+        - always
+  roles:
+    - role: homelab.proxmox_lxc.secure_enclave
+      vars:
+        # Override auto-shutdown based on persistent mode
+        enclave_auto_shutdown:
+          enabled: "{{ not (enclave_persistent_mode | default(false)) }}"
+          idle_timeout_hours: "{{ enclave_idle_timeout_hours | default(4) }}"
+          shutdown_schedule: "{{ enclave_shutdown_schedule | default('0 2 * * *') }}"
+      tags:
+        - secure-enclave
+        - enclave
+
+- name: Verify Enclave Deployment
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Wait for enclave bastion
+      ansible.builtin.wait_for:
+        host: 192.168.0.250
+        port: 22
+        delay: 5
+        timeout: 60
+      ignore_errors: true
+      tags:
+        - verify
+
+    - name: Display deployment summary
+      ansible.builtin.debug:
+        msg:
+          - "Secure Enclave deployed successfully"
+          - "Access: ssh pbs@192.168.0.250"
+          - "Mode: {{ 'Persistent (auto-start enabled)' if enclave_persistent_mode | default(false) else 'Temporary (auto-shutdown after 4h)' }}"
+      tags:
+        - verify
