@@ -362,7 +362,7 @@ This infrastructure implements defense-in-depth security:
 - **Container Security** - Unprivileged LXC containers with hardening
 - **SSH Hardening** - Key-based authentication, fail2ban protection
 
-See [SECURITY-ARCHITECTURE.md](SECURITY-ARCHITECTURE.md) and [.github/SECURITY.md](.github/SECURITY.md) for detailed security information.
+See [docs/SECURITY-ARCHITECTURE.md](docs/SECURITY-ARCHITECTURE.md) and [.github/SECURITY.md](.github/SECURITY.md) for detailed security information.
 
 ## 📚 Documentation
 
@@ -371,13 +371,24 @@ See [SECURITY-ARCHITECTURE.md](SECURITY-ARCHITECTURE.md) and [.github/SECURITY.m
 - **[SETUP.md](SETUP.md)** - Quick setup guide (30 minutes to running infrastructure)
 - **[docs/INSTALLATION.md](docs/INSTALLATION.md)** - Complete step-by-step installation guide
 - [CLAUDE.md](CLAUDE.md) - Repository guidance and key commands
-- [API.md](API.md) - Comprehensive API documentation for all services
+
+### Service Access & APIs
+
+- **[docs/SERVICE-ACCESS-GUIDE.md](docs/SERVICE-ACCESS-GUIDE.md)** - How to access all services (URLs, ports, credentials)
+- **[docs/API.md](docs/API.md)** - Comprehensive API documentation for all services
+- [docs/CLIENT-VPN-SETUP.md](docs/CLIENT-VPN-SETUP.md) - VPN client configuration guide
 
 ### Core Documentation
 
 - [TESTING.md](TESTING.md) - Comprehensive testing strategy with Molecule 6.0+ and production tests
-- [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Detailed troubleshooting guide for common issues
-- [SECURITY-ARCHITECTURE.md](SECURITY-ARCHITECTURE.md) - Security design and threat model
+- [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) - Detailed troubleshooting guide for common issues
+- [docs/SECURITY-ARCHITECTURE.md](docs/SECURITY-ARCHITECTURE.md) - Security design, threat model, and controls
+
+### Operations & DevOps
+
+- [docs/DEVOPS_ASSESSMENT.md](docs/DEVOPS_ASSESSMENT.md) - DevOps practices assessment
+- [docs/PRE_MERGE_CHECKS.md](docs/PRE_MERGE_CHECKS.md) - Pre-merge validation checklist
+- [Dynamic Inventory Setup](ansible_collections/homelab/proxmox_lxc/DYNAMIC_INVENTORY_SETUP.md) - Proxmox dynamic inventory
 
 ### Collection Documentation
 
@@ -389,12 +400,7 @@ See [SECURITY-ARCHITECTURE.md](SECURITY-ARCHITECTURE.md) and [.github/SECURITY.m
 
 - [Traefik Role](ansible_collections/homelab/proxmox_lxc/roles/traefik/README.md) - Reverse proxy and SSL termination
 - [Security Hardening Role](ansible_collections/homelab/common/roles/security_hardening/README.md) - Comprehensive security hardening
-
-### Specialized Guides
-
-- [CLIENT-VPN-SETUP.md](CLIENT-VPN-SETUP.md) - VPN client configuration
-- [Dynamic Inventory Setup](ansible_collections/homelab/proxmox_lxc/DYNAMIC_INVENTORY_SETUP.md) - Proxmox dynamic inventory
-- [DEVOPS_ASSESSMENT.md](DEVOPS_ASSESSMENT.md) - DevOps practices assessment
+- [Secure Enclave Role](ansible_collections/homelab/proxmox_lxc/roles/secure_enclave/README.md) - Isolated pentesting environment
 
 ## 🛠️ Development
 

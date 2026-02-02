@@ -1,0 +1,27 @@
+Add role readme for docker role and any other nested collections 
+
+Error in phase 1 or 2 sshing into lxc containers after creating 'requires sudo password'
+
+
+Wireguard issue restarting the service in phase 2 or 3 (confirm)
+
+
+prometheus timeout 
+Task failed: Module failed: Status code was -1 and not [200, 302]: Request failed: <urlopen error timed out>
+Origin: /home/pbs/ansible/homelab/playbooks/monitoring.yml:46:7
+
+44
+45   post_tasks:
+46     - name: Verify monitoring services
+         ^ column 7
+
+fatal: [prometheus -> localhost]: FAILED! => {"changed": false, "elapsed": 30, "msg": "Status code was -1 and not [200, 302]: Request failed: <urlopen error timed out>", "redirected": false, "status": -1, "url": "http://192.168.0.200:9090"}
+fatal: [loki -> localhost]: FAILED! => {"changed": false, "elapsed": 30, "msg": "Status code was -1 and not [200, 302]: Request failed: <urlopen error timed out>", "redirected": false, "status": -1, "url": "http://192.168.0.210:3100"}
+fatal: [grafana -> localhost]: FAILED! => {"changed": false, "elapsed": 30, "msg": "Status code was -1 and not [200, 302]: Request failed: <urlopen error timed out>", "redirected": false, "status": -1, "url": "http://192.168.0.201:3000"}
+
+
+
+phase 5 issue with k3s bypass flags bypass_flags undefined etc.
+
+
+General comment: Bastion hosts never created anywhere 
