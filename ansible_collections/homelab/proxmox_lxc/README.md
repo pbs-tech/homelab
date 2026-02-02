@@ -195,33 +195,238 @@ The collection sets up comprehensive monitoring:
 - Network segmentation via LXC containers
 - Service-specific firewall rules
 
+### Secure Enclave (192.168.0.248-252, 10.10.0.0/24)
+
+Isolated pentesting environment for security training and testing.
+
+| Service | Management IP | Isolated IP | Purpose |
+|---------|---------------|-------------|---------|
+| **Enclave Bastion** | 192.168.0.250 | - | Jump host for enclave access |
+| **Enclave Router** | 192.168.0.251 | 10.10.0.1 | Network isolation firewall |
+| **Kali Attacker** | 192.168.0.252 | 10.10.0.10 | Security testing workstation |
+| **DVWA** | - | 10.10.0.100 | Vulnerable web application |
+| **Metasploitable** | - | 10.10.0.101 | Vulnerable target system |
+
+**Security:** Enclave is completely isolated from production (all traffic to 192.168.0.0/24 is blocked).
+
+## Roles
+
+The collection includes 29 roles organized by function:
+
+### Security & Infrastructure
+
+| Role | Description |
+|------|-------------|
+| `bastion` | Secured jump hosts for infrastructure access |
+| `wireguard` | WireGuard VPN server for remote access |
+| `traefik` | Reverse proxy with SSL/TLS termination |
+| `lxc_container` | Base LXC container creation and configuration |
+| `lxc_template` | LXC template management and downloads |
+| `secure_enclave` | Isolated pentesting environment deployment |
+
+### Monitoring & Observability
+
+| Role | Description |
+|------|-------------|
+| `prometheus` | Metrics collection and storage |
+| `grafana` | Dashboards and visualization |
+| `alertmanager` | Alert routing and notifications |
+| `loki` | Log aggregation and querying |
+| `promtail` | Log shipping agent |
+| `pve_exporter` | Proxmox metrics exporter |
+
+### DNS & Networking
+
+| Role | Description |
+|------|-------------|
+| `unbound` | Recursive DNS resolver with DNSSEC |
+| `adguard` | DNS filtering and ad blocking |
+| `openwrt` | Network management and routing |
+
+### Applications
+
+| Role | Description |
+|------|-------------|
+| `homeassistant` | Home automation platform |
+| `sonarr` | TV series management |
+| `radarr` | Movie management |
+| `bazarr` | Subtitle management |
+| `prowlarr` | Indexer management |
+| `qbittorrent` | BitTorrent client |
+| `jellyfin` | Media streaming server |
+
+## Service Interactions
+
+```text
+┌──────────────────────────────────────────────────────────────────────────┐
+│                        Service Interaction Diagram                        │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│   Internet ──▶ WireGuard VPN (203) ──▶ Bastion (110) ──▶ All Services   │
+│                       │                                                  │
+│                       ▼                                                  │
+│   Internet ──▶ Traefik (205) ──┬──▶ LXC Services                        │
+│                                │                                         │
+│                                └──▶ K3s Cluster (111-114)               │
+│                                                                          │
+├──────────────────────────────────────────────────────────────────────────┤
+│   DNS Flow:                                                              │
+│   Client ──▶ AdGuard (204) ──▶ Unbound (202) ──▶ Internet               │
+│                 │                                                        │
+│                 └──▶ Filtering & Ad Blocking                            │
+│                                                                          │
+├──────────────────────────────────────────────────────────────────────────┤
+│   Monitoring Flow:                                                       │
+│   All Services ──▶ Prometheus (200) ──▶ AlertManager (206)              │
+│        │                  │                     │                        │
+│        │                  ▼                     ▼                        │
+│        │             Grafana (201)         Notifications                 │
+│        │                                                                 │
+│        └──────▶ Promtail ──▶ Loki (210) ──▶ Grafana (201)               │
+│                                                                          │
+├──────────────────────────────────────────────────────────────────────────┤
+│   Media Stack Flow:                                                      │
+│   Prowlarr (233) ──▶ Sonarr (230) ──┬──▶ qBittorrent (234)              │
+│         │                           │                                    │
+│         └──────▶ Radarr (231) ──────┘         │                         │
+│                                               ▼                          │
+│                              Jellyfin (235) ◀── Media Files             │
+│                                    │                                     │
+│                        Bazarr (232) ──▶ Subtitles                       │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+## Dynamic Inventory
+
+The collection supports Proxmox dynamic inventory for automatic container discovery:
+
+```bash
+# Use dynamic inventory
+ansible-playbook -i inventory/proxmox.yml site.yml
+
+# Combine with static inventory
+ansible-playbook -i inventory/hosts.yml -i inventory/proxmox.yml site.yml
+```
+
+See [DYNAMIC_INVENTORY_SETUP.md](DYNAMIC_INVENTORY_SETUP.md) for detailed configuration.
+
+## Testing
+
+### Molecule Testing
+
+```bash
+cd ansible_collections/homelab/proxmox_lxc/
+
+# Run default tests
+molecule test
+
+# Run Proxmox integration tests (requires Proxmox access)
+molecule test -s proxmox-integration
+```
+
+### Production Validation
+
+```bash
+# Quick smoke test
+ansible-playbook tests/quick-smoke-test.yml
+
+# Full infrastructure validation
+ansible-playbook tests/validate-infrastructure.yml
+
+# Service-specific validation
+ansible-playbook tests/validate-services.yml
+```
+
 ## Troubleshooting
 
 ### Container creation fails
 
-- Verify Proxmox API connectivity
-- Check LXC template availability
-- Ensure sufficient Proxmox resources
+```bash
+# Verify Proxmox API connectivity
+curl -k https://192.168.0.56:8006/api2/json/version
+
+# Check LXC template availability
+pveam list local
+
+# Verify API token permissions
+pveum acl list
+```
 
 ### Services not accessible
 
-- Verify DNS resolution for homelab domain
-- Check Traefik logs: `systemctl status traefik` or `journalctl -u traefik -f`
-- Confirm firewall rules allow traffic
+```bash
+# Check container status
+pct list | grep <container_id>
+pct status <container_id>
+
+# Check service inside container
+pct exec <container_id> -- systemctl status <service>
+
+# Verify Traefik routing
+curl -s http://192.168.0.205:8080/api/http/routers | jq '.[].name'
+```
 
 ### K3s integration issues
 
-- Verify kubeconfig accessibility from Traefik container
-- Check K3s service account permissions
-- Ensure network connectivity between Traefik and K3s nodes
+```bash
+# Verify kubeconfig from Traefik container
+pct exec 205 -- kubectl get nodes
+
+# Check K3s service account
+kubectl get serviceaccount traefik-ingress-controller -n traefik-system
+
+# Test connectivity
+pct exec 205 -- curl -k https://192.168.0.111:6443/version
+```
+
+### DNS resolution problems
+
+```bash
+# Test Unbound
+dig @192.168.0.202 google.com
+
+# Test AdGuard
+dig @192.168.0.204 google.com
+
+# Check DNS service status
+pct exec 202 -- systemctl status unbound
+pct exec 204 -- systemctl status AdGuardHome
+```
+
+## Secure Enclave Deployment
+
+Deploy the isolated pentesting environment:
+
+```bash
+# Temporary mode (auto-shutdown after 4h idle)
+ansible-playbook playbooks/enclave.yml -e enclave_security_acknowledged=true
+
+# Persistent mode (runs continuously)
+ansible-playbook playbooks/enclave.yml \
+  -e enclave_security_acknowledged=true \
+  -e enclave_persistent_mode=true
+
+# Access enclave
+ssh pbs@192.168.0.250  # Enclave bastion
+enclave-connect         # Connect to Kali attacker VM
+```
+
+## Related Documentation
+
+- [SERVICE-ACCESS-GUIDE.md](../../../docs/SERVICE-ACCESS-GUIDE.md) - How to access all services
+- [API.md](../../../docs/API.md) - Service API documentation
+- [SECURITY-ARCHITECTURE.md](../../../docs/SECURITY-ARCHITECTURE.md) - Security design
+- [DYNAMIC_INVENTORY_SETUP.md](DYNAMIC_INVENTORY_SETUP.md) - Proxmox inventory setup
 
 ## Contributing
 
 1. Fork the repository
 2. Create feature branch
-3. Test changes thoroughly
-4. Submit pull request
+3. Test changes with Molecule
+4. Update documentation
+5. Submit pull request
 
 ## License
 
-MIT
+Apache License 2.0 - See LICENSE file for details.

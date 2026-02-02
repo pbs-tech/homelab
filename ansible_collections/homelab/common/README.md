@@ -63,6 +63,34 @@ Security configuration and hardening for all infrastructure components.
 - Network security rules
 - Compliance with security best practices
 
+**Variables:**
+
+- `security_hardening_enabled`: Enable/disable hardening (default: true)
+- `security_audit_enabled`: Enable audit logging (default: true)
+- `security_log_retention_days`: Log retention period (default: 30)
+- `ssh_permit_root_login`: Root SSH access (default: "prohibit-password")
+- `ssh_password_authentication`: Allow password auth (default: false)
+
+### monitoring_agent
+
+Monitoring agent deployment for metrics and log collection.
+
+**Features:**
+
+- Node exporter installation and configuration
+- Promtail log shipping agent
+- Service discovery registration
+- Health check endpoints
+- Integration with Prometheus and Loki
+
+**Variables:**
+
+- `monitoring_enabled`: Enable monitoring agents (default: true)
+- `node_exporter_port`: Node exporter port (default: 9100)
+- `promtail_config`: Promtail configuration settings
+- `prometheus_endpoint`: Prometheus server URL
+- `loki_endpoint`: Loki server URL for log shipping
+
 ## Shared Configuration
 
 The collection includes centralized configuration in `inventory/group_vars/all.yml`:
@@ -200,6 +228,47 @@ The enclave provides an isolated pentesting environment with:
 - Use least-privilege access patterns
 - Implement audit logging
 - Regular security updates
+
+## Testing
+
+### Molecule Testing
+
+```bash
+cd ansible_collections/homelab/common/
+
+# Run default tests
+molecule test
+
+# Run common-roles scenario
+molecule test -s common-roles
+
+# Development workflow
+molecule create              # Create test environment
+molecule converge           # Run playbook
+molecule verify             # Run verification
+molecule destroy            # Clean up
+```
+
+### Test Coverage
+
+The Molecule tests validate:
+
+- **common_setup**: Package installation, user creation, SSH configuration
+- **container_base**: LXC container lifecycle, network configuration
+- **security_hardening**: Hardening controls, audit logging, SSH settings
+- **monitoring_agent**: Exporter installation, service registration
+
+### Smoke Tests
+
+From the repository root:
+
+```bash
+# Quick validation of common roles
+make test-molecule-smoke
+
+# Full common collection tests
+make test-molecule-common
+```
 
 ## Development
 
