@@ -7,6 +7,9 @@ server:
     do-udp: yes
     do-tcp: yes
 
+    # TLS certificate bundle for DNS-over-TLS upstream verification
+    tls-cert-bundle: "/etc/ssl/certs/ca-certificates.crt"
+
     # Security and privacy settings
     hide-identity: yes
     hide-version: yes

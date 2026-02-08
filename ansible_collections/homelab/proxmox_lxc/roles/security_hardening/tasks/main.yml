@@ -7,7 +7,7 @@
 - name: Install security packages
   ansible.builtin.apt:
     name:
-      - ufw
+      - iptables
       - fail2ban
       - unattended-upgrades
       - apt-listchanges
@@ -15,9 +15,9 @@
       - rsyslog
     state: present
 
-- name: Configure UFW firewall
-  ansible.builtin.include_tasks: configure_ufw.yml
-  when: security_hardening.ufw_enabled
+- name: Configure iptables firewall
+  ansible.builtin.include_tasks: configure_iptables.yml
+  when: security_hardening.firewall_enabled | default(security_hardening.ufw_enabled | default(true))
 
 - name: Configure SSH hardening
   ansible.builtin.include_tasks: configure_ssh.yml

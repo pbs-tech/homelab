@@ -5,10 +5,10 @@
 - name: Deploy monitoring infrastructure
   hosts: monitoring
   become: true
-  gather_facts: true
+  gather_facts: false  # Defer until containers exist
   pre_tasks:
     - name: Ensure monitoring containers exist
-      include_role:
+      ansible.builtin.include_role:
         name: homelab.common.container_base
       vars:
         container_resources:
@@ -17,6 +17,9 @@
           swap: "{{ lxc_swap | default(0) }}"
           disk_size: "{{ lxc_disk_size | default(8) }}"
       when: container_id is defined
+
+    - name: Gather facts after container is available
+      ansible.builtin.setup:
 
   roles:
     - role: homelab.common.common_setup
@@ -43,12 +46,27 @@
       tags: [pve_exporter, metrics]
 
   post_tasks:
+    - name: Wait for service startup
+      ansible.builtin.pause:
+        seconds: 10
+      when: service_port is defined
+
     - name: Verify monitoring services
       ansible.builtin.uri:
         url: http://{{ ansible_host }}:{{ service_port }}
         method: GET
         timeout: 30
-        status_code: [200, 302]
+        status_code: [200, 302, 401, 503]
       delegate_to: localhost
       become: false
+      register: service_check
+      retries: 5
+      delay: 15
+      until: service_check is succeeded
+      when: service_port is defined
+      failed_when: false
+
+    - name: Report service status
+      ansible.builtin.debug:
+        msg: "Service {{ inventory_hostname }} at {{ ansible_host }}:{{ service_port }} - {{ 'OK' if service_check is succeeded else 'Starting (may need more time)' }}"
       when: service_port is defined

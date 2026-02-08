@@ -49,5 +49,6 @@ services:
     port: 3100
     domain: loki.{{ homelab_domain }}
 
-# K3s cluster endpoint
+# K3s cluster integration (disabled by default - requires proper kubeconfig)
+traefik_k8s_enabled: false
 k3s_api_endpoint: 192.168.0.111:6443

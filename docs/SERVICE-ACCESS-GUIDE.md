@@ -11,7 +11,7 @@ Complete reference for accessing all services in the homelab infrastructure, inc
 | Bastion (NAS) | 192.168.0.109 | 22 | `ssh pbs@192.168.0.109` | SSH Key |
 | Traefik | 192.168.0.205 | 80/443/8080 | `https://traefik.homelab.local` | Basic Auth |
 | WireGuard VPN | 192.168.0.203 | 51820/UDP | N/A | WireGuard Key |
-| AdGuard Home | 192.168.0.204 | 53/80 | `http://adguard.homelab.local` | Username/Password |
+| AdGuard Home | 192.168.0.204 | 53/3000 | `http://adguard.homelab.local` | Username/Password |
 | Unbound DNS | 192.168.0.202 | 53 | N/A (DNS only) | None |
 | **Monitoring** |
 | Prometheus | 192.168.0.200 | 9090 | `http://prometheus.homelab.local` | None (internal) |
@@ -79,7 +79,7 @@ http://192.168.0.208:8123     # Home Assistant
 
 #### Bastion Hosts
 
-Secure SSH jump points for all infrastructure access.
+Secure SSH jump points for all infrastructure access. Both `pbs` (operations) and `ansible` (provisioning) users are available on bastion hosts.
 
 **Access:**
 ```bash
@@ -92,6 +92,41 @@ ssh pbs@192.168.0.109
 # Using bastion as jump host
 ssh -J pbs@192.168.0.110 pbs@192.168.0.200
 ```
+
+**Recommended SSH Config (`~/.ssh/config`):**
+```
+# Bastion hosts
+Host k3s-bastion
+    HostName 192.168.0.110
+    User pbs
+    IdentityFile ~/.ssh/id_rsa
+
+Host nas-bastion
+    HostName 192.168.0.109
+    User pbs
+    IdentityFile ~/.ssh/id_rsa
+
+# Jump through bastion to reach internal services
+Host 192.168.0.2*
+    User pbs
+    ProxyJump k3s-bastion
+
+# K3s nodes via bastion
+Host k3-0*
+    User pbs
+    ProxyJump k3s-bastion
+
+Host k3-01
+    HostName 192.168.0.111
+Host k3-02
+    HostName 192.168.0.112
+Host k3-03
+    HostName 192.168.0.113
+Host k3-04
+    HostName 192.168.0.114
+```
+
+With this config you can run `ssh k3s-bastion` or `ssh k3-01` (auto-jumps through bastion).
 
 **Health Check:**
 ```bash
@@ -610,6 +645,45 @@ ansible-playbook tests/validate-services.yml
      https://192.168.0.56:8006/api2/json/version
    ```
 
+### Bastion Access Issues
+
+Bastion hosts manage their own iptables firewall (Proxmox-level NIC firewall is disabled). If you cannot SSH into a bastion, use `pct exec` from the Proxmox host to bypass both SSH and iptables.
+
+#### fail2ban Banned Your IP
+
+If repeated SSH attempts trigger a ban:
+
+```bash
+# Check banned IPs (run from Proxmox host)
+pct exec 110 -- fail2ban-client status sshd
+
+# Unban your IP
+pct exec 110 -- fail2ban-client set sshd unbanip <YOUR_IP>
+
+# View ban log
+pct exec 110 -- tail -20 /var/log/fail2ban.log
+```
+
+#### iptables Lockout
+
+If iptables rules prevent all connections:
+
+```bash
+# Access container directly from Proxmox host
+pct exec 110 -- bash
+
+# Flush rules and reset policy to restore access
+pct exec 110 -- iptables -F
+pct exec 110 -- iptables -P INPUT ACCEPT
+
+# Then re-run the bastion role to restore proper rules
+ansible-playbook playbooks/foundation.yml --tags "bastion"
+```
+
+#### Proxmox Firewall Conflict
+
+Bastion containers intentionally disable the Proxmox NIC-level firewall (`container_network.firewall: false` in `inventory/group_vars/bastion_hosts.yml`). If someone re-enables the Proxmox firewall on the bastion NIC, it can conflict with iptables rules. Verify in the Proxmox web UI: select the container > Network > check that "Firewall" is unchecked on the NIC.
+
 ---
 
 ## Related Documentation
@@ -622,5 +696,5 @@ ansible-playbook tests/validate-services.yml
 
 ---
 
-**Last Updated:** 2026-02-01
-**Version:** 1.0.0
+**Last Updated:** 2026-02-06
+**Version:** 1.1.0

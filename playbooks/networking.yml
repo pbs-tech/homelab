@@ -6,10 +6,10 @@
   hosts: networking
   serial: 1 # Deploy DNS services one at a time to avoid conflicts
   become: true
-  gather_facts: true
+  gather_facts: false  # Defer until containers exist
   pre_tasks:
     - name: Ensure networking containers exist
-      include_role:
+      ansible.builtin.include_role:
         name: homelab.common.container_base
       vars:
         container_resources:
@@ -18,6 +18,9 @@
           swap: "{{ lxc_swap | default(0) }}"
           disk_size: "{{ lxc_disk_size | default(4) }}"
       when: container_id is defined
+
+    - name: Gather facts after container is available
+      ansible.builtin.setup:
 
   roles:
     - role: homelab.common.common_setup
@@ -50,10 +53,12 @@
 
   post_tasks:
     - name: Verify networking services
-      uri:
+      ansible.builtin.uri:
         url: "http://{{ ansible_host }}:{{ service_port | default(80) }}"
         method: GET
         timeout: 30
         status_code: [200, 301, 302, 404]
+        validate_certs: false
       delegate_to: localhost
+      become: false
       when: inventory_hostname.startswith('traefik')

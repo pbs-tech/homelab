@@ -1,13 +1,21 @@
 ---
 - name: Pi-specific system hardening
   block:
+    - name: Detect Pi boot config path
+      ansible.builtin.stat:
+        path: /boot/firmware/config.txt
+      register: _pi_boot_firmware
+
+    - name: Set Pi boot directory
+      ansible.builtin.set_fact:
+        _pi_boot_dir: "{{ '/boot/firmware' if _pi_boot_firmware.stat.exists else '/boot' }}"
+
     - name: Configure Pi boot config for security
-      lineinfile:
-        path: /boot/config.txt
+      ansible.builtin.lineinfile:
+        path: "{{ _pi_boot_dir }}/config.txt"
         regexp: "{{ item.regexp }}"
         line: "{{ item.line }}"
         state: present
-        backup: true
       loop:
         - regexp: "^gpu_mem="
           line: "gpu_mem={{ pi_security_hardening.pi_system.gpu_split }}"
@@ -21,14 +29,14 @@
     - name: Configure .local domain resolution with avahi-daemon
       block:
         - name: Install avahi-daemon for .local domains
-          apt:
+          ansible.builtin.apt:
             name:
               - avahi-daemon
               - avahi-utils
             state: present
 
         - name: Configure avahi-daemon
-          template:
+          ansible.builtin.template:
             src: avahi-daemon.conf.j2
             dest: /etc/avahi/avahi-daemon.conf
             mode: "0644"
@@ -37,7 +45,7 @@
           notify: Restart avahi-daemon
 
         - name: Create .local hostname service file
-          template:
+          ansible.builtin.template:
             src: hostname.service.j2
             dest: "/etc/avahi/services/{{ inventory_hostname }}.service"
             mode: "0644"
@@ -46,13 +54,13 @@
           notify: Restart avahi-daemon
 
         - name: Enable and start avahi-daemon
-          systemd:
+          ansible.builtin.systemd:
             name: avahi-daemon
             enabled: true
             state: started
 
     - name: Disable unnecessary Pi services (excluding avahi)
-      systemd:
+      ansible.builtin.systemd:
         name: "{{ item }}"
         enabled: false
         state: stopped
@@ -65,14 +73,13 @@
       failed_when: false # Services might not exist on all Pi versions
 
     - name: Configure memory split for headless operation
-      lineinfile:
-        path: /boot/cmdline.txt
+      ansible.builtin.lineinfile:
+        path: "{{ _pi_boot_dir }}/cmdline.txt"
         regexp: cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory
         line: >-
           {{ ansible_facts.cmdline | default('') }}
           cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory
         state: present
-        backup: true
       notify: reboot pi
       when: "'cgroup_enable=memory' not in ansible_facts.cmdline | default('')"
 
@@ -95,7 +102,7 @@
     - name: Configure log2ram for SD card longevity
       block:
         - name: Check if log2ram is available
-          stat:
+          ansible.builtin.stat:
             path: /usr/local/bin/log2ram
           register: log2ram_check
 
@@ -104,19 +111,21 @@
 
           block:
             - name: Download log2ram
-              get_url:
+              ansible.builtin.get_url:
                 url: https://github.com/azlux/log2ram/archive/master.tar.gz
                 dest: /tmp/log2ram.tar.gz
                 mode: "0644"
 
             - name: Extract log2ram
-              unarchive:
+              ansible.builtin.unarchive:
                 src: /tmp/log2ram.tar.gz
                 dest: /tmp/
                 remote_src: true
 
             - name: Install log2ram
-              command: /tmp/log2ram-master/install.sh
+              ansible.builtin.command:
+                cmd: ./install.sh
+                chdir: /tmp/log2ram-master
               changed_when: true
     - name: Optimize tmpfs usage for Pi
       ansible.posix.mount:

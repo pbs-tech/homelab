@@ -1,11 +1,11 @@
 ---
 - name: Update system packages
-  apt:
+  ansible.builtin.apt:
     update_cache: true
     upgrade: true
 
 - name: Install required packages
-  apt:
+  ansible.builtin.apt:
     name:
       - qemu-utils
       - wget
@@ -16,7 +16,7 @@
     state: present
 
 - name: Create openwrt directories
-  file:
+  ansible.builtin.file:
     path: "{{ item }}"
     state: directory
     mode: "0755"
@@ -26,68 +26,71 @@
     - /var/log/openwrt
 
 - name: Download OpenWrt image
-  get_url:
+  ansible.builtin.get_url:
     url: "{{ openwrt_release_url }}"
     dest: /tmp/openwrt.img.gz
     mode: "0644"
   register: openwrt_download
 
 - name: Extract OpenWrt image
-  command: gunzip -f /tmp/openwrt.img.gz
+  ansible.builtin.command: gunzip -f /tmp/openwrt.img.gz
   args:
     creates: /tmp/openwrt.img
+  register: gunzip_result
+  # rc=2 means warning (trailing garbage) but decompression succeeded
+  failed_when: gunzip_result.rc not in [0, 2]
   when: openwrt_download.changed  # noqa: no-handler
 
 - name: Convert OpenWrt image to VM disk
-  command: qemu-img convert -f raw -O qcow2 /tmp/openwrt.img /opt/openwrt/openwrt.qcow2
+  ansible.builtin.command: qemu-img convert -f raw -O qcow2 /tmp/openwrt.img /opt/openwrt/openwrt.qcow2
   args:
     creates: /opt/openwrt/openwrt.qcow2
   when: openwrt_download.changed  # noqa: no-handler
 
 - name: Resize OpenWrt disk
-  command: qemu-img resize /opt/openwrt/openwrt.qcow2 1G
+  ansible.builtin.command: qemu-img resize /opt/openwrt/openwrt.qcow2 1G
   when: openwrt_download.changed  # noqa: no-handler
   changed_when: true
 
 - name: Generate UCI network configuration
-  template:
+  ansible.builtin.template:
     src: network.j2
     dest: /opt/openwrt/config/network
     mode: "0644"
 
 - name: Generate UCI system configuration
-  template:
+  ansible.builtin.template:
     src: system.j2
     dest: /opt/openwrt/config/system
     mode: "0644"
 
 - name: Generate UCI firewall configuration
-  template:
+  ansible.builtin.template:
     src: firewall.j2
     dest: /opt/openwrt/config/firewall
     mode: "0644"
 
 - name: Generate UCI DHCP configuration
-  template:
+  ansible.builtin.template:
     src: dhcp.j2
     dest: /opt/openwrt/config/dhcp
     mode: "0644"
 
 - name: Generate UCI wireless configuration (if applicable)
-  template:
+  ansible.builtin.template:
     src: wireless.j2
     dest: /opt/openwrt/config/wireless
     mode: "0644"
   when: openwrt_enable_wifi | default(false)
 
 - name: Create OpenWrt management script
-  template:
+  ansible.builtin.template:
     src: manage-openwrt.sh.j2
     dest: /usr/local/bin/manage-openwrt
     mode: "0755"
 
 - name: Create OpenWrt systemd service
-  template:
+  ansible.builtin.template:
     src: openwrt.service.j2
     dest: /etc/systemd/system/openwrt.service
     mode: "0644"
@@ -96,7 +99,7 @@
     - Restart openwrt
 
 - name: Create rsyslog configuration for OpenWrt logs
-  template:
+  ansible.builtin.template:
     src: rsyslog-openwrt.conf.j2
     dest: /etc/rsyslog.d/30-openwrt.conf
     mode: "0644"
@@ -104,7 +107,7 @@
   when: openwrt_remote_syslog_server is defined
 
 - name: Enable and start OpenWrt service
-  systemd:
+  ansible.builtin.systemd:
     name: openwrt
     enabled: true
     state: started

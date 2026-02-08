@@ -1,120 +1,148 @@
 ---
-- name: Create k3s-bastion LXC container using secure API token authentication
-  community.proxmox.proxmox:
-    vmid: "{{ bastion_container.vmid }}"
-    node: "{{ ansible_hostname }}"
-    # Secure API token authentication (preferred)
-    api_host: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
-    api_token_id: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id }}"
-    api_token_secret: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_secret }}"
-    validate_certs: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].validate_certs }}"
-    hostname: "{{ bastion_container.hostname }}"
-    ostemplate: "{{ bastion_container.template }}"
-    cores: "{{ bastion_container.cores }}"
-    memory: "{{ bastion_container.memory }}"
-    disk: "{{ bastion_container.disk_size }}"
-    netif: '{"net0":"name=eth0,bridge=vmbr0,gw={{ bastion_container.gateway }},ip={{ bastion_container.ip }},type=veth"}'
-    nameserver: "{{ bastion_container.nameservers }}"
-    features: "{{ bastion_container.features | join(', ') }}"
-    unprivileged: "{{ bastion_container.unprivileged }}"
-    state: present
-    timeout: 300
-  register: bastion_create_result
+# Bastion host security configuration
+# Prerequisites: Container must already exist and be accessible via SSH
+# Container provisioning is handled by homelab.common.container_base
 
-- name: Start bastion container using secure API token authentication
-  community.proxmox.proxmox:
-    vmid: "{{ bastion_container.vmid }}"
-    node: "{{ ansible_hostname }}"
-    # Secure API token authentication (preferred)
-    api_host: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
-    api_token_id: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id }}"
-    api_token_secret: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_secret }}"
-    validate_certs: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].validate_certs }}"
-    state: started
-    timeout: 60
+# --- Package installation ---
 
-- name: Wait for bastion container to be available
-  ansible.builtin.wait_for:
-    host: "{{ bastion_container.ip.split('/')[0] }}"
-    port: 22
-    delay: 30
-    timeout: 300
-
-- name: Update package cache
-  ansible.builtin.apt:
-    update_cache: true
-    cache_valid_time: 3600
-  delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
-  become: true
-
-- name: Install required packages
+- name: Install bastion security packages
   ansible.builtin.apt:
     name: "{{ bastion_packages }}"
     state: present
-  delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
-  become: true
+    update_cache: true
+    cache_valid_time: 3600
 
-- name: Install Python pip packages
+- name: Install Python pip packages for automation
   ansible.builtin.pip:
     name: "{{ bastion_pip_packages }}"
     state: present
-  delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
-  become: true
 
-- name: Configure SSH for security
+# --- SSH hardening (bastion-specific) ---
+
+- name: Configure SSH for bastion security
   ansible.builtin.template:
     src: sshd_config.j2
     dest: /etc/ssh/sshd_config
     backup: true
     mode: "0600"
-  delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
-  become: true
+    owner: root
+    group: root
+    validate: sshd -t -f %s
   notify: Restart ssh
 
-- name: Configure fail2ban
+# --- Fail2ban ---
+
+- name: Configure fail2ban for bastion
   ansible.builtin.template:
     src: jail.local.j2
     dest: /etc/fail2ban/jail.local
     mode: "0644"
-  delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
-  become: true
   notify: Restart fail2ban
 
-- name: Configure UFW firewall
-  community.general.ufw:
-    rule: allow
-    port: "{{ item }}"
-    proto: tcp
+- name: Enable and start fail2ban
+  ansible.builtin.service:
+    name: fail2ban
+    enabled: true
+    state: started
+
+# --- Iptables firewall ---
+
+- name: Create iptables rules directory
+  ansible.builtin.file:
+    path: /etc/iptables
+    state: directory
+    mode: "0755"
+
+- name: Allow established connections
+  ansible.builtin.iptables:
+    chain: INPUT
+    ctstate: ESTABLISHED,RELATED
+    jump: ACCEPT
+    comment: "Allow established connections"
+
+- name: Allow loopback traffic
+  ansible.builtin.iptables:
+    chain: INPUT
+    in_interface: lo
+    jump: ACCEPT
+    comment: "Allow loopback"
+
+- name: Allow bastion ports
+  ansible.builtin.iptables:
+    chain: INPUT
+    protocol: tcp
+    destination_port: "{{ item }}"
+    jump: ACCEPT
+    comment: "Bastion allowed port {{ item }}"
   loop: "{{ bastion_security.allowed_ports }}"
-  delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
-  become: true
 
-- name: Enable UFW
-  community.general.ufw:
-    state: enabled
-    policy: deny
-    direction: incoming
-  delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
-  become: true
+- name: Set default INPUT policy to DROP
+  ansible.builtin.iptables:
+    chain: INPUT
+    policy: DROP
 
-- name: Create ansible user
+- name: Save iptables rules
+  ansible.builtin.shell: iptables-save > /etc/iptables/rules.v4
+  changed_when: true
+
+- name: Create iptables restore service
+  ansible.builtin.copy:
+    content: |
+      [Unit]
+      Description=Restore iptables rules
+      Before=network-pre.target
+      Wants=network-pre.target
+
+      [Service]
+      Type=oneshot
+      ExecStart=/sbin/iptables-restore /etc/iptables/rules.v4
+      RemainAfterExit=yes
+
+      [Install]
+      WantedBy=multi-user.target
+    dest: /etc/systemd/system/iptables-restore.service
+    mode: "0644"
+
+- name: Enable iptables restore service
+  ansible.builtin.systemd:
+    name: iptables-restore
+    enabled: true
+    daemon_reload: true
+
+# --- User management ---
+
+- name: Create pbs user for bastion access
   ansible.builtin.user:
     name: pbs
     shell: /bin/bash
     create_home: true
     groups: sudo
     append: true
-  delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
-  become: true
 
-- name: Set up SSH keys for ansible user
+- name: Configure passwordless sudo for pbs user
+  ansible.builtin.copy:
+    content: "pbs ALL=(ALL) NOPASSWD: ALL\n"
+    dest: /etc/sudoers.d/pbs
+    owner: root
+    group: root
+    mode: "0440"
+    validate: 'visudo -cf %s'
+
+- name: Set up SSH directory for pbs user
+  ansible.builtin.file:
+    path: /home/pbs/.ssh
+    state: directory
+    owner: pbs
+    group: pbs
+    mode: "0700"
+
+- name: Set up SSH keys for pbs user
   ansible.posix.authorized_key:
     user: pbs
-    key: "{{ ansible_ssh_public_key_content }}"
+    key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
     state: present
-  delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
-  become: true
-  when: ansible_ssh_public_key_content is defined
+
+# --- Optional: Sync Ansible collections to bastion ---
 
 - name: Copy ansible collections to bastion
   ansible.posix.synchronize:
@@ -122,15 +150,13 @@
     dest: "{{ bastion_sync_dest_base }}/ansible_collections/"
     delete: true
     recursive: true
-  delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
-  become: true
   become_user: pbs
+  when: bastion_sync_collections | default(false)
 
 - name: Copy main site.yml to bastion
   ansible.builtin.copy:
     src: "{{ bastion_sync_source_base }}/site.yml"
     dest: "{{ bastion_sync_dest_base }}/site.yml"
     mode: "0644"
-  delegate_to: "{{ bastion_container.ip.split('/')[0] }}"
-  become: true
   become_user: pbs
+  when: bastion_sync_collections | default(false)

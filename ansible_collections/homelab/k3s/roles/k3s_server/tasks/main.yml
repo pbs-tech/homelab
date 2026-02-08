@@ -112,7 +112,7 @@
       when:
         - ansible_facts.services['k3s.service'] is defined
         - ansible_facts.services['k3s.service'].state == 'running'
-        - service_file_single.changed or service_file_ha.changed or _server_config_result.changed
+        - (service_file_single.changed | default(false)) or (service_file_ha.changed | default(false)) or (_server_config_result.changed | default(false))
       ansible.builtin.systemd:
         name: k3s
         daemon_reload: true
@@ -265,7 +265,7 @@
       when:
         - ansible_facts.services['k3s.service'] is defined
         - ansible_facts.services['k3s.service'].state == 'running'
-        - service_file_ha.changed or service_file_external_db.changed or _server_config_result.changed
+        - (service_file_ha.changed | default(false)) or (service_file_external_db.changed | default(false)) or (_server_config_result.changed | default(false))
       ansible.builtin.systemd:
         name: k3s
         daemon_reload: true

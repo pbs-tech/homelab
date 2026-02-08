@@ -23,7 +23,7 @@
     name: avahi-daemon
     state: restarted
 
-- name: Reboot pi
+- name: reboot pi
   ansible.builtin.reboot:
     reboot_timeout: 300
     test_command: uptime

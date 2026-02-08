@@ -1,6 +1,78 @@
 ---
 # WireGuard VPN server deployment and configuration
 
+# Configure Proxmox host for WireGuard LXC support
+- name: Load WireGuard kernel module on Proxmox host
+  ansible.builtin.modprobe:
+    name: wireguard
+    state: present
+  delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+  vars:
+    ansible_user: ansible
+  become: true
+  failed_when: false
+  tags: [proxmox, wireguard]
+
+- name: Ensure WireGuard module loads on boot
+  ansible.builtin.lineinfile:
+    path: /etc/modules
+    line: wireguard
+    state: present
+    create: true
+    mode: "0644"
+  delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+  vars:
+    ansible_user: ansible
+  become: true
+  failed_when: false
+  tags: [proxmox, wireguard]
+
+- name: Configure LXC container for WireGuard access
+  ansible.builtin.blockinfile:
+    path: "/etc/pve/lxc/{{ container_id }}.conf"
+    marker: "# {mark} ANSIBLE MANAGED - WireGuard LXC Config"
+    block: |
+      lxc.cgroup2.devices.allow: c 10:200 rwm
+      lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file
+    state: present
+  delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+  vars:
+    ansible_user: ansible
+  become: true
+  register: lxc_config_updated
+  when: container_id is defined
+  tags: [proxmox, wireguard]
+
+- name: Restart container if LXC config was updated
+  community.general.proxmox:
+    api_host: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+    api_user: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].user }}"
+    api_token_id: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id.split('!')[-1] }}"
+    api_token_secret: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_secret }}"
+    validate_certs: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].validate_certs }}"
+    vmid: "{{ container_id }}"
+    node: "{{ proxmox_node | default(proxmox_default_node) }}"
+    state: restarted
+  delegate_to: localhost
+  become: false
+  when:
+    - container_id is defined
+    - lxc_config_updated is changed
+  tags: [proxmox, wireguard]
+
+- name: Wait for container to be available after restart
+  ansible.builtin.wait_for:
+    host: "{{ ansible_host }}"
+    port: 22
+    delay: 5
+    timeout: 120
+  delegate_to: localhost
+  become: false
+  when:
+    - container_id is defined
+    - lxc_config_updated is changed
+  tags: [proxmox, wireguard]
+
 - name: Validate WireGuard configuration
   ansible.builtin.assert:
     that:
@@ -11,6 +83,19 @@
     success_msg: "WireGuard configuration validated"
   tags: validate
 
+- name: Check if WireGuard kernel module is available
+  ansible.builtin.command:
+    cmd: modprobe -n wireguard
+  register: wireguard_module_check
+  changed_when: false
+  failed_when: false
+  tags: validate
+
+- name: Display WireGuard module status
+  ansible.builtin.debug:
+    msg: "{{ 'WireGuard kernel module available' if wireguard_module_check.rc == 0 else 'WireGuard will use userspace implementation (slower)' }}"
+  tags: validate
+
 - name: Install WireGuard packages
   ansible.builtin.apt:
     name:
@@ -18,9 +103,20 @@
       - wireguard-tools
       - qrencode
       - iptables
-      - resolvconf
     state: present
     update_cache: true
+  register: wireguard_install
+  retries: 3
+  delay: 10
+  until: wireguard_install is succeeded
+  tags: packages
+
+- name: Install resolvconf if available
+  ansible.builtin.apt:
+    name: resolvconf
+    state: present
+  register: resolvconf_install
+  failed_when: false
   tags: packages
 
 - name: Enable IPv4 forwarding
@@ -62,13 +158,13 @@
   ansible.builtin.slurp:
     src: /etc/wireguard/server_privatekey
   register: server_privatekey_content
-  no_log: true  # Protect private key from logs
+  no_log: true
   tags: config
 
 - name: Set server private key fact
   ansible.builtin.set_fact:
     wireguard_server_private_key: "{{ server_privatekey_content.content | b64decode | trim }}"
-  no_log: true  # Protect private key from logs
+  no_log: true
   tags: config
 
 - name: Generate server public key
@@ -96,27 +192,116 @@
   notify: Restart wireguard
   tags: config
 
+- name: Validate WireGuard configuration syntax
+  ansible.builtin.command:
+    cmd: wg-quick strip wg0
+  register: wg_config_check
+  changed_when: false
+  failed_when: false
+  tags: service
+
+- name: Display config validation result
+  ansible.builtin.debug:
+    msg: "{{ 'WireGuard config valid' if wg_config_check.rc == 0 else 'WireGuard config issue: ' + (wg_config_check.stderr | default('unknown error')) }}"
+  tags: service
+
 - name: Enable WireGuard service
   ansible.builtin.systemd:
     name: wg-quick@wg0
     enabled: true
     state: started
+  register: wireguard_service
+  failed_when: false
   tags: service
 
-- name: Configure firewall for WireGuard
-  community.general.ufw:
-    rule: allow
-    port: "{{ wireguard_port }}"
-    proto: udp
+- name: Display WireGuard service status
+  ansible.builtin.debug:
+    msg: "{{ 'WireGuard service started successfully' if wireguard_service is succeeded else 'WireGuard service failed to start - check journalctl -u wg-quick@wg0' }}"
+  tags: service
+
+- name: Get WireGuard service logs if failed
+  ansible.builtin.command:
+    cmd: journalctl -u wg-quick@wg0 --no-pager -n 20
+  register: wg_logs
+  when: wireguard_service is failed
+  changed_when: false
+  failed_when: false
+  tags: service
+
+- name: Display WireGuard logs if failed
+  ansible.builtin.debug:
+    msg: "{{ wg_logs.stdout_lines }}"
+  when: wireguard_service is failed and wg_logs.stdout_lines is defined
+  tags: service
+
+# Firewall configuration using iptables directly (more reliable in LXC)
+- name: Allow WireGuard UDP port
+  ansible.builtin.iptables:
+    chain: INPUT
+    protocol: udp
+    destination_port: "{{ wireguard_port }}"
+    jump: ACCEPT
     comment: "WireGuard VPN"
   when: wireguard_enable_firewall | default(true)
   tags: firewall
 
-- name: Allow forwarding on WireGuard interface
-  community.general.ufw:
-    rule: allow
-    route: true
-    interface: "{{ wireguard_interface }}"
+- name: Allow forwarding from WireGuard interface
+  ansible.builtin.iptables:
+    chain: FORWARD
+    in_interface: "{{ wireguard_interface }}"
+    jump: ACCEPT
+    comment: "WireGuard forward in"
+  when: wireguard_enable_firewall | default(true)
+  tags: firewall
+
+- name: Allow forwarding to WireGuard interface
+  ansible.builtin.iptables:
+    chain: FORWARD
+    out_interface: "{{ wireguard_interface }}"
+    jump: ACCEPT
+    comment: "WireGuard forward out"
+  when: wireguard_enable_firewall | default(true)
+  tags: firewall
+
+- name: Create iptables rules directory
+  ansible.builtin.file:
+    path: /etc/iptables
+    state: directory
+    mode: "0755"
+  when: wireguard_enable_firewall | default(true)
+  tags: firewall
+
+- name: Save iptables rules
+  ansible.builtin.shell: iptables-save > /etc/iptables/rules.v4
+  changed_when: true
+  when: wireguard_enable_firewall | default(true)
+  tags: firewall
+
+- name: Create iptables restore service
+  ansible.builtin.copy:
+    content: |
+      [Unit]
+      Description=Restore iptables rules
+      Before=network-pre.target
+      Wants=network-pre.target
+
+      [Service]
+      Type=oneshot
+      ExecStart=/sbin/iptables-restore /etc/iptables/rules.v4
+      RemainAfterExit=yes
+
+      [Install]
+      WantedBy=multi-user.target
+    dest: /etc/systemd/system/iptables-restore.service
+    mode: "0644"
+  when: wireguard_enable_firewall | default(true)
+  tags: firewall
+
+- name: Enable iptables restore service
+  ansible.builtin.systemd:
+    name: iptables-restore
+    enabled: true
+    daemon_reload: true
   when: wireguard_enable_firewall | default(true)
   tags: firewall
 
@@ -133,19 +318,20 @@
     PublicKey = {{ server_publickey_result.stdout }}
     PresharedKey = {{ item.preshared_key | default('REPLACE_WITH_PSK') }}
     Endpoint = {{ wireguard_public_endpoint | default('vpn.example.com') }}:{{ wireguard_port }}
-    AllowedIPs = {{ wireguard_allowed_networks | join(', ') }}
+    AllowedIPs = {{ wireguard_allowed_networks | default(['0.0.0.0/0']) | join(', ') }}
     PersistentKeepalive = {{ item.persistent_keepalive | default(25) }}
     EOF
   args:
     executable: /bin/bash
-  loop: "{{ wireguard_clients }}"
+  loop: "{{ wireguard_clients | default([]) }}"
   loop_control:
     label: "{{ item.name | default('client') }}"
   when:
     - wireguard_generate_qrcodes | default(false)
     - item.private_key is defined
+    - "'REPLACE' not in (item.private_key | default('REPLACE'))"
   changed_when: false
-  no_log: true  # Protect client private keys and PSKs from logs
+  no_log: true
   tags:
     - config
     - qrcode

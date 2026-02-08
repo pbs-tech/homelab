@@ -1,126 +1,181 @@
-# AdGuard Home configuration with security focus
-bind_host: 0.0.0.0
-bind_port: 80
+# AdGuard Home configuration - managed by Ansible
+http:
+  pprof:
+    port: 6060
+    enabled: false
+  address: {{ adguard_bind_host }}:{{ adguard_bind_port }}
+  session_ttl: {{ adguard_web_session_ttl }}h
 users:
-  - name: admin
+  - name: {{ adguard_admin_username }}
     password: "{{ adguard_admin_password_hash }}"
-auth_attempts: 5
-block_auth_min: 15
-
-http_proxy: ""
-language: en
-rlimit_nofile: 8192
-debug_pprof: false
-web_session_ttl: 720
+auth_attempts: {{ adguard_auth_attempts }}
+block_auth_min: {{ adguard_block_auth_min }}
 
 dns:
   bind_hosts:
-    - 0.0.0.0
-  port: 53
-  statistics_interval: 24h
-  querylog_enabled: true
-  querylog_file_enabled: true
-  querylog_interval: 24h
-  querylog_size_memory: 1000
+{% for host in adguard_dns_bind_hosts %}
+    - {{ host }}
+{% endfor %}
+  port: {{ adguard_dns_port }}
   anonymize_client_ip: false
-  protection_enabled: true
-  blocking_mode: default
-  blocking_ipv4: ""
-  blocking_ipv6: ""
-  blocked_response_ttl: 10
-  parental_block_host: family-block.dns.adguard.com
-  safebrowsing_block_host: standard-block.dns.adguard.com
-  rewrites: []
-
-  # Upstream DNS - point to Unbound for recursive resolution
+  ratelimit: 20
+  ratelimit_subnet_len_ipv4: 24
+  ratelimit_subnet_len_ipv6: 56
+  ratelimit_whitelist: []
+  refuse_any: true
   upstream_dns:
-    - 192.168.0.202:53
+{% for dns in adguard_upstream_dns %}
+    - {{ dns }}
+{% endfor %}
   upstream_dns_file: ""
   bootstrap_dns:
-    - 1.1.1.1
-    - 1.0.0.1
+{% for dns in adguard_bootstrap_dns %}
+    - {{ dns }}
+{% endfor %}
+  fallback_dns: []
   all_servers: true
   fastest_addr: false
+  fastest_timeout: 1s
   allowed_clients:
-    - 192.168.0.0/24
-  disallowed_clients: []
+{% for client in adguard_allowed_clients %}
+    - {{ client }}
+{% endfor %}
+  disallowed_clients:
+{% for client in adguard_disallowed_clients %}
+    - {{ client }}
+{% endfor %}
   blocked_hosts:
     - version.bind
     - id.server
     - hostname.bind
-  cache_size: 4194304
+  trusted_proxies:
+    - 127.0.0.0/8
+    - ::1/128
+  cache_size: {{ adguard_cache_size }}
   cache_ttl_min: 0
   cache_ttl_max: 0
+  cache_optimistic: false
   bogus_nxdomain: []
   aaaa_disabled: false
-  enable_dnssec: true
-  edns_client_subnet: false
-  max_goroutines: 300
+  enable_dnssec: {{ adguard_enable_dnssec | lower }}
+  edns_client_subnet:
+    custom_ip: ""
+    enabled: false
+    use_custom: false
+  max_goroutines: {{ adguard_max_goroutines }}
+  handle_ddr: true
   ipset: []
-  filtering_enabled: true
-  filters_update_interval: 24
-  parental_enabled: false
-  safesearch_enabled: false
-  safebrowsing_enabled: true
-  resolve_clients: true
+  ipset_file: ""
+  bootstrap_prefer_ipv6: false
+  upstream_timeout: 10s
+  private_networks: []
   use_private_ptr_resolvers: true
   local_ptr_upstreams:
-    - 192.168.0.202:53
-
-# Enhanced security filters
-filters:
-  - enabled: true
-    url: https://adguardteam.github.io/AdGuardSDNSFilter/Filters/filter.txt
-    name: AdGuard DNS filter
-    id: 1
-  - enabled: true
-    url: https://someonewhocares.org/hosts/zero/hosts
-    name: Dan Pollock's List
-    id: 2
-  - enabled: true
-    url: https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
-    name: Steven Black's List
-    id: 3
-  - enabled: true
-    url: https://malware-filter.gitlab.io/malware-filter/urlhaus-filter-dns.txt
-    name: Malware Domain Blocklist
-    id: 4
-  - enabled: true
-    url: https://phishing.army/download/phishing_army_blocklist_extended.txt
-    name: Phishing Army
-    id: 5
-
-whitelist_filters: []
-
-# Custom blocked services for security
-blocked_services:
-  - facebook
-  - instagram
-  - snapchat
-  - tiktok
-  - twitter
-
-user_rules:
-  # Block known malicious TLDs
-  - "||tk^$important"
-  - "||ml^$important"
-  - "||ga^$important"
-  - "||cf^$important"
-  # Allow homelab services
-  - "@@||homelab.local^$important"
-  # Block telemetry
-  - "||telemetry.mozilla.org^$important"
-  - "||analytics.google.com^$important"
-
-dhcp:
+{% for dns in adguard_upstream_dns %}
+    - {{ dns }}
+{% endfor %}
+  use_dns64: false
+  dns64_prefixes: []
+  serve_http3: false
+  use_http3_upstreams: false
+  serve_plain_dns: true
+tls:
   enabled: false
-
-clients: []
-log_compress: false
-log_localtime: false
-log_max_backups: 0
-log_max_size: 100
-log_max_age: 3
-log_file: ""
-verbose: false
-schema_version: 12
+  server_name: ""
+  force_https: false
+  port_https: 443
+  port_dns_over_tls: 853
+  port_dns_over_quic: 853
+  port_dnscrypt: 0
+  dnscrypt_config_file: ""
+  allow_unencrypted_doh: false
+  certificate_chain: ""
+  private_key: ""
+  certificate_path: ""
+  private_key_path: ""
+  strict_sni_check: false
+querylog:
+  dir_path: ""
+  ignored: []
+  interval: 24h
+  size_memory: {{ adguard_querylog_size_memory }}
+  enabled: {{ adguard_querylog_enabled | lower }}
+  file_enabled: true
+statistics:
+  dir_path: ""
+  ignored: []
+  interval: 24h
+  enabled: true
+filters:
+{% for filter in adguard_filters %}
+  - enabled: {{ filter.enabled | lower }}
+    url: {{ filter.url }}
+    name: {{ filter.name }}
+    id: {{ filter.id }}
+{% endfor %}
+whitelist_filters: []
+user_rules:
+{% for rule in adguard_user_rules %}
+  - "{{ rule }}"
+{% endfor %}
+dhcp:
+  enabled: {{ adguard_dhcp_enabled | lower }}
+  interface_name: ""
+  local_domain_name: lan
+  dhcpv4:
+    gateway_ip: ""
+    subnet_mask: ""
+    range_start: ""
+    range_end: ""
+    lease_duration: 86400
+    icmp_timeout_msec: 1000
+    options: []
+  dhcpv6:
+    range_start: ""
+    lease_duration: 86400
+    ra_slaac_only: false
+    ra_allow_slaac: false
+filtering:
+  blocking_ipv4: ""
+  blocking_ipv6: ""
+  blocked_services:
+    schedule:
+      time_zone: UTC
+    ids:
+{% for service in adguard_blocked_services %}
+      - {{ service }}
+{% endfor %}
+  protection_disabled_until: null
+  safe_search:
+    enabled: {{ adguard_safesearch_enabled | lower }}
+    bing: true
+    duckduckgo: true
+    google: true
+    pixabay: true
+    yandex: true
+    youtube: true
+  blocking_mode: default
+  parental_enabled: {{ adguard_parental_enabled | lower }}
+  safebrowsing_enabled: {{ adguard_safebrowsing_enabled | lower }}
+  protection_enabled: {{ adguard_protection_enabled | lower }}
+clients:
+  runtime_sources:
+    whois: true
+    arp: true
+    rdns: true
+    dhcp: true
+    hosts: true
+  persistent: []
+log:
+  file: ""
+  max_backups: 0
+  max_size: 100
+  max_age: 3
+  compress: false
+  local_time: false
+  verbose: false
+os:
+  group: ""
+  user: ""
+  rlimit_nofile: {{ adguard_rlimit_nofile }}
+schema_version: 29

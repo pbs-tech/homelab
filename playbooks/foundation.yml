@@ -1,39 +1,86 @@
 ---
 # Foundation infrastructure deployment
 # Deploys bastion hosts, provisions LXC containers, and core security infrastructure
+#
+# Bastion hosts are deployed FIRST as they are the security foundation:
+#   Phase 1a: Provision bastion containers (container_base)
+#   Phase 1b: Configure bastion security (bastion role)
+#   Phase 1c: Verify bastion accessibility as pbs user
+#   Phase 1d: Provision remaining LXC containers
+#   Phase 1e: Configure Proxmox hosts
 
+# --- Phase 1a: Provision bastion containers ---
+- name: Provision bastion containers
+  hosts: bastion_hosts
+  gather_facts: false
+  become: false
+  serial: 1
+  vars:
+    # Override ansible_user for initial provisioning
+    # container_base creates an 'ansible' user via pct exec
+    ansible_user: ansible
+  tasks:
+    - name: Create bastion LXC container
+      ansible.builtin.include_role:
+        name: homelab.common.container_base
+      vars:
+        container_resources:
+          cores: "{{ lxc_cores | default(2) }}"
+          memory: "{{ lxc_memory | default(2048) }}"
+          swap: "{{ lxc_swap | default(256) }}"
+          disk_size: "{{ lxc_disk_size | default(20) }}"
+      when: container_id is defined
+  tags: [provision, bastion, foundation]
+
+# --- Phase 1b: Configure bastion host security ---
+- name: Configure bastion host security
+  hosts: bastion_hosts
+  become: true
+  gather_facts: false
+  vars:
+    # Use ansible user (created by container_base) for initial configuration
+    ansible_user: ansible
+  pre_tasks:
+    - name: Wait for bastion SSH to be available
+      ansible.builtin.wait_for_connection:
+        delay: 5
+        timeout: 120
+
+    - name: Gather facts after bastion is available
+      ansible.builtin.setup:
+
+  roles:
+    - role: homelab.proxmox_lxc.bastion
+      tags: [bastion_config]
+  tags: [bastion, foundation]
+
+# --- Phase 1c: Verify bastion hosts are accessible as pbs user ---
+- name: Verify bastion hosts are accessible
+  hosts: bastion_hosts
+  gather_facts: false
+  become: false
+  vars:
+    # Verify we can connect as the pbs user created by the bastion role
+    ansible_user: pbs
+  tasks:
+    - name: Verify bastion SSH accessibility as pbs user
+      ansible.builtin.wait_for_connection:
+        delay: 5
+        timeout: 60
+
+    - name: Confirm bastion is ready
+      ansible.builtin.debug:
+        msg: "Bastion {{ inventory_hostname }} ({{ ansible_host }}) is accessible and configured"
+  tags: [bastion, verify, foundation]
+
+# --- Phase 1d: Provision remaining LXC containers ---
 - name: Provision LXC containers
   import_playbook: provision-containers.yml
   tags:
     - provision
     - containers
 
-- name: Deploy bastion hosts
-  hosts: bastion_hosts
-  become: true
-  gather_facts: true
-  pre_tasks:
-    - name: Ensure bastion host containers exist
-      include_role:
-        name: homelab.common.container_base
-      tags: [container_creation]
-
-  roles:
-    - role: homelab.common.common_setup
-      tags: [common_setup]
-    - role: homelab.proxmox_lxc.bastion
-      tags: [bastion_config]
-    - role: homelab.common.security_hardening
-      tags: [security_hardening]
-
-  post_tasks:
-    - name: Verify bastion accessibility
-      wait_for:
-        host: "{{ ansible_host }}"
-        port: 22
-        timeout: 30
-      delegate_to: localhost
-
+# --- Phase 1e: Configure Proxmox hosts ---
 - name: Configure Proxmox hosts
   hosts: proxmox_hosts
   gather_facts: true
@@ -45,7 +92,7 @@
 
   post_tasks:
     - name: Verify Proxmox API accessibility
-      uri:
+      ansible.builtin.uri:
         url: https://{{ ansible_host }}:8006/api2/json/version
         method: GET
         validate_certs: false

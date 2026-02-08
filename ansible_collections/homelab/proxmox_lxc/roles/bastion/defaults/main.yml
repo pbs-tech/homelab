@@ -1,20 +1,4 @@
 ---
-# Bastion container configuration
-bastion_container:
-  vmid: 999
-  hostname: k3s-bastion
-  ip: 192.168.0.110/24
-  gateway: 192.168.0.1
-  nameservers: 192.168.0.202
-  template: local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst
-  cores: 2
-  memory: 2048
-  disk_size: 20G
-  features:
-    - nesting=1
-    - keyctl=1
-  unprivileged: true
-
 # Security configurations
 bastion_security:
   ssh_port: 22
@@ -29,7 +13,6 @@ bastion_security:
 # Ansible/automation tools
 bastion_packages:
   - ansible
-  - ansible-core
   - python3-pip
   - git
   - curl
@@ -42,6 +25,7 @@ bastion_packages:
   - net-tools
   - openssh-client
   - sshpass
+  - iptables
 
 # Python packages for Ansible collections
 bastion_pip_packages:
@@ -53,3 +37,6 @@ bastion_pip_packages:
 # Override these if your repository is in a different location
 bastion_sync_source_base: "{{ playbook_dir | dirname }}"
 bastion_sync_dest_base: /home/pbs
+
+# Whether to sync Ansible collections to bastion
+bastion_sync_collections: false

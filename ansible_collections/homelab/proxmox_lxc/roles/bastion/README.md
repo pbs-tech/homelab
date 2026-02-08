@@ -1,55 +1,33 @@
 # Bastion Role
 
-Deploys and configures a hardened bastion host (jump server) in an LXC container for secure infrastructure access. Provides a security-first gateway for managing K3s clusters and Proxmox infrastructure with comprehensive security controls, fail2ban protection, and automated Ansible deployment capabilities.
+Configures a hardened bastion host (jump server) in an LXC container for secure infrastructure access. Provides a security-first gateway for managing K3s clusters and Proxmox infrastructure with comprehensive security controls, fail2ban protection, and iptables firewall.
+
+**Note:** This role handles security configuration only. Container creation and initial provisioning is handled by the `homelab.common.container_base` role.
 
 ## Features
 
-- **Hardened Security** - Comprehensive security hardening with fail2ban, UFW, and SSH restrictions
+- **Hardened Security** - Comprehensive security hardening with fail2ban, iptables, and SSH restrictions
 - **Ansible Ready** - Pre-configured with Ansible, collections, and Python dependencies
 - **Jump Server** - Secure gateway for infrastructure access from external networks
-- **Automated Deployment** - Self-contained Ansible deployment environment
-- **Collection Sync** - Automated synchronization of Ansible collections and playbooks
 - **User Management** - Automated user creation with sudo access and SSH keys
-- **Firewall Protection** - UFW firewall with restrictive default-deny policy
-- **Intrusion Prevention** - fail2ban for SSH and service protection
-- **Resource Optimized** - Configured with appropriate resources for management workloads
-- **High Availability Ready** - Can be deployed on multiple Proxmox nodes
+- **Firewall Protection** - iptables firewall with default-deny INPUT policy
+- **Intrusion Prevention** - fail2ban for SSH brute-force protection
+- **Collection Sync** - Optional synchronization of Ansible collections and playbooks
+- **Self-Managed Firewall** - Proxmox-level firewall is disabled; the bastion manages its own iptables rules
 
 ## Requirements
 
 - Proxmox VE 7.0 or higher
-- Ubuntu 22.04 LTS template available
-- Valid Proxmox API token with container creation permissions
-- Network connectivity to Proxmox host
+- Container already provisioned via `homelab.common.container_base`
+- SSH connectivity to the container (as the `ansible` user created by `container_base`)
 - SSH public key for automated access
 - homelab.common collection installed
 
 ## Role Variables
 
-### Bastion Container Configuration
-
-```yaml
-# Container specification
-bastion_container:
-  vmid: 999
-  hostname: k3s-bastion
-  ip: 192.168.0.110/24
-  gateway: 192.168.0.1
-  nameservers: 192.168.0.202
-  template: local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst
-  cores: 2
-  memory: 2048
-  disk_size: 20G
-  features:
-    - nesting=1        # Required for container management
-    - keyctl=1         # Required for key management
-  unprivileged: true   # Security best practice
-```
-
 ### Security Configuration
 
 ```yaml
-# Security settings
 bastion_security:
   ssh_port: 22
   fail2ban_enabled: true
@@ -67,7 +45,6 @@ bastion_security:
 # Core packages for bastion functionality
 bastion_packages:
   - ansible              # Ansible automation
-  - ansible-core         # Core Ansible engine
   - python3-pip          # Python package manager
   - git                  # Version control
   - curl                 # HTTP client
@@ -75,11 +52,12 @@ bastion_packages:
   - unzip                # Archive extraction
   - jq                   # JSON processor
   - fail2ban             # Intrusion prevention
-  - ufw                  # Firewall
+  - ufw                  # Firewall utility (iptables used directly)
   - htop                 # Process monitor
   - net-tools            # Network utilities
   - openssh-client       # SSH client
   - sshpass              # Non-interactive SSH password provider
+  - iptables             # Firewall
 
 # Python packages for Ansible functionality
 bastion_pip_packages:
@@ -88,74 +66,98 @@ bastion_pip_packages:
   - requests             # HTTP library
 ```
 
+### Collection Sync
+
+```yaml
+# Whether to sync Ansible collections to bastion
+bastion_sync_collections: false
+
+# Source/destination paths for synchronization
+bastion_sync_source_base: "{{ playbook_dir | dirname }}"
+bastion_sync_dest_base: /home/pbs
+```
+
 ## Usage
 
-### Basic Bastion Deployment
+### Recommended: Phased Deployment via foundation.yml
+
+The bastion is deployed as Phase 1 of `playbooks/infrastructure.yml`, which calls `playbooks/foundation.yml`. The deployment follows three sub-phases:
+
+**Phase 1a** - Provision the bastion container using `container_base`:
 
 ```yaml
-- name: Deploy bastion host
-  hosts: proxmox_hosts
+- name: Provision bastion containers
+  hosts: bastion_hosts
+  gather_facts: false
+  become: false
+  serial: 1
   vars:
-    proxmox_node: "pve-mac"
-    ansible_ssh_public_key_content: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
-  roles:
-    - homelab.proxmox_lxc.bastion
-```
-
-### Custom Bastion Configuration
-
-```yaml
-- name: Deploy hardened bastion with custom settings
-  hosts: proxmox_hosts
-  vars:
-    proxmox_node: "pve-mac"
-    bastion_container:
-      vmid: 110
-      hostname: secure-bastion
-      ip: 192.168.0.110/24
-      gateway: 192.168.0.1
-      cores: 4
-      memory: 4096
-      disk_size: 50G
-    bastion_security:
-      fail2ban_bantime: 7200  # 2 hour ban
-      fail2ban_maxretry: 2    # More restrictive
-    ansible_ssh_public_key_content: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
-  roles:
-    - homelab.proxmox_lxc.bastion
-```
-
-### Multiple Bastion Hosts
-
-```yaml
-- name: Deploy bastion hosts for HA
-  hosts: proxmox_hosts
+    ansible_user: ansible
   tasks:
-    - name: Create primary bastion
-      include_role:
-        name: homelab.proxmox_lxc.bastion
+    - name: Create bastion LXC container
+      ansible.builtin.include_role:
+        name: homelab.common.container_base
       vars:
-        bastion_container:
-          vmid: 110
-          hostname: k3s-bastion
-          ip: 192.168.0.110/24
+        container_resources:
+          cores: "{{ lxc_cores | default(2) }}"
+          memory: "{{ lxc_memory | default(2048) }}"
+          swap: "{{ lxc_swap | default(256) }}"
+          disk_size: "{{ lxc_disk_size | default(20) }}"
+      when: container_id is defined
+```
 
-    - name: Create secondary bastion
-      include_role:
-        name: homelab.proxmox_lxc.bastion
-      vars:
-        bastion_container:
-          vmid: 109
-          hostname: nas-bastion
-          ip: 192.168.0.109/24
+**Phase 1b** - Configure bastion security (this role):
+
+```yaml
+- name: Configure bastion host security
+  hosts: bastion_hosts
+  become: true
+  gather_facts: false
+  vars:
+    ansible_user: ansible
+  pre_tasks:
+    - name: Wait for bastion SSH to be available
+      ansible.builtin.wait_for_connection:
+        delay: 5
+        timeout: 120
+    - name: Gather facts after bastion is available
+      ansible.builtin.setup:
+  roles:
+    - role: homelab.proxmox_lxc.bastion
+```
+
+**Phase 1c** - Verify bastion accessibility as `pbs` user:
+
+```yaml
+- name: Verify bastion hosts are accessible
+  hosts: bastion_hosts
+  gather_facts: false
+  become: false
+  vars:
+    ansible_user: pbs
+  tasks:
+    - name: Verify bastion SSH accessibility as pbs user
+      ansible.builtin.wait_for_connection:
+        delay: 5
+        timeout: 60
+```
+
+### Quick Deployment Commands
+
+```bash
+# Deploy bastion hosts as part of Phase 1
+ansible-playbook playbooks/infrastructure.yml --tags "foundation,phase1"
+
+# Deploy only bastion configuration (assumes containers already exist)
+ansible-playbook playbooks/foundation.yml --tags "bastion"
 ```
 
 ## Bastion Architecture
 
 ### Security Layers
 
-1. **Network Layer** - Dedicated VLAN/subnet for management traffic
-2. **Firewall Layer** - UFW with default-deny policy
+1. **Network Layer** - Dedicated management network segment
+2. **Firewall Layer** - iptables with default-deny INPUT policy
 3. **Access Layer** - SSH with key-based authentication only
 4. **Intrusion Prevention** - fail2ban monitoring and blocking
 5. **Audit Layer** - Comprehensive logging of all access
@@ -163,46 +165,45 @@ bastion_pip_packages:
 ### Access Flow
 
 ```
-External User → VPN → Bastion Host → Infrastructure
-                         ↓
-                   [Security Checks]
-                   - SSH key auth
-                   - fail2ban
-                   - UFW filtering
-                   - Audit logging
+External User -> VPN -> Bastion Host -> Infrastructure
+                          |
+                    [Security Checks]
+                    - SSH key auth
+                    - fail2ban
+                    - iptables filtering
+                    - Audit logging
 ```
 
-### Deployment Workflow
+### Allowed SSH Users
 
-1. **Bastion Creation** - Deploy bastion container on Proxmox
-2. **Security Hardening** - Apply security configurations
-3. **Tool Installation** - Install Ansible and dependencies
-4. **Collection Sync** - Copy Ansible collections and playbooks
-5. **Key Deployment** - Set up SSH keys for infrastructure access
-6. **Validation** - Verify connectivity and access
+- **pbs** - Primary operations user with sudo access
+- **ansible** - Provisioning user for Ansible re-runs and configuration management
+
+Both users are configured in `AllowUsers` in sshd_config.
 
 ## Tasks Overview
 
-The role performs the following operations:
+The role performs the following operations (container must already exist):
 
-1. **Container Creation** - Creates bastion LXC container with secure API authentication
-2. **Container Start** - Starts container and waits for availability
-3. **Package Update** - Updates package cache
-4. **Package Installation** - Installs core packages and Python dependencies
-5. **SSH Hardening** - Configures secure SSH daemon settings
-6. **fail2ban Setup** - Configures intrusion prevention
-7. **Firewall Configuration** - Sets up UFW with restrictive rules
-8. **User Creation** - Creates Ansible user with sudo access
-9. **SSH Key Deployment** - Deploys SSH public keys
-10. **Collection Sync** - Synchronizes Ansible collections and playbooks
+1. **Package Installation** - Installs core packages and Python dependencies
+2. **SSH Hardening** - Deploys hardened sshd_config (key-only auth, AllowUsers, modern ciphers)
+3. **fail2ban Setup** - Configures intrusion prevention with SSH jail
+4. **iptables Firewall** - Sets up firewall rules:
+   - Allow established/related connections
+   - Allow loopback traffic
+   - Allow configured ports (SSH, DNS)
+   - Default INPUT policy: DROP
+   - Persistent rules via iptables-restore systemd service
+5. **User Creation** - Creates `pbs` user with passwordless sudo
+6. **SSH Key Deployment** - Deploys SSH public keys for `pbs` user
+7. **Collection Sync** - Optionally synchronizes Ansible collections and playbooks
 
 ## Dependencies
 
 This role requires:
 
-- community.general collection (for proxmox, ufw modules)
 - ansible.posix collection (for authorized_key, synchronize modules)
-- homelab.common collection (for shared configurations)
+- homelab.common collection (for container_base, shared configurations)
 
 ## Files and Templates
 
@@ -220,7 +221,8 @@ PermitRootLogin no
 PasswordAuthentication no
 PubkeyAuthentication yes
 MaxAuthTries 3
-ClientAliveInterval 300
+ClientAliveInterval 600
+AllowUsers pbs ansible
 ```
 
 ### fail2ban Configuration
@@ -242,62 +244,6 @@ bantime = 3600
 - `restart ssh` - Restart SSH daemon after configuration changes
 - `restart fail2ban` - Restart fail2ban after configuration changes
 
-## Examples
-
-### Complete Security Deployment
-
-```yaml
-- name: Deploy security-focused bastion infrastructure
-  hosts: proxmox_hosts
-  vars:
-    proxmox_node: "pve-mac"
-    bastion_container:
-      vmid: 110
-      hostname: security-bastion
-      ip: 192.168.0.110/24
-      cores: 2
-      memory: 2048
-    bastion_security:
-      fail2ban_enabled: true
-      firewall_enabled: true
-      fail2ban_bantime: 10800  # 3 hours
-      fail2ban_maxretry: 2
-      allowed_ports:
-        - 22  # SSH only
-    ansible_ssh_public_key_content: "{{ lookup('file', '~/.ssh/bastion_id_rsa.pub') }}"
-
-  roles:
-    - homelab.proxmox_lxc.bastion
-
-  post_tasks:
-    - name: Verify bastion accessibility
-      wait_for:
-        host: 192.168.0.110
-        port: 22
-        timeout: 60
-
-    - name: Test SSH connection
-      command: ssh -o StrictHostKeyChecking=no pbs@192.168.0.110 'echo Bastion accessible'
-      delegate_to: localhost
-```
-
-### Development Bastion
-
-```yaml
-- name: Deploy development bastion
-  hosts: proxmox_hosts
-  vars:
-    bastion_container:
-      vmid: 999
-      hostname: dev-bastion
-      ip: 192.168.0.250/24
-    bastion_security:
-      fail2ban_bantime: 600   # 10 minutes (more lenient)
-      fail2ban_maxretry: 5
-  roles:
-    - homelab.proxmox_lxc.bastion
-```
-
 ## Troubleshooting
 
 ### Cannot Access Bastion
@@ -312,41 +258,60 @@ ping 192.168.0.110
 # Test SSH port
 nc -zv 192.168.0.110 22
 
-# Access via Proxmox console
-pct console 110
+# Access via Proxmox console (bypasses SSH and iptables)
+pct exec 110 -- bash
 ```
 
-### fail2ban Issues
+### fail2ban Banning Your IP
+
+If fail2ban has banned your Ansible controller or workstation IP:
 
 ```bash
-# Check fail2ban status
-pct exec 110 -- fail2ban-client status
-
-# View SSH jail status
+# Check if your IP is banned (run from Proxmox host)
 pct exec 110 -- fail2ban-client status sshd
 
-# Unban an IP address
+# Unban a specific IP address
 pct exec 110 -- fail2ban-client set sshd unbanip 192.168.0.50
 
-# Check fail2ban logs
-pct exec 110 -- tail -f /var/log/fail2ban.log
+# View fail2ban logs
+pct exec 110 -- tail -20 /var/log/fail2ban.log
+
+# Temporarily stop fail2ban if needed during provisioning
+pct exec 110 -- systemctl stop fail2ban
 ```
 
-### UFW Configuration Problems
+**Prevention:** If Ansible provisioning is triggering fail2ban bans, increase `fail2ban_maxretry` or whitelist your controller IP in the fail2ban jail configuration.
+
+### iptables Lockout Recovery
+
+If iptables rules lock you out of the bastion:
 
 ```bash
-# Check UFW status
-pct exec 110 -- ufw status verbose
+# Access the container directly from the Proxmox host (bypasses iptables)
+pct exec 110 -- bash
 
-# Temporarily disable UFW for debugging
-pct exec 110 -- ufw disable
+# Flush all iptables rules to restore access
+pct exec 110 -- iptables -F
+pct exec 110 -- iptables -P INPUT ACCEPT
 
-# Re-enable with proper rules
-pct exec 110 -- ufw --force enable
-
-# Check UFW logs
-pct exec 110 -- tail -f /var/log/ufw.log
+# Verify you can SSH in again, then re-run the bastion role
+ansible-playbook playbooks/foundation.yml --tags "bastion"
 ```
+
+### Proxmox Firewall vs Bastion iptables
+
+The bastion manages its own iptables firewall. The Proxmox-level NIC firewall is intentionally **disabled** for bastion containers (set in `inventory/group_vars/bastion_hosts.yml`):
+
+```yaml
+container_network:
+  firewall: false  # Bastion manages its own iptables
+```
+
+If you see unexpected connection drops, check that:
+
+1. The Proxmox firewall is not enabled on the bastion NIC (Datacenter > Firewall > check container NIC)
+2. The bastion iptables rules have ACCEPT rules before the DROP policy
+3. The iptables-restore service is active: `pct exec 110 -- systemctl status iptables-restore`
 
 ### Ansible Collection Issues
 
@@ -363,21 +328,31 @@ pct exec 110 -- pip list | grep -E 'kubernetes|proxmoxer'
 
 ## Security Considerations
 
-- **SSH Keys Only** - Disable password authentication completely
+- **SSH Keys Only** - Password authentication is completely disabled
+- **AllowUsers** - Only `pbs` and `ansible` users can SSH in
+- **Self-Managed Firewall** - Bastion uses iptables directly; Proxmox NIC firewall is disabled to avoid double-filtering and rule conflicts
 - **fail2ban Monitoring** - Monitor and tune fail2ban rules for your environment
-- **Firewall Rules** - Keep allowed_ports to absolute minimum
-- **Audit Logging** - Enable comprehensive audit logging
-- **Network Segmentation** - Isolate bastion on dedicated management network
+- **Firewall Rules** - Keep `allowed_ports` to the absolute minimum
 - **Regular Updates** - Keep bastion packages updated for security patches
 - **User Access Control** - Limit user accounts to only necessary administrators
-- **Two-Factor Auth** - Consider adding 2FA for SSH access (optional)
+- **iptables Rule Order** - ACCEPT rules are applied before the DROP policy to prevent lockout
 
-## Performance Considerations
+## Network Diagram
 
-- **Resource Allocation** - 2 CPU cores and 2GB RAM is sufficient for most environments
-- **Disk Space** - 20GB provides adequate space for collections and logs
-- **Network Bandwidth** - Minimal requirements as it's primarily SSH traffic
-- **Concurrent Sessions** - Monitor if many users access simultaneously
+```
+Internet -> VPN Gateway -> Bastion (192.168.0.110) -> Internal Infrastructure
+                              |
+                      K3s Cluster (192.168.0.111-114)
+                      Proxmox Hosts (192.168.0.56-57)
+                      LXC Services (192.168.0.200-240)
+```
+
+### Bastion Hosts
+
+| Host | IP | Container ID | Proxmox Node |
+|------|-----|-------------|--------------|
+| k3s-bastion | 192.168.0.110 | 110 | pve-mac |
+| nas-bastion | 192.168.0.109 | 109 | pve-nas |
 
 ## Integration with Infrastructure
 
@@ -397,46 +372,6 @@ ansible-playbook playbooks/site.yml
 ```bash
 # Manage Proxmox infrastructure from bastion
 ansible-playbook site.yml --tags "proxmox,lxc"
-```
-
-### Network Diagram
-
-```
-Internet → VPN Gateway → Bastion (192.168.0.110) → Internal Infrastructure
-                            ↓
-                    K3s Cluster (192.168.0.111-114)
-                    Proxmox Hosts (192.168.0.56-57)
-                    LXC Services (192.168.0.200-240)
-```
-
-## Advanced Usage
-
-### VPN Integration
-
-```yaml
-# Deploy bastion with WireGuard VPN
-- name: Bastion with VPN
-  hosts: proxmox_hosts
-  roles:
-    - homelab.proxmox_lxc.bastion
-  post_tasks:
-    - name: Install WireGuard
-      apt:
-        name: wireguard
-        state: present
-      delegate_to: 192.168.0.110
-```
-
-### Monitoring Integration
-
-```yaml
-# Add bastion to monitoring
-- name: Configure bastion monitoring
-  hosts: bastion
-  tasks:
-    - name: Install node_exporter
-      include_role:
-        name: homelab.common.node_exporter
 ```
 
 ## License
