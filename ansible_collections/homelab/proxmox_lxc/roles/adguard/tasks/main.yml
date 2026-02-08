@@ -142,7 +142,7 @@
 - name: Generate admin password hash if not provided
   ansible.builtin.shell: |
     set -o pipefail
-    htpasswd -bnBC 10 "" '{{ adguard_admin_password }}' | tr -d ':'
+    htpasswd -bnBC 10 "" {{ adguard_admin_password | quote }} | tr -d ':'
   args:
     executable: /bin/bash
   register: password_hash_result

@@ -1,22 +1,7 @@
 ---
 # Configure iptables firewall (replaces UFW for LXC compatibility)
-
-- name: Set default INPUT policy to DROP
-  ansible.builtin.iptables:
-    chain: INPUT
-    policy: DROP
-  when: security_hardening.firewall_default_policy.incoming | default('deny') == 'deny'
-
-- name: Set default FORWARD policy
-  ansible.builtin.iptables:
-    chain: FORWARD
-    policy: "{{ 'ACCEPT' if security_hardening.firewall_default_policy.routed | default('deny') == 'allow' else 'DROP' }}"
-
-- name: Set default OUTPUT policy to ACCEPT
-  ansible.builtin.iptables:
-    chain: OUTPUT
-    policy: ACCEPT
-  when: security_hardening.firewall_default_policy.outgoing | default('allow') == 'allow'
+# IMPORTANT: ACCEPT rules MUST be added BEFORE setting DROP policy
+# to avoid locking out the active Ansible SSH connection.
 
 - name: Allow established and related connections
   ansible.builtin.iptables:
@@ -62,6 +47,23 @@
   when:
     - inventory_hostname in groups.get('nas_storage', [])
     - service_security.nfs_security.restrict_subnets | default(false)
+
+- name: Set default INPUT policy to DROP
+  ansible.builtin.iptables:
+    chain: INPUT
+    policy: DROP
+  when: security_hardening.firewall_default_policy.incoming | default('deny') == 'deny'
+
+- name: Set default FORWARD policy
+  ansible.builtin.iptables:
+    chain: FORWARD
+    policy: "{{ 'ACCEPT' if security_hardening.firewall_default_policy.routed | default('deny') == 'allow' else 'DROP' }}"
+
+- name: Set default OUTPUT policy to ACCEPT
+  ansible.builtin.iptables:
+    chain: OUTPUT
+    policy: ACCEPT
+  when: security_hardening.firewall_default_policy.outgoing | default('allow') == 'allow'
 
 - name: Block direct internet for download clients
   ansible.builtin.iptables:

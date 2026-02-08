@@ -97,16 +97,24 @@ jobs:
 
       - name: Install external Ansible collections
         run: |
-          echo "Installing remaining collections from requirements..."
-          # Install other external collections, but don't fail if some are unavailable
-          # The smoke test primarily needs the homelab collections, which are built locally
-          ansible-galaxy collection install -r requirements.yml --force || {
-            echo "WARNING: Some external collections failed to install (possibly due to Galaxy rate limiting)"
+          echo "Installing external collections explicitly..."
+          # Do NOT use requirements.yml here - it contains type:dir entries for local
+          # collections that destroy source directories when used with --force
+          ansible-galaxy collection install \
+            "community.general:>=7.0.0" \
+            "ansible.posix:>=1.5.0" \
+            "community.proxmox:>=1.3.0" \
+            "kubernetes.core:>=2.4.0" \
+            "containers.podman:>=1.10.0" \
+            "community.crypto:>=2.0.0" \
+            "community.grafana:>=2.3.0" \
+            "community.docker:>=4.7.0" \
+            --force || {
+            echo "WARNING: Some external collections failed to install"
             echo "This is acceptable for smoke tests as they primarily test homelab collections"
           }
 
           echo "Installing collection-specific requirements..."
-          # Use a loop instead of find -exec for better error handling
           while IFS= read -r -d '' req_file; do
             echo "Installing from: $req_file"
             ansible-galaxy collection install -r "$req_file" --force || {
