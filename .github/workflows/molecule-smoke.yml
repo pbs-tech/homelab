@@ -72,12 +72,12 @@ jobs:
 
           INSTALL_FAILED=0
 
-          if ! ansible-galaxy collection install "community.docker:>=4.7.0" --force; then
+          if ! ansible-galaxy collection install "community.docker:>=4.7.0" -p ~/.ansible/collections --force; then
             echo "WARNING: Failed to install community.docker"
             INSTALL_FAILED=$((INSTALL_FAILED + 1))
           fi
 
-          if ! ansible-galaxy collection install "ansible.posix:>=1.5.0" --force; then
+          if ! ansible-galaxy collection install "ansible.posix:>=1.5.0" -p ~/.ansible/collections --force; then
             echo "WARNING: Failed to install ansible.posix"
             INSTALL_FAILED=$((INSTALL_FAILED + 1))
           fi
@@ -97,73 +97,31 @@ jobs:
 
       - name: Install external Ansible collections
         run: |
-          echo "Installing external collections explicitly..."
-          # Do NOT use requirements.yml here - it contains type:dir entries for local
-          # collections that destroy source directories when used with --force
-          ansible-galaxy collection install \
-            "community.general:>=7.0.0" \
-            "ansible.posix:>=1.5.0" \
-            "community.proxmox:>=1.3.0" \
-            "kubernetes.core:>=2.4.0" \
-            "containers.podman:>=1.10.0" \
-            "community.crypto:>=2.0.0" \
-            "community.grafana:>=2.3.0" \
-            "community.docker:>=4.7.0" \
-            --force || {
+          set -e
+          echo "Installing external collections from requirements.yml..."
+          # requirements.yml now contains only external collections
+          # (local homelab collections are found via collections_path = . in ansible.cfg)
+          ansible-galaxy collection install -r requirements.yml -p ~/.ansible/collections --force || {
             echo "WARNING: Some external collections failed to install"
             echo "This is acceptable for smoke tests as they primarily test homelab collections"
           }
 
-          echo "Installing collection-specific requirements..."
-          while IFS= read -r -d '' req_file; do
-            echo "Installing from: $req_file"
-            ansible-galaxy collection install -r "$req_file" --force || {
-              echo "WARNING: Failed to install from $req_file"
-            }
-          done < <(find ansible_collections/ -name "requirements.yml" -print0)
-
       - name: Build and install homelab collections
         run: |
           set -e
-
-          # Build and install common collection (required by others)
-          echo "Building homelab.common collection..."
-          cd ansible_collections/homelab/common
-          ansible-galaxy collection build --force || {
-            echo "ERROR: Failed to build homelab.common collection"
-            exit 1
-          }
-          ansible-galaxy collection install *.tar.gz --force || {
-            echo "ERROR: Failed to install homelab.common collection"
-            exit 1
-          }
-          cd ../../..
-
-          # Build and install k3s collection
-          echo "Building homelab.k3s collection..."
-          cd ansible_collections/homelab/k3s
-          ansible-galaxy collection build --force || {
-            echo "ERROR: Failed to build homelab.k3s collection"
-            exit 1
-          }
-          ansible-galaxy collection install *.tar.gz --force || {
-            echo "ERROR: Failed to install homelab.k3s collection"
-            exit 1
-          }
-          cd ../../..
-
-          # Build and install proxmox_lxc collection
-          echo "Building homelab.proxmox_lxc collection..."
-          cd ansible_collections/homelab/proxmox_lxc
-          ansible-galaxy collection build --force || {
-            echo "ERROR: Failed to build homelab.proxmox_lxc collection"
-            exit 1
-          }
-          ansible-galaxy collection install *.tar.gz --force || {
-            echo "ERROR: Failed to install homelab.proxmox_lxc collection"
-            exit 1
-          }
-          cd ../../..
+          # Build tarballs and install to ~/.ansible/collections
+          # to avoid source==destination issues with collections_path = .
+          for collection in common k3s proxmox_lxc; do
+            echo "Building and installing homelab.${collection}..."
+            cd ansible_collections/homelab/${collection}
+            ansible-galaxy collection build --force
+            ansible-galaxy collection install *.tar.gz -p ~/.ansible/collections --force || {
+              echo "ERROR: Failed to install homelab.${collection} collection"
+              exit 1
+            }
+            rm -f *.tar.gz
+            cd ../../..
+          done
 
       - name: Verify collection installation
         run: |
