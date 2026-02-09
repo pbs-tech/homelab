@@ -3,11 +3,11 @@
 # Applied to: unbound, wireguard, adguard, traefik, openwrt
 
 # Default container resources for networking services
+# Increased from 256MB/4GB - too small for apt operations
 lxc_cores: 1
-lxc_memory: 256
-lxc_swap: 0
-lxc_disk_size: 4
+lxc_memory: 512
+lxc_swap: 256
+lxc_disk_size: 8
 
-# Service-specific overrides
-# traefik: memory=512, disk=8
-# adguard: memory=512, disk=8
+# Note: For existing containers with small disks, you may need to
+# resize them manually in Proxmox or recreate them

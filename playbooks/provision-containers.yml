@@ -97,6 +97,8 @@
 - name: Verify container connectivity
   hosts: lxc_containers
   gather_facts: false
+  # Override become from group_vars - these verification tasks don't need sudo
+  become: false
   tasks:
     - name: Wait for containers to be reachable via SSH
       wait_for:

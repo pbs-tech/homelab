@@ -62,25 +62,13 @@ jobs:
       - name: Install Ansible collections
         run: |
           set -e
-          echo "Installing main requirements..."
-          ansible-galaxy collection install -r requirements.yml --force || {
-            echo "ERROR: Failed to install main requirements.yml"
+          # Install external collections from requirements.yml
+          # Local homelab collections are found via collections_path = . in ansible.cfg
+          echo "Installing external collections from requirements.yml..."
+          ansible-galaxy collection install -r requirements.yml -p ~/.ansible/collections --force || {
+            echo "ERROR: Failed to install external collections"
             exit 1
           }
-
-          echo "Installing collection-specific requirements..."
-          find ansible_collections/ -name "requirements.yml" -exec ansible-galaxy collection install -r {} --force \; || {
-            echo "ERROR: Failed to install collection-specific requirements"
-            exit 1
-          }
-
-          echo "Building and installing local collections..."
-          for collection in common k3s proxmox_lxc; do
-            ansible-galaxy collection install ansible_collections/homelab/$collection/ --force || {
-              echo "ERROR: Failed to install homelab.$collection collection"
-              exit 1
-            }
-          done
           echo "All collections installed successfully"
 
       - name: Ansible lint
@@ -151,7 +139,7 @@ jobs:
       - name: Install external dependencies
         run: |
           set -e
-          ansible-galaxy collection install -r requirements.yml --force || {
+          ansible-galaxy collection install -r requirements.yml -p ~/.ansible/collections --force || {
             echo "ERROR: Failed to install external dependencies"
             exit 1
           }
@@ -160,10 +148,15 @@ jobs:
         if: matrix.collection != 'common'
         run: |
           set -e
-          ansible-galaxy collection install ansible_collections/homelab/common/ --force || {
+          # Build tarball first, then install to ~/.ansible/collections
+          # to avoid source==destination issue with collections_path = .
+          cd ansible_collections/homelab/common
+          ansible-galaxy collection build --force
+          ansible-galaxy collection install *.tar.gz -p ~/.ansible/collections --force || {
             echo "ERROR: Failed to install homelab.common collection dependency"
             exit 1
           }
+          rm -f *.tar.gz
 
       - name: Clean build artifacts
         run: rm -f ansible_collections/homelab/${{ matrix.collection }}/*.tar.gz

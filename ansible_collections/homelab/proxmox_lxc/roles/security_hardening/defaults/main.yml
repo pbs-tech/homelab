@@ -1,8 +1,14 @@
 ---
 # Security hardening defaults
 security_hardening:
-  # Firewall configuration
-  ufw_enabled: true
+  # Firewall configuration (uses iptables for LXC compatibility)
+  firewall_enabled: true
+  ufw_enabled: true  # Kept for backward compatibility
+  firewall_default_policy:
+    incoming: deny
+    outgoing: allow
+    routed: deny
+  # Legacy UFW config (deprecated, use firewall_default_policy)
   ufw_default_policy:
     incoming: deny
     outgoing: allow

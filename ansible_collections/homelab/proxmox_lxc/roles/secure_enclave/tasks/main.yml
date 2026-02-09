@@ -42,7 +42,11 @@
       files:
         - proxmox_api_validation.yml
       paths:
-        - "{{ role_path }}/../../common/tasks"
+        # Look in homelab.common collection tasks directory
+        - "{{ playbook_dir }}/../ansible_collections/homelab/common/tasks"
+        - "{{ lookup('env', 'ANSIBLE_COLLECTIONS_PATH') | default('~/.ansible/collections') }}/ansible_collections/homelab/common/tasks"
+        # Fallback to relative path from role (for nested collection installs)
+        - "{{ role_path }}/../../../common/tasks"
   tags:
     - validation
     - proxmox

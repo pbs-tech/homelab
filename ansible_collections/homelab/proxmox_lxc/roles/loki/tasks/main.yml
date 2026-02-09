@@ -63,7 +63,7 @@
     mode: "0755"
     remote_src: true
   when: loki_download.changed
-  notify: restart loki
+  notify: Restart loki
 
 - name: Create Loki configuration file
   ansible.builtin.template:
@@ -73,7 +73,7 @@
     group: "{{ loki_group }}"
     mode: "0644"
     backup: true
-  notify: restart loki
+  notify: Restart loki
 
 - name: Create Loki systemd service
   ansible.builtin.template:
@@ -81,8 +81,8 @@
     dest: /etc/systemd/system/loki.service
     mode: "0644"
   notify:
-    - reload systemd
-    - restart loki
+    - Reload systemd
+    - Restart loki
 
 - name: Enable and start Loki
   ansible.builtin.systemd:

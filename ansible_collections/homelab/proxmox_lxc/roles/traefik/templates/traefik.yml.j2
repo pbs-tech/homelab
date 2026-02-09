@@ -34,14 +34,12 @@ providers:
   file:
     directory: /etc/traefik/dynamic
     watch: true
+{% if traefik_k8s_enabled | default(false) %}
 
   # Kubernetes provider for K3s services
   kubernetesIngress:
-    endpoints:
-      - "https://{{ k3s_api_endpoint }}"
-    token: "{{ k3s_service_token | default('') }}"
-    certAuthFilePath: /etc/traefik/k3s-ca.crt
-    namespaces: []
+    kubeConfigPath: /etc/traefik/kubeconfig
+{% endif %}
 
 log:
   level: INFO

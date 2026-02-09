@@ -17,6 +17,14 @@
       - dbus
     state: present
 
+# Install Python Docker SDK (required for community.docker modules)
+- name: Install Docker Python SDK
+  ansible.builtin.pip:
+    name:
+      - docker
+      - requests
+    state: present
+
 # Install Docker using common role
 - name: Install Docker
   ansible.builtin.include_role:

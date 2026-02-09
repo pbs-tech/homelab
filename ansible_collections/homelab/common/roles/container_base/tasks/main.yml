@@ -149,7 +149,7 @@
   ansible.builtin.assert:
     that:
       - container_vmid is defined
-      - container_vmid | string | regex_search('^[0-9]+$')
+      - container_vmid | string is match('^[0-9]+$')
     fail_msg: "container_vmid must be a numeric value. Got: {{ container_vmid | default('undefined') }}"
     quiet: true
   tags:

@@ -1,0 +1,23 @@
+---
+# Bastion Hosts group configuration
+# Secured jump hosts for infrastructure access
+
+# Use the pbs user for bastion host management (after initial provisioning)
+ansible_user: pbs
+
+# Enable privilege escalation for management tasks
+ansible_become: true
+ansible_become_method: sudo
+
+# Bastion container resources (larger than default LXC containers)
+lxc_cores: 2
+lxc_memory: 2048
+lxc_swap: 256
+lxc_disk_size: 20
+
+# Disable Proxmox-level firewall on bastion NICs
+# Bastions manage their own iptables firewall via the bastion role
+container_network:
+  bridge: vmbr0
+  ip_config: dhcp
+  firewall: false

@@ -1,11 +1,11 @@
 ---
 - name: Check if SSH config backup exists
-  stat:
+  ansible.builtin.stat:
     path: /etc/ssh/sshd_config.backup
   register: ssh_backup_stat
 
 - name: Backup original SSH config
-  copy:
+  ansible.builtin.copy:
     src: /etc/ssh/sshd_config
     dest: /etc/ssh/sshd_config.backup
     remote_src: true
@@ -15,7 +15,7 @@
   when: not ssh_backup_stat.stat.exists
 
 - name: Configure SSH hardening for K3s nodes
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/ssh/sshd_config
     regexp: "{{ item.regexp }}"
     line: "{{ item.line }}"
@@ -51,7 +51,7 @@
   notify: Restart ssh
 
 - name: Add K3s-specific SSH security settings
-  blockinfile:
+  ansible.builtin.blockinfile:
     path: /etc/ssh/sshd_config
     block: |
       # K3s-specific SSH configuration
@@ -70,7 +70,7 @@
   notify: Restart ssh
 
 - name: Test SSH configuration
-  command: sshd -t
+  ansible.builtin.command: sshd -t
   register: ssh_test
   failed_when: ssh_test.rc != 0
   changed_when: false

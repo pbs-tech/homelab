@@ -5,10 +5,10 @@
 - name: Deploy automation services
   hosts: automation
   become: true
-  gather_facts: true
+  gather_facts: false  # Defer until containers exist
   pre_tasks:
     - name: Ensure automation containers exist
-      include_role:
+      ansible.builtin.include_role:
         name: homelab.common.container_base
       vars:
         container_resources:
@@ -17,6 +17,9 @@
           swap: "{{ lxc_swap | default(0) }}"
           disk_size: "{{ lxc_disk_size | default(16) }}"
       when: container_id is defined
+
+    - name: Gather facts after container is available
+      ansible.builtin.setup:
 
   roles:
     - role: homelab.common.common_setup
@@ -29,11 +32,11 @@
 - name: Deploy NAS services
   hosts: nas_services
   become: true
-  gather_facts: true
+  gather_facts: false  # Defer until containers exist
   serial: 2 # Deploy NAS services in batches to avoid resource contention
   pre_tasks:
     - name: Ensure NAS containers exist
-      include_role:
+      ansible.builtin.include_role:
         name: homelab.common.container_base
       vars:
         container_resources:
@@ -42,6 +45,9 @@
           swap: "{{ lxc_swap | default(0) }}"
           disk_size: "{{ lxc_disk_size | default(8) }}"
       when: container_id is defined
+
+    - name: Gather facts after container is available
+      ansible.builtin.setup:
 
   roles:
     - role: homelab.common.common_setup
@@ -73,12 +79,12 @@
 
   post_tasks:
     - name: Verify application services
-      uri:
+      ansible.builtin.uri:
         url: http://{{ ansible_host }}:{{ service_port }}
         method: GET
         timeout: 30
         status_code: [200, 302, 404]
       delegate_to: localhost
+      become: false
       when: service_port is defined
-      ignore_errors: true
-      register: ignore_errors_register
+      failed_when: false

@@ -6,7 +6,7 @@
     <type>_ssh._tcp</type>
     <port>{{ pi_security_hardening.ssh_hardening.port }}</port>
   </service>
-  {% if inventory_hostname in groups['server'] %}
+  {% if inventory_hostname in groups[server_group] %}
   <service>
     <type>_k3s-api._tcp</type>
     <port>6443</port>

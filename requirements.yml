@@ -5,19 +5,10 @@
 # Install with: ansible-galaxy install -r requirements.yml
 
 collections:
-# Core homelab collections
-
-  - source: ansible_collections/homelab/common
-    name: homelab.common
-    type: dir
-
-  - source: ansible_collections/homelab/k3s
-    name: homelab.k3s
-    type: dir
-
-  - source: ansible_collections/homelab/proxmox_lxc
-    name: homelab.proxmox_lxc
-    type: dir
+# Local homelab collections (common, k3s, proxmox_lxc) are discovered
+# automatically via collections_path = . in ansible.cfg.
+# Do NOT add type:dir entries here - they cause self-destructive installs
+# when the install destination matches the source directory.
 
 # External collections
 

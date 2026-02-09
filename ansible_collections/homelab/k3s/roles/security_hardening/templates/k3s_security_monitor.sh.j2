@@ -34,7 +34,7 @@ check_disk_space() {
 
 # Check K3s services
 check_k3s_services() {
-{% if inventory_hostname in groups['server'] %}
+{% if inventory_hostname in groups[server_group] %}
     # Check K3s server
     if ! systemctl is-active --quiet k3s; then
         log_message "ERROR: K3s server service is not running"

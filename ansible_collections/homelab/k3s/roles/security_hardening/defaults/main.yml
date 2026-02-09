@@ -1,4 +1,7 @@
 ---
+# K3s inventory group name for server nodes
+server_group: server # noqa var-naming[no-role-prefix]
+
 # Pi-specific security hardening defaults
 pi_security_hardening:
   # Firewall configuration (works with existing UFW setup)

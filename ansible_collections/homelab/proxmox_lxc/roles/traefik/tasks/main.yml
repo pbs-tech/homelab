@@ -71,6 +71,12 @@
     mode: "0755"
     remote_src: true
 
+- name: Allow traefik to bind to privileged ports
+  community.general.capabilities:
+    path: /usr/local/bin/traefik
+    capability: cap_net_bind_service=+ep
+    state: present
+
 - name: Create Traefik static configuration
   ansible.builtin.template:
     src: traefik.yml.j2
@@ -104,3 +110,69 @@
     enabled: true
     state: started
     daemon_reload: true
+
+- name: Allow HTTP traffic
+  ansible.builtin.iptables:
+    chain: INPUT
+    protocol: tcp
+    destination_port: "{{ traefik_http_port }}"
+    jump: ACCEPT
+    comment: "Traefik HTTP"
+  tags: firewall
+
+- name: Allow HTTPS traffic
+  ansible.builtin.iptables:
+    chain: INPUT
+    protocol: tcp
+    destination_port: "{{ traefik_https_port }}"
+    jump: ACCEPT
+    comment: "Traefik HTTPS"
+  tags: firewall
+
+- name: Allow Traefik dashboard
+  ansible.builtin.iptables:
+    chain: INPUT
+    protocol: tcp
+    destination_port: "{{ traefik_dashboard_port }}"
+    jump: ACCEPT
+    comment: "Traefik Dashboard"
+  when: traefik_dashboard_enabled | default(true)
+  tags: firewall
+
+- name: Create iptables rules directory
+  ansible.builtin.file:
+    path: /etc/iptables
+    state: directory
+    mode: "0755"
+  tags: firewall
+
+- name: Save iptables rules
+  ansible.builtin.shell: iptables-save > /etc/iptables/rules.v4
+  changed_when: true
+  tags: firewall
+
+- name: Create iptables restore service
+  ansible.builtin.copy:
+    content: |
+      [Unit]
+      Description=Restore iptables rules
+      Before=network-pre.target
+      Wants=network-pre.target
+
+      [Service]
+      Type=oneshot
+      ExecStart=/sbin/iptables-restore /etc/iptables/rules.v4
+      RemainAfterExit=yes
+
+      [Install]
+      WantedBy=multi-user.target
+    dest: /etc/systemd/system/iptables-restore.service
+    mode: "0644"
+  tags: firewall
+
+- name: Enable iptables restore service
+  ansible.builtin.systemd:
+    name: iptables-restore
+    enabled: true
+    daemon_reload: true
+  tags: firewall

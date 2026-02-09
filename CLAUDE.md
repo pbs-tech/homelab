@@ -50,9 +50,6 @@ ansible-playbook tests/validate-services.yml
 # Test Proxmox API token authentication
 ansible-playbook test-proxmox-api-tokens.yml
 
-# Validate Proxmox connectivity
-ansible-playbook -i inventory/proxmox.yml playbooks/validate-proxmox.yml --tags validation
-
 # Security hardening test playbook
 ansible-playbook test-security-hardening.yml
 ```
@@ -90,16 +87,19 @@ ansible-playbook site.yml --tags "monitoring"
 ### Security-Focused Deployment
 
 ```bash
-# Phase 1: Create secured bastion host (run from control machine)
-ansible-playbook security-deploy.yml --tags "phase1,bastion"
+# Phase 1: Deploy bastion hosts and foundation infrastructure
+ansible-playbook playbooks/infrastructure.yml --tags "foundation,phase1"
 
-# Phase 2: Deploy DNS and core security services (run FROM bastion host)
-ssh pbs@192.168.0.110
-ansible-playbook phase2-security.yml --tags "dns,security"
+# Phase 2: Deploy DNS, VPN, and reverse proxy services
+ansible-playbook playbooks/infrastructure.yml --tags "networking,phase2"
 
 # Security hardening test playbook
 ansible-playbook test-security-hardening.yml
 ```
+
+> **Note:** The legacy `security-deploy.yml` and `phase2-security.yml` files still exist for
+> backwards compatibility but the phased deployment via `playbooks/infrastructure.yml` is the
+> recommended approach.
 
 ### Secure Enclave Deployment (Pentesting Environment)
 
@@ -198,13 +198,13 @@ The Proxmox dynamic inventory requires vault variables for API authentication.
 
 ```bash
 # Create vault file from example
-cp inventory/group_vars/vault.yml.example inventory/group_vars/vault.yml
+cp inventory/group_vars/all/vault.yml.example inventory/group_vars/all/vault.yml
 
 # Encrypt the vault file
-ansible-vault encrypt inventory/group_vars/vault.yml
+ansible-vault encrypt inventory/group_vars/all/vault.yml
 
 # Edit encrypted vault to add your credentials
-ansible-vault edit inventory/group_vars/vault.yml
+ansible-vault edit inventory/group_vars/all/vault.yml
 ```
 
 Required vault variables:
@@ -510,12 +510,13 @@ ansible-galaxy collection install *.tar.gz --force
 /
 ├── site.yml                         # Legacy main orchestration (backwards compatibility)
 ├── requirements.yml                 # Consolidated collection and dependency requirements
-├── security-deploy.yml              # Security-focused phased deployment
-├── phase2-security.yml              # Phase 2 deployment (run from bastion)
+├── security-deploy.yml              # Legacy security deployment (use infrastructure.yml instead)
+├── phase2-security.yml              # Legacy phase 2 deployment (use infrastructure.yml instead)
 ├── test-security-hardening.yml      # Security validation playbook
-├── playbooks/                       # NEW: Improved orchestration structure
+├── playbooks/                       # Recommended orchestration structure
 │   ├── infrastructure.yml           # Main phased deployment orchestrator
 │   ├── foundation.yml               # Phase 1: Bastion and Proxmox setup
+│   ├── provision-containers.yml     # LXC container provisioning
 │   ├── networking.yml               # Phase 2: DNS, VPN, reverse proxy
 │   ├── monitoring.yml               # Phase 3: Prometheus, Grafana, Loki
 │   ├── applications.yml             # Phase 4: Home automation, NAS services
@@ -565,7 +566,7 @@ ansible-galaxy collection install *.tar.gz --force
 
 ### Configuration Management
 
-- Global variables in `inventory/group_vars/all.yml` define network topology and service settings
+- Global variables in `inventory/group_vars/all/` define network topology and service settings
 - Role-specific defaults in `roles/*/defaults/main.yml` for service configurations
 - Jinja2 templates generate service-specific configuration files
 
@@ -614,12 +615,14 @@ The collection implements:
 - **Resource validation** before deployment
 - **Security-first approach** with hardening by default
 
-**Security-First Approach**:
+**Security-First Approach** (via `playbooks/infrastructure.yml`):
 
-1. **Phase 1**: Deploy bastion hosts with hardened security configurations
-2. **Phase 2**: Deploy DNS security infrastructure (Unbound/AdGuard) from bastion
-3. **Phase 3**: Deploy VPN and reverse proxy services
-4. **Standard Deployment**: Use traditional site.yml for normal operations after security foundation
+1. **Phase 1 (foundation)**: Provision LXC containers, deploy bastion hosts, configure Proxmox
+2. **Phase 2 (networking)**: Deploy DNS (Unbound/AdGuard), VPN (WireGuard), reverse proxy (Traefik)
+3. **Phase 3 (monitoring)**: Deploy Prometheus, Grafana, Loki, AlertManager
+4. **Phase 4 (applications)**: Deploy Home Assistant, NAS/media services
+5. **Phase 5 (k3s)**: Deploy K3s cluster (requires phases 1-2)
+6. **Phase 6 (enclave)**: Deploy secure enclave (opt-in, requires explicit acknowledgement)
 
 **Service Organization**:
 

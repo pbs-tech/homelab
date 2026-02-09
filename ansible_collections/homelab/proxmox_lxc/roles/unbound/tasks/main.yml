@@ -135,15 +135,65 @@
     state: started
   tags: service
 
-- name: Configure firewall for DNS
-  community.general.ufw:
-    rule: allow
-    port: "{{ unbound_port }}"
-    proto: "{{ item }}"
-    comment: "Unbound DNS"
-  loop:
-    - tcp
-    - udp
+- name: Allow DNS TCP traffic
+  ansible.builtin.iptables:
+    chain: INPUT
+    protocol: tcp
+    destination_port: "{{ unbound_port }}"
+    jump: ACCEPT
+    comment: "Unbound DNS TCP"
+  when: unbound_enable_firewall | default(true)
+  tags: firewall
+
+- name: Allow DNS UDP traffic
+  ansible.builtin.iptables:
+    chain: INPUT
+    protocol: udp
+    destination_port: "{{ unbound_port }}"
+    jump: ACCEPT
+    comment: "Unbound DNS UDP"
+  when: unbound_enable_firewall | default(true)
+  tags: firewall
+
+- name: Create iptables rules directory
+  ansible.builtin.file:
+    path: /etc/iptables
+    state: directory
+    mode: "0755"
+  when: unbound_enable_firewall | default(true)
+  tags: firewall
+
+- name: Save iptables rules
+  ansible.builtin.shell: iptables-save > /etc/iptables/rules.v4
+  changed_when: true
+  when: unbound_enable_firewall | default(true)
+  tags: firewall
+
+- name: Create iptables restore service
+  ansible.builtin.copy:
+    content: |
+      [Unit]
+      Description=Restore iptables rules
+      Before=network-pre.target
+      Wants=network-pre.target
+
+      [Service]
+      Type=oneshot
+      ExecStart=/sbin/iptables-restore /etc/iptables/rules.v4
+      RemainAfterExit=yes
+
+      [Install]
+      WantedBy=multi-user.target
+    dest: /etc/systemd/system/iptables-restore.service
+    mode: "0644"
+  when: unbound_enable_firewall | default(true)
+  tags: firewall
+
+- name: Enable iptables restore service
+  ansible.builtin.systemd:
+    name: iptables-restore
+    enabled: true
+    daemon_reload: true
   when: unbound_enable_firewall | default(true)
   tags: firewall
 

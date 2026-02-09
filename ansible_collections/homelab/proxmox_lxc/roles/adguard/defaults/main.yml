@@ -11,7 +11,7 @@ adguard_group: "adguard"
 
 # Web interface configuration
 adguard_bind_host: "0.0.0.0"
-adguard_bind_port: 80
+adguard_bind_port: 3000
 adguard_web_session_ttl: 720
 
 # Authentication
@@ -45,6 +45,7 @@ adguard_bootstrap_dns:
 
 # Network access control
 adguard_allowed_clients:
+  - "127.0.0.0/8"     # Localhost (required for local DNS validation)
   - "192.168.0.0/24"
 adguard_disallowed_clients: []
 

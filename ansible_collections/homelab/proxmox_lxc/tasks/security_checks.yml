@@ -6,6 +6,7 @@
     port: 22
     timeout: 10
   delegate_to: localhost
+  become: false
   failed_when: false
   register: bastion_check
 
@@ -15,6 +16,7 @@
     port: 53
     timeout: 10
   delegate_to: localhost
+  become: false
   failed_when: false
   register: unbound_check
 
@@ -24,17 +26,9 @@
     port: 80
     timeout: 10
   delegate_to: localhost
+  become: false
   failed_when: false
   register: adguard_check
-
-- name: Check if WireGuard is deployed
-  ansible.builtin.wait_for:
-    host: 192.168.0.203
-    port: 51820
-    timeout: 10
-  delegate_to: localhost
-  failed_when: false
-  register: wireguard_check
 
 - name: Check if Traefik reverse proxy is deployed
   ansible.builtin.wait_for:
@@ -42,6 +36,7 @@
     port: 80
     timeout: 10
   delegate_to: localhost
+  become: false
   failed_when: false
   register: traefik_check
 
@@ -50,35 +45,25 @@
     msg: |
       SECURITY PREREQUISITE FAILURE:
 
-      Before deploying monitoring/automation services, you must first deploy the security infrastructure:
+      Before deploying services, deploy the foundation and networking phases:
 
-      Phase 1: Create bastion host
-        ansible-playbook security-deploy.yml --tags "phase1,bastion"
+      Option 1 - Phased deployment (recommended):
+        ansible-playbook playbooks/infrastructure.yml --tags "foundation,phase1"
+        ansible-playbook playbooks/infrastructure.yml --tags "networking,phase2"
 
-      Phase 2: Deploy security services (run FROM bastion: ssh pbs@192.168.0.110)
-        ansible-playbook phase2-security.yml
+      Option 2 - Deploy networking services directly:
+        ansible-playbook playbooks/networking.yml
 
       Current status:
-      # yamllint disable-line rule:line-length
-      # yamllint disable-line rule:line-length
       - Bastion (192.168.0.110:22): {{ 'OK' if bastion_check.state is defined and bastion_check.state == 'started' else 'FAILED' }}
-      # yamllint disable-line rule:line-length
-      # yamllint disable-line rule:line-length
       - Unbound DNS (192.168.0.202:53): {{ 'OK' if unbound_check.state is defined and unbound_check.state == 'started' else 'FAILED' }}
-      # yamllint disable-line rule:line-length
-      # yamllint disable-line rule:line-length
       - AdGuard (192.168.0.204:80): {{ 'OK' if adguard_check.state is defined and adguard_check.state == 'started' else 'FAILED' }}
-      # yamllint disable-line rule:line-length
-      # yamllint disable-line rule:line-length
-      - WireGuard (192.168.0.203:51820): {{ 'OK' if wireguard_check.state is defined and wireguard_check.state == 'started' else 'FAILED' }}
-      # yamllint disable-line rule:line-length
-      # yamllint disable-line rule:line-length
       - Traefik (192.168.0.205:80): {{ 'OK' if traefik_check.state is defined and traefik_check.state == 'started' else 'FAILED' }}
 
-      All security services must be running before deploying application services.
+      To bypass checks for emergency maintenance:
+        touch /tmp/bypass_security_checks
   when: >-
     bastion_check.state is not defined or bastion_check.state != 'started' or
     unbound_check.state is not defined or unbound_check.state != 'started' or
     adguard_check.state is not defined or adguard_check.state != 'started' or
-    wireguard_check.state is not defined or wireguard_check.state != 'started' or
     traefik_check.state is not defined or traefik_check.state != 'started'

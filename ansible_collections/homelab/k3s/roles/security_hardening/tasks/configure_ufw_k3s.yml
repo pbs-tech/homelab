@@ -1,6 +1,6 @@
 ---
 - name: Get current UFW status
-  command: ufw status
+  ansible.builtin.command: ufw status
   register: ufw_status_check
   changed_when: false
   failed_when: false
@@ -32,7 +32,7 @@
         rule: allow
         port: 6443
         comment: K3s API server
-      when: inventory_hostname in groups['server']
+      when: inventory_hostname in groups[server_group]
 
     - name: Allow etcd ports for multi-master
       community.general.ufw:
@@ -41,10 +41,10 @@
         proto: tcp
         src: "{{ item }}"
         comment: etcd cluster communication
-      loop: "{{ groups['server'] | map('extract', hostvars, 'ansible_host') | list }}"
+      loop: "{{ groups[server_group] | map('extract', hostvars, 'ansible_host') | list }}"
       when:
-        - inventory_hostname in groups['server']
-        - groups['server'] | length > 1
+        - inventory_hostname in groups[server_group]
+        - groups[server_group] | length > 1
 
     - name: Allow K3s inter-node communication
       community.general.ufw:

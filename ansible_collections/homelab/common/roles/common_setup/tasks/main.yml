@@ -1,10 +1,43 @@
 ---
 # Common setup tasks for all infrastructure components
 
+- name: Wait for network connectivity
+  ansible.builtin.wait_for:
+    host: 1.1.1.1
+    port: 53
+    timeout: 60
+  tags: [molecule-notest]
+
+- name: Verify DNS resolution is working
+  ansible.builtin.command:
+    cmd: getent hosts archive.ubuntu.com
+  register: dns_check
+  retries: 5
+  delay: 10
+  until: dns_check.rc == 0
+  changed_when: false
+  failed_when: false
+  tags: [molecule-notest]
+
+- name: Configure resolv.conf if DNS not working
+  ansible.builtin.copy:
+    content: |
+      nameserver 1.1.1.1
+      nameserver 1.0.0.1
+      nameserver 8.8.8.8
+    dest: /etc/resolv.conf
+    mode: "0644"
+  when: dns_check.rc != 0
+  tags: [molecule-notest]
+
 - name: Update package cache
   ansible.builtin.apt:
     update_cache: true
     cache_valid_time: 3600
+  register: apt_update
+  retries: 5
+  delay: 30
+  until: apt_update is succeeded
   when: ansible_os_family == "Debian"
   tags: [molecule-notest]
 
