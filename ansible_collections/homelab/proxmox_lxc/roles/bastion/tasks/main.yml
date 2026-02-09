@@ -150,6 +150,7 @@
     dest: "{{ bastion_sync_dest_base }}/ansible_collections/"
     delete: true
     recursive: true
+  become: true
   become_user: pbs
   when: bastion_sync_collections | default(false)
 
@@ -158,5 +159,6 @@
     src: "{{ bastion_sync_source_base }}/site.yml"
     dest: "{{ bastion_sync_dest_base }}/site.yml"
     mode: "0644"
+  become: true
   become_user: pbs
   when: bastion_sync_collections | default(false)

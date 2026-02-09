@@ -23,10 +23,14 @@
   tags: setup
 
 - name: Check if systemd-resolved is running
-  ansible.builtin.command: systemctl is-active systemd-resolved
-  register: resolved_status
-  changed_when: false
-  failed_when: false
+  ansible.builtin.service_facts:
+  tags: setup
+
+- name: Set systemd-resolved status
+  ansible.builtin.set_fact:
+    _resolved_active: >-
+      {{ 'systemd-resolved.service' in ansible_facts.services
+         and ansible_facts.services['systemd-resolved.service'].state == 'running' }}
   tags: setup
 
 - name: Stop systemd-resolved to free port 53
@@ -34,14 +38,14 @@
     name: systemd-resolved
     state: stopped
     enabled: false
-  when: resolved_status.rc == 0
+  when: _resolved_active
   tags: setup
 
 - name: Remove systemd-resolved stub resolver symlink
   ansible.builtin.file:
     path: /etc/resolv.conf
     state: absent
-  when: resolved_status.rc == 0
+  when: _resolved_active
   tags: setup
 
 - name: Create static resolv.conf
@@ -54,7 +58,7 @@
     owner: root
     group: root
     mode: "0644"
-  when: resolved_status.rc == 0
+  when: _resolved_active
   tags: setup
 
 - name: Create AdGuard group
@@ -247,15 +251,19 @@
   tags: service
 
 - name: Check AdGuard service status
-  ansible.builtin.command: systemctl status adguard --no-pager
-  register: adguard_status
-  changed_when: false
-  failed_when: false
+  ansible.builtin.service_facts:
+  tags: service
+
+- name: Set AdGuard service running status
+  ansible.builtin.set_fact:
+    _adguard_running: >-
+      {{ 'adguard.service' in ansible_facts.services
+         and ansible_facts.services['adguard.service'].state == 'running' }}
   tags: service
 
 - name: Display AdGuard service status
   ansible.builtin.debug:
-    var: adguard_status.stdout_lines
+    msg: "AdGuard service state: {{ ansible_facts.services['adguard.service'].state | default('not found') }}"
   tags: service
 
 - name: Get AdGuard journal logs if service failed
@@ -263,7 +271,7 @@
   register: adguard_journal
   changed_when: false
   failed_when: false
-  when: adguard_status.rc != 0
+  when: not _adguard_running
   tags: service
 
 - name: Display AdGuard journal logs
@@ -275,7 +283,7 @@
 - name: Fail if AdGuard service is not running
   ansible.builtin.fail:
     msg: "AdGuard service failed to start. Check the logs above."
-  when: adguard_status.rc != 0
+  when: not _adguard_running
   tags: service
 
 - name: Allow AdGuard web interface
