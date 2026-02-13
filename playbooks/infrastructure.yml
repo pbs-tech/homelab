@@ -64,4 +64,4 @@
     - enclave
     - security-research
     - phase6
-  when: not skip_enclave | default(true)
+  when: not skip_enclave | default(false)

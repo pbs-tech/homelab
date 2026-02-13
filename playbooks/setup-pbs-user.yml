@@ -1,0 +1,92 @@
+---
+# Setup pbs user for interactive SSH access on Proxmox hosts and LXC containers
+#
+# This playbook creates a 'pbs' user with:
+#   - SSH key authentication (using control machine's ed25519 key)
+#   - Passwordless sudo access
+#   - Bash shell
+#   - Unlocked account (required for SSH pubkey auth when UsePAM is off)
+#
+# The 'ansible' user remains the automation user; 'pbs' is for interactive access.
+#
+# Usage:
+#   ansible-playbook playbooks/setup-pbs-user.yml
+#
+# Note: Bastion hosts and K3s nodes already have the pbs user configured.
+#       OpenWrt is excluded (not a standard Linux distribution).
+
+- name: Setup pbs user on Proxmox hosts
+  hosts: proxmox_hosts
+  become: true
+  tasks:
+    - name: Create pbs user
+      ansible.builtin.user:
+        name: pbs
+        shell: /bin/bash
+        create_home: true
+        groups: sudo
+        append: true
+
+    - name: Configure passwordless sudo for pbs
+      ansible.builtin.copy:
+        content: "pbs ALL=(ALL) NOPASSWD: ALL\n"
+        dest: /etc/sudoers.d/pbs
+        mode: "0440"
+        validate: "visudo -cf %s"
+
+    - name: Deploy SSH authorized key for pbs
+      ansible.posix.authorized_key:
+        user: pbs
+        key: "{{ lookup('file', '~/.ssh/id_ed25519.pub') }}"
+        state: present
+
+- name: Setup pbs user on LXC containers
+  hosts: "lxc_containers:!bastion_hosts:!openwrt"
+  become: true
+  tasks:
+    - name: Create pbs user
+      ansible.builtin.user:
+        name: pbs
+        shell: /bin/bash
+        create_home: true
+        groups: sudo
+        append: true
+
+    - name: Unlock pbs account for SSH key auth
+      ansible.builtin.command:
+        cmd: passwd -d pbs
+      register: passwd_result
+      changed_when: passwd_result.rc == 0
+
+    - name: Configure passwordless sudo for pbs
+      ansible.builtin.copy:
+        content: "pbs ALL=(ALL) NOPASSWD: ALL\n"
+        dest: /etc/sudoers.d/pbs
+        mode: "0440"
+        validate: "visudo -cf %s"
+
+    - name: Deploy SSH authorized key for pbs
+      ansible.posix.authorized_key:
+        user: pbs
+        key: "{{ lookup('file', '~/.ssh/id_ed25519.pub') }}"
+        state: present
+
+    - name: Ensure pbs user is in sshd AllowUsers
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^AllowUsers'
+        line: 'AllowUsers ansible pbs'
+        state: present
+        validate: 'sshd -t -f %s'
+      notify: Restart sshd
+
+    - name: Ensure sshd is restarted
+      ansible.builtin.service:
+        name: ssh
+        state: restarted
+
+  handlers:
+    - name: Restart sshd
+      ansible.builtin.service:
+        name: ssh
+        state: restarted

@@ -42,6 +42,11 @@ AllowAgentForwarding no
 PermitTunnel no
 GatewayPorts no
 
+# PAM integration (required on Debian/Ubuntu for proper account handling)
+# Without this, sshd treats accounts with no password as locked and
+# rejects pubkey auth even when keys are correctly deployed
+UsePAM yes
+
 # Environment
 AcceptEnv LANG LC_*
 

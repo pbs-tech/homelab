@@ -104,6 +104,66 @@
     - lxc
     - containers
 
+- name: Build per-container firewall content
+  ansible.builtin.set_fact:
+    _container_fw_content: |
+      [OPTIONS]
+      enable: 1
+
+      [RULES]
+      {% for group in container_firewall_groups %}
+      GROUP {{ group }}
+      {% endfor %}
+      {% for rule in container_firewall_extra_rules %}
+      {{ rule }}
+      {% endfor %}
+  when: container_network.firewall | bool
+  tags:
+    - proxmox
+    - firewall
+    - lxc
+    - containers
+
+- name: Check existing per-container firewall configuration
+  ansible.builtin.slurp:
+    src: "/etc/pve/firewall/{{ container_vmid }}.fw"
+  register: _existing_fw
+  failed_when: false
+  delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  when: container_network.firewall | bool
+  tags:
+    - proxmox
+    - firewall
+    - lxc
+    - containers
+
+# pmxcfs doesn't support Ansible's atomic file operations (copy/template),
+# so we write directly via shell. The slurp+compare ensures idempotency.
+- name: Deploy per-container firewall configuration
+  ansible.builtin.shell:
+    cmd: |
+      cat > '/etc/pve/firewall/{{ container_vmid }}.fw' << 'FWEOF'
+      {{ _container_fw_content }}
+      FWEOF
+    executable: /bin/bash
+  delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  when:
+    - container_network.firewall | bool
+    - _existing_fw.content is not defined or
+      (_existing_fw.content | b64decode) != _container_fw_content
+  changed_when: true
+  tags:
+    - proxmox
+    - firewall
+    - lxc
+    - containers
+
 - name: Start container using secure API token authentication
   community.proxmox.proxmox:
     # Secure API token authentication (preferred)
@@ -221,6 +281,67 @@
     timeout: 60
   tags:
     - connectivity
+    - user_setup
+
+- name: Create additional users in container
+  ansible.builtin.shell:
+    cmd: |
+      set -euo pipefail
+      pct exec "{{ container_vmid | int }}" -- bash -c '
+        set -euo pipefail
+        USERNAME="{{ item }}"
+
+        # Check if user already exists
+        if id "$USERNAME" &>/dev/null; then
+          # Ensure existing account is unlocked for SSH key auth
+          usermod -p "*" "$USERNAME" || true
+          echo "exists"
+          exit 0
+        fi
+
+        # Create user with home directory
+        useradd -m -s /bin/bash "$USERNAME"
+
+        # Unlock account for SSH key-based login (set password to * instead of !)
+        usermod -p "*" "$USERNAME"
+
+        # Setup SSH directory with proper permissions
+        mkdir -p /home/$USERNAME/.ssh
+        chmod 700 /home/$USERNAME/.ssh
+
+        # Copy SSH authorized_keys from root if available
+        if [ -f /root/.ssh/authorized_keys ]; then
+          cp /root/.ssh/authorized_keys /home/$USERNAME/.ssh/
+          chown -R $USERNAME:$USERNAME /home/$USERNAME/.ssh
+          chmod 600 /home/$USERNAME/.ssh/authorized_keys
+        fi
+
+        # Configure passwordless sudo
+        echo "$USERNAME ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/$USERNAME
+        chmod 440 /etc/sudoers.d/$USERNAME
+
+        # Validate sudoers file syntax
+        visudo -cf /etc/sudoers.d/$USERNAME
+
+        echo "created"
+      '
+    executable: /bin/bash
+  register: additional_user_result
+  changed_when: "'created' in additional_user_result.stdout"
+  failed_when:
+    - additional_user_result.rc != 0
+    - "'exists' not in additional_user_result.stdout"
+    - "'created' not in additional_user_result.stdout"
+  delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  loop: "{{ container_additional_users }}"
+  when: container_additional_users | length > 0
+  tags:
+    - proxmox
+    - lxc
+    - containers
     - user_setup
 
 - name: Set container startup order using secure API token authentication

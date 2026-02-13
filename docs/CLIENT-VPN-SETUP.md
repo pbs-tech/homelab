@@ -158,9 +158,10 @@ PrivateKey = YOUR_CLIENT_PRIVATE_KEY
 Address = 10.200.0.2/32
 # DNS servers for homelab resolution
 DNS = 192.168.0.202
-# Optional: Prevent DNS leaks
-#PostUp = resolvconf -a %i -m 0 -x
-#PostDown = resolvconf -d %i
+# DNS integration for systems with NetworkManager/systemd-resolved (most modern Linux)
+# This ensures DNS works correctly instead of being overridden by NetworkManager
+PostUp = resolvectl dns %i 192.168.0.202; resolvectl domain %i ~homelab.local
+PostDown = resolvectl revert %i
 
 [Peer]
 # Server public key (get from admin)
@@ -174,6 +175,12 @@ AllowedIPs = 192.168.0.0/24, 10.42.0.0/16, 10.43.0.0/16
 # Keep connection alive through NAT (seconds)
 PersistentKeepalive = 25
 ```
+
+> **Note:** The `PostUp`/`PostDown` lines use `resolvectl` to properly integrate with
+> systemd-resolved, which is used by NetworkManager on most modern Linux distributions.
+> If you use a distribution without systemd-resolved, remove those lines and rely on the
+> `DNS` directive alone. For legacy systems with `resolvconf`, use:
+> `PostUp = resolvconf -a %i -m 0 -x` / `PostDown = resolvconf -d %i`
 
 **Step 3: Secure Configuration File**
 
@@ -688,7 +695,24 @@ DNS = 192.168.0.202  # Homelab DNS server
 
 WireGuard automatically configures DNS when VPN connects.
 
-**Method 2: Manual DNS (If Auto-DNS Fails)**
+**Method 2: PostUp/PostDown with resolvectl (Recommended for Linux with NetworkManager)**
+
+On modern Linux systems with NetworkManager and systemd-resolved, the `DNS` directive alone
+is often overridden by NetworkManager. Add `PostUp`/`PostDown` to your config to use `resolvectl`:
+
+```ini
+[Interface]
+PrivateKey = YOUR_PRIVATE_KEY
+Address = 10.200.0.2/32
+DNS = 192.168.0.202
+PostUp = resolvectl dns %i 192.168.0.202; resolvectl domain %i ~homelab.local
+PostDown = resolvectl revert %i
+```
+
+This tells systemd-resolved to route `.homelab.local` queries through the VPN DNS, while
+leaving other DNS queries on the default resolver.
+
+**Method 3: Manual DNS (If Auto-DNS Fails)**
 
 **Linux:**
 
@@ -1302,6 +1326,9 @@ Save as `homelab-vpn.conf`:
 PrivateKey = REPLACE_WITH_YOUR_PRIVATE_KEY
 Address = 10.200.0.X/32
 DNS = 192.168.0.202
+# For Linux with NetworkManager/systemd-resolved, add these two lines:
+PostUp = resolvectl dns %i 192.168.0.202; resolvectl domain %i ~homelab.local
+PostDown = resolvectl revert %i
 
 [Peer]
 PublicKey = REPLACE_WITH_SERVER_PUBLIC_KEY

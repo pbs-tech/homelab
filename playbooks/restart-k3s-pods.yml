@@ -1,0 +1,62 @@
+---
+# Restart K3s deployments with rolling updates
+# Usage:
+#   ansible-playbook playbooks/restart-k3s-pods.yml                                    # Restart all deployments in all namespaces
+#   ansible-playbook playbooks/restart-k3s-pods.yml -e target_namespace=monitoring      # Restart all in a namespace
+#   ansible-playbook playbooks/restart-k3s-pods.yml -e target_deployment=nginx          # Restart a specific deployment
+#   ansible-playbook playbooks/restart-k3s-pods.yml -e dry_run=true                     # Dry run (show what would restart)
+
+- name: Restart K3s deployments
+  hosts: server
+  tasks:
+    - name: Set kubeconfig path
+      ansible.builtin.set_fact:
+        kubeconfig: /etc/rancher/k3s/k3s.yaml
+
+    - name: Restart specific deployment
+      ansible.builtin.command:
+        cmd: >-
+          kubectl --kubeconfig {{ kubeconfig }}
+          rollout restart deployment/{{ target_deployment }}
+          {{ ('--namespace ' + target_namespace) if target_namespace is defined else '' }}
+          {{ '--dry-run=client' if dry_run | default(false) | bool else '' }}
+      register: restart_result
+      changed_when: not (dry_run | default(false) | bool)
+      when: target_deployment is defined
+
+    - name: Get deployments to restart
+      ansible.builtin.command:
+        cmd: >-
+          kubectl --kubeconfig {{ kubeconfig }}
+          get deployments
+          {{ ('--namespace ' + target_namespace) if target_namespace is defined else '--all-namespaces' }}
+          -o jsonpath='{range .items[*]}{.metadata.namespace}/{.metadata.name}{"\n"}{end}'
+      register: deployments_list
+      changed_when: false
+      when: target_deployment is not defined
+
+    - name: Display deployments that will be restarted
+      ansible.builtin.debug:
+        msg: "Deployments to restart: {{ deployments_list.stdout_lines }}"
+      when:
+        - target_deployment is not defined
+        - deployments_list.stdout_lines | length > 0
+
+    - name: Restart all deployments in namespace
+      ansible.builtin.command:
+        cmd: >-
+          kubectl --kubeconfig {{ kubeconfig }}
+          rollout restart deployment/{{ item.split('/')[1] }}
+          --namespace {{ item.split('/')[0] }}
+          {{ '--dry-run=client' if dry_run | default(false) | bool else '' }}
+      loop: "{{ deployments_list.stdout_lines }}"
+      register: restart_results
+      changed_when: not (dry_run | default(false) | bool)
+      when:
+        - target_deployment is not defined
+        - deployments_list.stdout_lines | length > 0
+
+    - name: Display restart results
+      ansible.builtin.debug:
+        msg: "{{ restart_result.stdout | default('') }}{{ restart_results.results | default([]) | map(attribute='stdout', default='') | join('\n') }}"
+      when: restart_result is defined or restart_results is defined

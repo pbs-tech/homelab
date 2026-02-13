@@ -59,6 +59,9 @@ loki_listen_port: "{{ loki_port }}"
 loki_http_server_idle_timeout: 120s
 loki_http_server_read_timeout: 30s
 loki_http_server_write_timeout: 30s
+
+# Firewall configuration (opens port via UFW)
+loki_configure_firewall: true
 ```
 
 ### Storage Configuration
@@ -443,7 +446,7 @@ pct exec 210 -- journalctl -u loki | grep compactor
 
 ## Security Considerations
 
-- **Network Access** - Restrict Loki port (3100) to trusted networks
+- **UFW Firewall** - Automatically opens port 3100 via UFW (controlled by `loki_configure_firewall`)
 - **Authentication** - Enable auth for multi-tenant deployments
 - **TLS Encryption** - Use reverse proxy (Traefik) for HTTPS
 - **Data Protection** - Secure log data directory permissions (700)

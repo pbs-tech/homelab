@@ -84,6 +84,14 @@
     - Reload systemd
     - Restart loki
 
+- name: Configure UFW firewall for Loki
+  community.general.ufw:
+    rule: allow
+    port: "{{ loki_port }}"
+    proto: tcp
+    comment: "Loki"
+  when: loki_configure_firewall
+
 - name: Enable and start Loki
   ansible.builtin.systemd:
     name: loki

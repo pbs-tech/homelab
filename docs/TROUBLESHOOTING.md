@@ -352,7 +352,63 @@ pct stop 200 && pct start 200
 pct set 200 -net0 name=eth0,bridge=vmbr0,ip=192.168.0.200/24,gw=192.168.0.1
 ```
 
-#### 2. Firewall Issues
+#### 2. New VM/CT Cannot Access the Internet
+
+**Symptoms:**
+
+- VM or LXC container created via Proxmox web UI has no network
+- DHCP fails to obtain an IP address
+- Container has IP but cannot reach external hosts
+- Works fine if you uncheck "Firewall" on the VM's NIC
+
+**Root Cause:**
+
+The Proxmox cluster firewall has `policy_in: DROP` with `enable: 1`. When a VM's NIC has
+"Firewall" checked (the default), Proxmox creates a per-VM firewall chain. Without a
+per-VM firewall file (`/etc/pve/firewall/<vmid>.fw`), only connection tracking applies —
+DHCP broadcast responses and other new inbound traffic gets dropped.
+
+Note: Security groups and rules in `cluster.fw [RULES]` only protect the Proxmox **hosts**,
+not individual VMs/CTs. See [SECURITY-ARCHITECTURE.md](SECURITY-ARCHITECTURE.md#proxmox-firewall-architecture).
+
+**Quick Fix (per VM):**
+
+```bash
+# SSH to any Proxmox host and create a firewall config for the VM
+# Replace <vmid> with the actual VM ID (e.g., 300)
+cat > /etc/pve/firewall/<vmid>.fw << 'EOF'
+[OPTIONS]
+enable: 1
+
+[RULES]
+GROUP basic-network
+GROUP allow-ssh
+IN ACCEPT -source 192.168.0.0/24 -log nolog # Allow LAN traffic
+EOF
+```
+
+Or via the Proxmox web UI: VM > Firewall > Insert: Security Group > `basic-network`.
+
+**For Ansible-provisioned containers**, the `container_base` role deploys this automatically.
+
+**Diagnostics:**
+
+```bash
+# Check if per-VM firewall config exists
+ls -la /etc/pve/firewall/<vmid>.fw
+
+# View cluster firewall and available security groups
+cat /etc/pve/firewall/cluster.fw
+
+# Check what firewall rules are active for a VM
+pve-firewall compile | grep <vmid>
+
+# Verify the NIC has firewall enabled
+pct config <vmid> | grep net
+# Look for "firewall=1" in the output
+```
+
+#### 3. In-Container Firewall Issues
 
 **Symptoms:**
 

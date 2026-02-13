@@ -71,9 +71,9 @@ ansible-playbook playbooks/infrastructure.yml --tags "monitoring,phase3"
 ansible-playbook playbooks/infrastructure.yml --tags "applications,phase4"
 # K3s cluster
 ansible-playbook playbooks/infrastructure.yml --tags "k3s,phase5"
-# Secure enclave (requires explicit acknowledgement and opt-in)
+# Secure enclave (requires explicit acknowledgement)
 ansible-playbook playbooks/infrastructure.yml --tags "enclave,phase6" \
-  -e enclave_security_acknowledged=true -e enclave_persistent_mode=true -e skip_enclave=false
+  -e enclave_security_acknowledged=true -e enclave_persistent_mode=true
 
 # LEGACY APPROACH - Still supported for backwards compatibility
 ansible-playbook site.yml                                    # Deploy entire infrastructure
@@ -82,6 +82,39 @@ ansible-playbook site.yml --tags "k3s,cluster"              # Deploy only K3s cl
 ansible-playbook site.yml --tags "proxmox,lxc,services"
 # Deploy specific service stacks
 ansible-playbook site.yml --tags "monitoring"
+```
+
+### System Maintenance Commands
+
+```bash
+# Update all systems (Raspberry Pis rolling one-at-a-time, LXC containers 3-at-a-time)
+ansible-playbook playbooks/update-systems.yml
+
+# Update only Raspberry Pis
+ansible-playbook playbooks/update-systems.yml --tags pi
+
+# Update only LXC containers
+ansible-playbook playbooks/update-systems.yml --tags lxc
+
+# Restart all K3s deployments (rolling restart)
+ansible-playbook playbooks/restart-k3s-pods.yml
+
+# Restart deployments in a specific namespace
+ansible-playbook playbooks/restart-k3s-pods.yml -e target_namespace=monitoring
+
+# Restart a specific deployment
+ansible-playbook playbooks/restart-k3s-pods.yml -e target_deployment=nginx
+
+# Dry run (show what would restart)
+ansible-playbook playbooks/restart-k3s-pods.yml -e dry_run=true
+
+# Makefile shortcuts
+make update-systems              # Update all systems
+make update-pi                   # Update Raspberry Pis only
+make update-lxc                  # Update LXC containers only
+make restart-k3s-pods            # Restart all K3s deployments
+make restart-k3s-pods TARGET_NS=monitoring    # Restart in namespace
+make restart-k3s-pods TARGET_DEPLOY=nginx     # Restart specific deployment
 ```
 
 ### Security-Focused Deployment
@@ -124,8 +157,7 @@ ansible-playbook playbooks/enclave.yml \
 # Deploy as Phase 6 of infrastructure (persistent mode)
 ansible-playbook playbooks/infrastructure.yml --tags "enclave,phase6" \
   -e enclave_security_acknowledged=true \
-  -e enclave_persistent_mode=true \
-  -e skip_enclave=false
+  -e enclave_persistent_mode=true
 
 # Makefile shortcuts
 make deploy-enclave              # Temporary mode
@@ -521,7 +553,9 @@ ansible-galaxy collection install *.tar.gz --force
 │   ├── monitoring.yml               # Phase 3: Prometheus, Grafana, Loki
 │   ├── applications.yml             # Phase 4: Home automation, NAS services
 │   ├── enclave.yml                  # Phase 6: Secure enclave (persistent/temporary modes)
-│   └── secure-enclave.yml           # Legacy secure enclave deployment
+│   ├── secure-enclave.yml           # Legacy secure enclave deployment
+│   ├── update-systems.yml           # Rolling system updates (Pi + LXC)
+│   └── restart-k3s-pods.yml         # K3s deployment rolling restarts
 ├── tests/                           # Fast validation tests (< 5 min total)
 │   ├── quick-smoke-test.yml         # 30s validation of critical components
 │   ├── validate-infrastructure.yml  # Infrastructure health checks

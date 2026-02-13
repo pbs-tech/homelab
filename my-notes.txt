@@ -1,9 +1,0 @@
-phase 6 does not seem to create anything
-
-
-I want to be able to update my pods and raspberry pis from this collection
-
-I cannot resolve wireguard config on my machine with NetworkManager and resolv.conf having conflicts
-
-Prometheus, alertManager, loki and Grafana all cannot be accessed by IP
-

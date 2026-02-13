@@ -90,6 +90,20 @@ wireguard_firewall_rules:
   - "iptables -A INPUT -p udp --dport {{ wireguard_port }} -j ACCEPT"
 ```
 
+### DNS Configuration
+
+```yaml
+# DNS servers for clients
+wireguard_dns_servers:
+  - "192.168.0.202"  # AdGuard/Unbound DNS
+
+# Client DNS integration method
+# systemd-resolved: Uses resolvectl (works with NetworkManager)
+# resolvconf: Uses resolvconf (legacy systems)
+# none: No PostUp/PostDown DNS scripts
+wireguard_client_dns_method: "systemd-resolved"
+```
+
 ### Logging and Monitoring
 
 ```yaml
@@ -155,11 +169,31 @@ wg genpsk > preshared.key
 
 ## Client Configuration Example
 
+### For systems with systemd-resolved / NetworkManager (default)
+
 ```ini
 [Interface]
 PrivateKey = <client-private-key>
 Address = 10.200.0.2/32
-DNS = 192.168.0.202  # Homelab DNS server
+DNS = 192.168.0.202
+PostUp = resolvectl dns %i 192.168.0.202; resolvectl domain %i ~homelab.local
+PostDown = resolvectl revert %i
+
+[Peer]
+PublicKey = <server-public-key>
+PresharedKey = <preshared-key>
+Endpoint = vpn.yourdomain.com:51820
+AllowedIPs = 192.168.0.0/24, 10.42.0.0/16, 10.43.0.0/16
+PersistentKeepalive = 25
+```
+
+### For systems without NetworkManager (macOS, mobile, legacy Linux)
+
+```ini
+[Interface]
+PrivateKey = <client-private-key>
+Address = 10.200.0.2/32
+DNS = 192.168.0.202
 
 [Peer]
 PublicKey = <server-public-key>

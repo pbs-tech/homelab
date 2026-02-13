@@ -44,6 +44,9 @@ grafana_port: 3000
 # User and group
 grafana_user: grafana
 grafana_group: grafana
+
+# Firewall configuration (opens port via UFW)
+grafana_configure_firewall: true
 ```
 
 ### Directory Configuration
@@ -484,6 +487,7 @@ pct exec 201 -- sqlite3 /var/lib/grafana/grafana.db "SELECT * FROM user;"
 
 ## Security Considerations
 
+- **UFW Firewall** - Automatically opens port 3000 via UFW (controlled by `grafana_configure_firewall`)
 - **Authentication** - Always change default admin password
 - **HTTPS** - Use Traefik or nginx for TLS termination
 - **RBAC** - Configure appropriate roles for users and teams

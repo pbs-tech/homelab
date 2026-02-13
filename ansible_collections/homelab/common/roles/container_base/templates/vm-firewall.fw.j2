@@ -1,0 +1,14 @@
+# Proxmox per-VM/CT firewall configuration
+# Managed by Ansible - container_base role
+# Security groups are defined in /etc/pve/firewall/cluster.fw
+
+[OPTIONS]
+enable: 1
+
+[RULES]
+{% for group in container_firewall_groups %}
+GROUP {{ group }}
+{% endfor %}
+{% for rule in container_firewall_extra_rules %}
+{{ rule }}
+{% endfor %}

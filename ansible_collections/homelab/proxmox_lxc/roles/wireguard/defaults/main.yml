@@ -53,6 +53,12 @@ wireguard_enable_firewall: true
 wireguard_dns_servers:
   - "192.168.0.202"  # AdGuard/Unbound DNS
 
+# Client DNS integration method
+# systemd-resolved: Uses resolvectl (works with NetworkManager)
+# resolvconf: Uses resolvconf (legacy systems)
+# none: No PostUp/PostDown DNS scripts
+wireguard_client_dns_method: "systemd-resolved"
+
 # Public endpoint (replace with your actual public IP or domain)
 wireguard_public_endpoint: "vpn.homelab.example.com"
 

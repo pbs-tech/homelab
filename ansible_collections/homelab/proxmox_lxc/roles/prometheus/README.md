@@ -43,6 +43,9 @@ prometheus_port: 9090
 
 # Network binding
 prometheus_listen_address: "0.0.0.0:{{ prometheus_port }}"
+
+# Firewall configuration (opens port via UFW)
+prometheus_configure_firewall: true
 ```
 
 ### Data Retention
@@ -445,7 +448,7 @@ curl -s http://192.168.0.200:9090/metrics | grep prometheus_
 
 ## Security Considerations
 
-- **Network Segmentation** - Restrict access to Prometheus port (9090) via firewall
+- **UFW Firewall** - Automatically opens port 9090 via UFW (controlled by `prometheus_configure_firewall`)
 - **Authentication** - Use Traefik for external access with authentication
 - **TLS Encryption** - Enable HTTPS through reverse proxy (Traefik)
 - **Data Protection** - Secure metrics data directory permissions (700)
