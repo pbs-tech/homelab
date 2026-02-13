@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-
+<!-- pyml disable-next-line no-duplicate-heading-->
 ### Added
 
 - `playbooks/update-systems.yml` - Rolling system update playbook for Raspberry Pis (serial:1) and LXC containers (serial:3)
@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Proxmox firewall architecture documentation in `docs/SECURITY-ARCHITECTURE.md`
 - Troubleshooting guide for new VMs without internet access in `docs/TROUBLESHOOTING.md`
 
+<!-- pyml disable-next-line no-duplicate-heading-->
 ### Fixed
 
 - New VMs/CTs with Proxmox firewall enabled could not access internet (DHCP/DNS blocked by default DROP policy)
@@ -34,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - WireGuard client DNS not working on systems with NetworkManager/systemd-resolved (added PostUp/PostDown resolvectl scripts)
 - Prometheus, Grafana, and Loki not accessible by IP due to missing UFW firewall rules
 
+<!-- pyml disable-next-line no-duplicate-heading-->
 ### Changed
 
 - GitHub Actions workflow for automated publishing to Ansible Galaxy
@@ -42,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Composite action for Galaxy collection polling (`.github/actions/wait-for-galaxy-collection`)
 - Galaxy REST API version validation to prevent race conditions
 
+<!-- pyml disable-next-line no-duplicate-heading-->
 ### Changed
 
 - Updated galaxy.yml files with correct GitHub repository URLs (pbs-tech/homelab)
@@ -50,6 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced error handling for cancelled workflows in addition to failures
 - Eliminated code duplication in publishing workflow (72 lines reduced via composite action)
 
+<!-- pyml disable-next-line no-duplicate-heading-->
 ### Fixed
 
 - Race condition in collection dependency installation (now validates specific versions via API)
@@ -59,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.0] - 2025-10-26
 
+<!-- pyml disable-next-line no-duplicate-heading-->
 ### Added
 
 - Initial release of three homelab Ansible collections
