@@ -25,7 +25,9 @@ pi_security_hardening:
     gateway_ports: false
     # Users allowed to SSH (defaults to ansible_user if not specified)
     # For Proxmox hosts, include 'ansible' user; for Pi nodes, include 'pbs'
-    allowed_users: []  # Empty means use ansible_user variable
+    allowed_users:
+      - ansible
+      - pbs
 
   # Fail2ban configuration
   fail2ban:

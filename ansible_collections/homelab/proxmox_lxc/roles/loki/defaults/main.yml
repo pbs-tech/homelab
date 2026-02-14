@@ -43,5 +43,8 @@ loki_compaction_shared_store_type: filesystem
 loki_table_manager_retention_deletes_enabled: "{{ loki_retention_enabled }}"
 loki_table_manager_retention_period: "{{ loki_retention_period }}"
 
+# Firewall configuration
+loki_configure_firewall: true
+
 # Analytics
 loki_analytics_reporting_enabled: false

@@ -298,6 +298,24 @@ enclave-shutdown: ## Emergency shutdown of all enclave VMs
 	@echo "$(YELLOW)Shutting down all enclave VMs...$(NC)"
 	@ssh -o ConnectTimeout=3 pbs@192.168.0.250 'enclave-shutdown' 2>/dev/null || echo "$(RED)Enclave bastion not reachable$(NC)"
 
+update-systems: ## Update all systems (Raspberry Pis and LXC containers)
+	@echo "$(YELLOW)Updating all systems...$(NC)"
+	ansible-playbook playbooks/update-systems.yml
+
+update-pi: ## Update Raspberry Pi nodes only (rolling, one at a time)
+	@echo "$(YELLOW)Updating Raspberry Pi nodes...$(NC)"
+	ansible-playbook playbooks/update-systems.yml --tags pi
+
+update-lxc: ## Update LXC containers only
+	@echo "$(YELLOW)Updating LXC containers...$(NC)"
+	ansible-playbook playbooks/update-systems.yml --tags lxc
+
+restart-k3s-pods: ## Restart all K3s deployments (use TARGET_NS=x or TARGET_DEPLOY=x to filter)
+	@echo "$(YELLOW)Restarting K3s deployments...$(NC)"
+	ansible-playbook playbooks/restart-k3s-pods.yml \
+		$(if $(TARGET_NS),-e target_namespace=$(TARGET_NS)) \
+		$(if $(TARGET_DEPLOY),-e target_deployment=$(TARGET_DEPLOY))
+
 validate: lint test ## Run full validation (lint + test)
 	@echo "$(GREEN)Full validation completed successfully!$(NC)"
 

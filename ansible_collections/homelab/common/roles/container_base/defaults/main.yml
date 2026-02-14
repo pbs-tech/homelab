@@ -44,6 +44,23 @@ proxmox_api: >-
   {{ proxmox_config.pve_nas }}{%- else -%}
   {{ proxmox_config.pve_mac }}{%- endif %}
 
+# Additional users to create in containers (with SSH key + sudo access)
+# These users get the same SSH keys as root (injected by Proxmox pubkey)
+container_additional_users:
+  - pbs
+
+# Per-VM/CT firewall security groups (references groups defined in cluster.fw)
+# These are applied to each container's individual firewall config (/etc/pve/firewall/<vmid>.fw)
+# Available groups: basic-network, allow-ssh, allow-web
+container_firewall_groups:
+  - basic-network
+  - allow-ssh
+
+# Additional per-VM/CT firewall rules beyond security groups
+# Each entry is a Proxmox firewall rule string
+container_firewall_extra_rules:
+  - "IN ACCEPT -source 192.168.0.0/24 -log nolog # Allow LAN traffic"
+
 # Container startup order
 container_startup_order:
   networking: 1

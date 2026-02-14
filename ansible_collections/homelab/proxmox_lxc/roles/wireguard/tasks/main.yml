@@ -313,6 +313,13 @@
     PrivateKey = {{ item.private_key | default('REPLACE_WITH_CLIENT_PRIVATE_KEY') }}
     Address = {{ item.allowed_ips }}
     DNS = {{ wireguard_dns_servers | default(['192.168.0.202']) | join(', ') }}
+    {% if wireguard_client_dns_method | default('systemd-resolved') == 'systemd-resolved' %}
+    PostUp = resolvectl dns %i {{ wireguard_dns_servers | default(['192.168.0.202']) | join(' ') }}; resolvectl domain %i ~homelab.local
+    PostDown = resolvectl revert %i
+    {% elif wireguard_client_dns_method | default('systemd-resolved') == 'resolvconf' %}
+    PostUp = resolvconf -a %i -m 0 -x
+    PostDown = resolvconf -d %i
+    {% endif %}
 
     [Peer]
     PublicKey = {{ server_publickey_result.stdout }}

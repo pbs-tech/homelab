@@ -474,6 +474,102 @@ For internal services not exposed externally:
 
 ---
 
+## Proxmox Firewall Architecture
+
+The Proxmox firewall operates at three independent levels. Understanding this hierarchy is
+essential for correctly configuring network access for VMs and LXC containers.
+
+### Three-Level Firewall Hierarchy
+
+```
+Level 1: Cluster (/etc/pve/firewall/cluster.fw)
+  - Defines cluster-wide options (default policies, enable/disable)
+  - Defines reusable security groups
+  - [RULES] section applies to Proxmox HOST traffic only
+
+Level 2: Host (/etc/pve/nodes/<node>/host.fw)
+  - Per-node firewall rules
+  - Supplements cluster-level host rules
+
+Level 3: VM/CT (/etc/pve/firewall/<vmid>.fw)
+  - Per-VM/container firewall rules
+  - References security groups defined in cluster.fw
+  - This is the ONLY level that filters VM/CT traffic
+```
+
+### Security Groups
+
+Security groups are defined in `cluster.fw` and can be referenced from any VM/CT firewall config.
+
+| Group | Rules | Applied By Default |
+|-------|-------|--------------------|
+| `basic-network` | DHCP, DNS (UDP+TCP), ICMP | Yes (via Ansible) |
+| `allow-ssh` | SSH from LAN (192.168.0.0/24) | Yes (via Ansible) |
+| `allow-web` | HTTP (80), HTTPS (443) | No (opt-in) |
+
+### How Firewall Rules Are Applied
+
+**Ansible-provisioned containers** (`container_base` role):
+- The role automatically deploys `/etc/pve/firewall/<vmid>.fw` with `basic-network` and
+  `allow-ssh` groups, plus a blanket LAN access rule
+- Controlled by `container_firewall_groups` and `container_firewall_extra_rules` variables
+- Bastion hosts have `container_network.firewall: false` and manage their own iptables
+
+**VMs/CTs created via the Proxmox web UI** require manual firewall configuration:
+
+1. Go to **Datacenter > Firewall > Security Group** to verify groups exist
+2. Select the VM/CT > **Firewall > Insert: Security Group**
+3. Add `basic-network` (for DHCP/DNS/ICMP)
+4. Add `allow-ssh` if SSH access is needed
+5. Add `allow-web` if the VM serves HTTP/HTTPS
+6. Optionally add custom rules for service-specific ports
+
+Alternatively, create a per-VM firewall file directly:
+
+```bash
+# SSH to a Proxmox host and create the firewall config
+cat > /etc/pve/firewall/<vmid>.fw << 'EOF'
+[OPTIONS]
+enable: 1
+
+[RULES]
+GROUP basic-network
+GROUP allow-ssh
+IN ACCEPT -source 192.168.0.0/24 -log nolog # Allow LAN traffic
+EOF
+```
+
+### Customizing Per-Container Firewall Rules
+
+Override the defaults in your inventory to add security groups or rules per container:
+
+```yaml
+# inventory/host_vars/traefik-lxc.yml
+container_firewall_groups:
+  - basic-network
+  - allow-ssh
+  - allow-web
+
+container_firewall_extra_rules:
+  - "IN ACCEPT -source 192.168.0.0/24 -log nolog # Allow LAN traffic"
+  - "IN ACCEPT -p tcp -dport 8080 -log nolog # Traefik dashboard"
+```
+
+### Why Cluster [RULES] Don't Protect VMs
+
+A common misconception: adding `GROUP basic-network` to the `[RULES]` section of `cluster.fw`
+does **not** apply those rules to VMs/CTs. Cluster-level `[RULES]` only filter traffic
+destined to the Proxmox hosts themselves. Each VM/CT with `firewall=1` on its NIC has a
+separate firewall chain that only evaluates:
+
+1. Connection tracking (ESTABLISHED/RELATED traffic is always accepted)
+2. Rules from `/etc/pve/firewall/<vmid>.fw`
+3. The default `policy_in` (inherited from cluster: DROP)
+
+Without a per-VM firewall file, new VMs default to DROP all inbound except return traffic.
+
+---
+
 ## Container Security
 
 ### LXC Container Hardening

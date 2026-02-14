@@ -2,6 +2,10 @@
 # Proxmox cluster firewall configuration
 # Ensures the cluster firewall is properly configured to allow SSH and ICMP
 # while maintaining secure defaults
+#
+# Note: /etc/pve/ is on pmxcfs (Proxmox cluster filesystem) which does not
+# support Ansible's atomic file operations (copy/template). All writes use
+# shell commands instead.
 
 - name: Configure Proxmox cluster firewall
   delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
@@ -20,30 +24,46 @@
       failed_when: false
 
     - name: Backup existing cluster firewall configuration
-      ansible.builtin.copy:
-        src: /etc/pve/firewall/cluster.fw
-        dest: /etc/pve/firewall/cluster.fw.backup.{{ ansible_date_time.epoch }}
-        remote_src: true
-        mode: "0640"
+      ansible.builtin.shell:
+        cmd: cp /etc/pve/firewall/cluster.fw "/etc/pve/firewall/cluster.fw.backup.{{ ansible_date_time.epoch }}"
+        executable: /bin/bash
       when: cluster_fw_content.content is defined
+      changed_when: true
 
     - name: Deploy clean cluster firewall configuration
-      ansible.builtin.copy:
-        dest: /etc/pve/firewall/cluster.fw
-        mode: "0640"
-        content: |
+      ansible.builtin.shell:
+        cmd: |
+          cat > /etc/pve/firewall/cluster.fw << 'FWEOF'
           [OPTIONS]
           policy_in: DROP
           policy_out: ACCEPT
           enable: 1
+
+          [group basic-network]
+          IN ACCEPT -p udp -sport 67 -dport 68 -log nolog # DHCP
+          IN ACCEPT -p udp -dport 53 -log nolog # DNS
+          IN ACCEPT -p tcp -dport 53 -log nolog # DNS TCP
+          IN ACCEPT -p icmp -log nolog # Ping
+
+          [group allow-ssh]
+          IN ACCEPT -source 192.168.0.0/24 -p tcp -dport 22 -log nolog # SSH from LAN
+
+          [group allow-web]
+          IN ACCEPT -p tcp -dport 80 -log nolog # HTTP
+          IN ACCEPT -p tcp -dport 443 -log nolog # HTTPS
 
           [RULES]
           IN ACCEPT -p tcp -dport 22 -log nolog # Allow SSH
           IN ACCEPT -p tcp -dport 8006 -log nolog # Allow Proxmox Web UI
           IN ACCEPT -p icmp # Allow ICMP/ping
           IN ACCEPT -source 192.168.0.0/24 # Allow management network
+          GROUP basic-network
+          GROUP allow-ssh
+          FWEOF
+        executable: /bin/bash
       register: cluster_fw_deployed
+      changed_when: true
 
     - name: Display firewall configuration status
       ansible.builtin.debug:
-        msg: "Proxmox cluster firewall configuration {{ 'updated' if cluster_fw_deployed.changed else 'unchanged' }}"
+        msg: "Proxmox cluster firewall configuration deployed"

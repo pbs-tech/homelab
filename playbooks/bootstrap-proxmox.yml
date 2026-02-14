@@ -91,23 +91,40 @@
             comment: Allow traffic from LXC containers
 
     # Proxmox cluster firewall configuration
+    # pmxcfs doesn't support Ansible's atomic file operations (copy/template)
     - name: Configure Proxmox cluster firewall
-      ansible.builtin.copy:
-        dest: /etc/pve/firewall/cluster.fw
-        mode: "0640"
-        backup: true
-        content: |
+      ansible.builtin.shell:
+        cmd: |
+          cat > /etc/pve/firewall/cluster.fw << 'FWEOF'
           [OPTIONS]
           policy_in: DROP
           policy_out: ACCEPT
           enable: 1
+
+          [group basic-network]
+          IN ACCEPT -p udp -sport 67 -dport 68 -log nolog # DHCP
+          IN ACCEPT -p udp -dport 53 -log nolog # DNS
+          IN ACCEPT -p tcp -dport 53 -log nolog # DNS TCP
+          IN ACCEPT -p icmp -log nolog # Ping
+
+          [group allow-ssh]
+          IN ACCEPT -source 192.168.0.0/24 -p tcp -dport 22 -log nolog # SSH from LAN
+
+          [group allow-web]
+          IN ACCEPT -p tcp -dport 80 -log nolog # HTTP
+          IN ACCEPT -p tcp -dport 443 -log nolog # HTTPS
 
           [RULES]
           IN ACCEPT -p tcp -dport 22 -log nolog # Allow SSH
           IN ACCEPT -p tcp -dport 8006 -log nolog # Allow Proxmox Web UI
           IN ACCEPT -p icmp # Allow ICMP/ping
           IN ACCEPT -source 192.168.0.0/24 # Allow management network
+          GROUP basic-network
+          GROUP allow-ssh
+          FWEOF
+        executable: /bin/bash
       run_once: true
+      changed_when: true
 
     - name: Display completion message
       ansible.builtin.debug:

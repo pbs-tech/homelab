@@ -7,7 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+<!-- pyml disable-next-line no-duplicate-heading-->
 ### Added
+
+- `playbooks/update-systems.yml` - Rolling system update playbook for Raspberry Pis (serial:1) and LXC containers (serial:3)
+- `playbooks/restart-k3s-pods.yml` - K3s deployment rolling restart playbook with namespace/deployment filtering and dry-run support
+- UFW firewall rules for Prometheus, Grafana, and Loki roles (matching existing AlertManager pattern)
+- `wireguard_client_dns_method` variable for WireGuard client DNS integration (systemd-resolved, resolvconf, none)
+- Makefile targets: `update-systems`, `update-pi`, `update-lxc`, `restart-k3s-pods`
+- Proxmox cluster firewall security groups (`basic-network`, `allow-ssh`, `allow-web`) defined in `cluster.fw`
+  - `basic-network`: DHCP, DNS (UDP+TCP), ICMP
+  - `allow-ssh`: SSH from LAN (192.168.0.0/24)
+  - `allow-web`: HTTP/HTTPS (opt-in per VM)
+- Per-VM/CT firewall deployment via `container_base` role (`/etc/pve/firewall/<vmid>.fw`)
+  - Automatically references `basic-network` and `allow-ssh` security groups
+  - Configurable via `container_firewall_groups` and `container_firewall_extra_rules` variables
+  - Deployed between container creation and start for immediate effect
+- Proxmox firewall architecture documentation in `docs/SECURITY-ARCHITECTURE.md`
+- Troubleshooting guide for new VMs without internet access in `docs/TROUBLESHOOTING.md`
+
+<!-- pyml disable-next-line no-duplicate-heading-->
+### Fixed
+
+- New VMs/CTs with Proxmox firewall enabled could not access internet (DHCP/DNS blocked by default DROP policy)
+  - Root cause: cluster.fw `[RULES]` only apply to host traffic, not per-VM chains
+  - Fix: deploy per-VM firewall files that reference security groups at the correct level
+- Phase 6 enclave deployment was skipped by default (`skip_enclave` defaulted to `true` instead of `false`)
+- WireGuard client DNS not working on systems with NetworkManager/systemd-resolved (added PostUp/PostDown resolvectl scripts)
+- Prometheus, Grafana, and Loki not accessible by IP due to missing UFW firewall rules
+
+<!-- pyml disable-next-line no-duplicate-heading-->
+### Changed
 
 - GitHub Actions workflow for automated publishing to Ansible Galaxy
 - Comprehensive release documentation (RELEASING.md)
@@ -15,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Composite action for Galaxy collection polling (`.github/actions/wait-for-galaxy-collection`)
 - Galaxy REST API version validation to prevent race conditions
 
+<!-- pyml disable-next-line no-duplicate-heading-->
 ### Changed
 
 - Updated galaxy.yml files with correct GitHub repository URLs (pbs-tech/homelab)
@@ -23,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced error handling for cancelled workflows in addition to failures
 - Eliminated code duplication in publishing workflow (72 lines reduced via composite action)
 
+<!-- pyml disable-next-line no-duplicate-heading-->
 ### Fixed
 
 - Race condition in collection dependency installation (now validates specific versions via API)
@@ -32,6 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.0] - 2025-10-26
 
+<!-- pyml disable-next-line no-duplicate-heading-->
 ### Added
 
 - Initial release of three homelab Ansible collections

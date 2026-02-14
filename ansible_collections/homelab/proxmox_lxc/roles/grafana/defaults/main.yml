@@ -59,6 +59,9 @@ grafana_datasources:
 grafana_dashboards_dir: "{{ grafana_data_dir }}/dashboards"
 grafana_provisioning_dir: "{{ grafana_config_dir }}/provisioning"
 
+# Firewall configuration
+grafana_configure_firewall: true
+
 # Plugins to install
 grafana_plugins:
   - grafana-piechart-panel

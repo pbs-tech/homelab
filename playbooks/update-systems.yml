@@ -1,0 +1,66 @@
+---
+# Rolling system update playbook for Raspberry Pis and LXC containers
+# Usage:
+#   ansible-playbook playbooks/update-systems.yml              # Update all systems
+#   ansible-playbook playbooks/update-systems.yml --tags pi    # Update Raspberry Pis only
+#   ansible-playbook playbooks/update-systems.yml --tags lxc   # Update LXC containers only
+
+- name: Update Raspberry Pi nodes (rolling, one at a time)
+  hosts: k3s_cluster
+  serial: 1
+  tags: pi
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Upgrade packages (safe)
+      ansible.builtin.apt:
+        upgrade: safe
+      register: upgrade_result
+
+    - name: Remove unused packages
+      ansible.builtin.apt:
+        autoremove: true
+
+    - name: Check if reboot is required
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      register: reboot_required
+
+    - name: Report update status
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }}: {{ upgrade_result.changed | ternary('packages upgraded', 'already up to date') }}.
+          {{ reboot_required.stat.exists | ternary('REBOOT REQUIRED', 'No reboot needed') }}.
+
+- name: Update LXC containers
+  hosts: lxc_containers
+  serial: 3
+  tags: lxc
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Upgrade packages (safe)
+      ansible.builtin.apt:
+        upgrade: safe
+      register: upgrade_result
+
+    - name: Remove unused packages
+      ansible.builtin.apt:
+        autoremove: true
+
+    - name: Check if reboot is required
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      register: reboot_required
+
+    - name: Report update status
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }}: {{ upgrade_result.changed | ternary('packages upgraded', 'already up to date') }}.
+          {{ reboot_required.stat.exists | ternary('REBOOT REQUIRED', 'No reboot needed') }}.
