@@ -1,0 +1,52 @@
+---
+# Ubuntu cloud-init VM defaults
+# Clones from the template created by playbooks/create-vm-template.yml
+
+# Template to clone from
+ubuntu_vm_template_id: 9000
+
+# Clone configuration — override vm_base to use template cloning
+vm_clone:
+  enabled: true
+  template_id: "{{ ubuntu_vm_template_id }}"
+  full_clone: true
+
+# Cloud-init configuration
+vm_cloudinit:
+  enabled: true
+  user: ansible
+  ip_config: "ip={{ ansible_host }}/24,gw={{ homelab_network.gateway_ip }}"
+  dns_servers: "{{ homelab_network.dns_servers | join(' ') }}"
+  search_domain: "{{ homelab_domain }}"
+  ssh_public_key: >-
+    {{ lookup('file', lookup('first_found', {
+      'files': ['id_ed25519.pub', 'id_rsa.pub', 'id_ecdsa.pub'],
+      'paths': ['~/.ssh']
+    })) }}
+
+# Hardware — cloud images use seabios, not UEFI
+vm_config:
+  bios: seabios
+  machine: q35
+  ostype: l26
+  scsihw: virtio-scsi-pci
+  agent: "1"
+  onboot: true
+  storage: local-lvm
+
+vm_resources:
+  cores: 2
+  memory: 2048
+  disk_size: 32
+  sockets: 1
+
+# SSH wait — cloud-init VMs are ready once SSH is up
+vm_wait_for_ssh: true
+vm_ssh_delay: 15
+vm_ssh_timeout: 300
+
+# Firewall security groups
+vm_firewall_groups:
+  - basic-network
+  - allow-ssh
+  - allow-web

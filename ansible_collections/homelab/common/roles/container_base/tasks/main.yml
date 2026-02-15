@@ -11,7 +11,7 @@
 
   block:
     - name: Run API validation tasks
-      ansible.builtin.include_tasks: ../../tasks/proxmox_api_validation.yml
+      ansible.builtin.include_tasks: ../../../tasks/proxmox_api_validation.yml
 
 # Validate and parse API token
 # Token format should be: user@realm!tokenname

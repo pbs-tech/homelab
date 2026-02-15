@@ -1,0 +1,50 @@
+---
+# TrueNAS SCALE VM deployment tasks
+
+- name: Download TrueNAS SCALE ISO to Proxmox host
+  ansible.builtin.get_url:
+    url: "{{ truenas_iso_url }}"
+    dest: "/var/lib/vz/template/iso/{{ truenas_iso_filename }}"
+    mode: "0644"
+    timeout: 600
+  delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  when: truenas_download_iso | bool
+  tags:
+    - truenas
+    - iso
+
+- name: Set ISO file for vm_base
+  ansible.builtin.set_fact:
+    vm_iso:
+      storage: local
+      file: "{{ truenas_iso_filename }}"
+  tags:
+    - truenas
+
+- name: Create and start TrueNAS VM
+  ansible.builtin.include_role:
+    name: homelab.common.vm_base
+  tags:
+    - truenas
+    - vm
+
+- name: Display TrueNAS post-install instructions
+  ansible.builtin.debug:
+    msg: |
+      TrueNAS SCALE VM has been created and started (VMID: {{ vm_id }}).
+
+      NEXT STEPS - Complete installation via Proxmox VNC console:
+        1. Open Proxmox WebUI: https://{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}:8006
+        2. Select VM {{ vm_id }} ({{ inventory_hostname }})
+        3. Open Console (noVNC or xterm.js)
+        4. Follow the TrueNAS SCALE installer
+        5. After install completes, the VM will reboot
+        6. Access TrueNAS WebUI: http://{{ ansible_host }}
+
+      The ISO will remain attached. After installation, remove it via:
+        Hardware > CD/DVD Drive > Do not use any media
+  tags:
+    - truenas
