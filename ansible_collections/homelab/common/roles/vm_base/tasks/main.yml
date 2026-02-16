@@ -67,9 +67,13 @@
     _vm_scsi0: "{{ vm_config.storage }}:{{ vm_resources.disk_size }}"
   when: not vm_clone.enabled | bool
 
-- name: Build EFI disk string
+- name: Build EFI disk dict
   ansible.builtin.set_fact:
-    _vm_efidisk0: "{{ vm_config.storage }}:1,efitype=4m,pre-enrolled-keys=1"
+    _vm_efidisk0:
+      storage: "{{ vm_config.storage }}"
+      format: raw
+      efitype: 4m
+      pre_enrolled_keys: true
   when:
     - not vm_clone.enabled | bool
     - vm_config.bios == 'ovmf'
@@ -124,7 +128,7 @@
       net0: "{{ _vm_net0 }}"
 
     # Boot order: disk first, then cdrom
-    boot: order=scsi0;ide2
+    boot: "order=scsi0;ide2"
 
     state: present
 
@@ -153,8 +157,9 @@
     validate_certs: "{{ _vm_validate_certs }}"
     timeout: "{{ proxmox_api_defaults.timeout | default(300) }}"
 
-    # Clone source
-    clone: "{{ vm_clone.template_id }}"
+    # Clone source — vmid identifies the template, clone is required to trigger cloning
+    vmid: "{{ vm_clone.template_id }}"
+    clone: "{{ vm_clone.template_name | default('template') }}"
     full: "{{ vm_clone.full_clone | default(true) }}"
 
     # Target VM

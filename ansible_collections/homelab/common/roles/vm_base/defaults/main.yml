@@ -30,6 +30,7 @@ vm_network:
 vm_clone:
   enabled: false
   template_id: 9000       # VMID of the template to clone from
+  template_name: ubuntu-2404-cloud  # Name of the template (used by module to trigger clone)
   full_clone: true         # Full clone (true) vs linked clone (false)
 
 # Cloud-init configuration (for cloned VMs)
