@@ -18,11 +18,7 @@ vm_cloudinit:
   ip_config: "ip={{ ansible_host }}/24,gw={{ homelab_network.gateway_ip }}"
   dns_servers: "{{ homelab_network.dns_servers | join(' ') }}"
   search_domain: "{{ homelab_domain }}"
-  ssh_public_key: >-
-    {{ lookup('file', lookup('first_found', {
-      'files': ['id_ed25519.pub', 'id_rsa.pub', 'id_ecdsa.pub'],
-      'paths': ['~/.ssh']
-    })) }}
+  ssh_public_key: "{{ lookup('file', '~/.ssh/homelab_ed25519.pub') }}"
 
 # Hardware — cloud images use seabios, not UEFI
 vm_config:

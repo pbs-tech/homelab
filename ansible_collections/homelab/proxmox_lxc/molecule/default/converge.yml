@@ -8,7 +8,7 @@
   vars:
     homelab_domain: test.local
     ssl_email: test@test.local
-    container_ssh_key: "{{ lookup('file', '/root/.ssh/id_rsa.pub') }}"
+    container_ssh_key: "{{ lookup('file', '/root/.ssh/homelab_ed25519.pub') }}"
 
   tasks:
     - name: Test Prometheus role with minimal config

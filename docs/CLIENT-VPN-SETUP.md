@@ -139,6 +139,11 @@ sudo pacman -S wireguard-tools
 
 **Step 2: Create Configuration File**
 
+> **Common mistake:** The `PublicKey` in `[Peer]` must be the **server's** public key —
+> not your own client public key. Your client public key is only sent to the admin for adding
+> to the server. Run `pct exec 203 -- wg show wg0 public-key` on the Proxmox host to get
+> the server's public key, or use the Ansible-generated config in `~/.wireguard/homelab/`.
+
 ```bash
 # Create configuration directory
 sudo mkdir -p /etc/wireguard
@@ -238,44 +243,50 @@ ip route show table all | grep wg0
 journalctl -u wg-quick@wg0 -f
 ```
 
-### Method 2: NetworkManager (GUI Integration)
+### Method 2: NetworkManager with `nmcli` (Recommended for Arch/Modern Linux)
 
-**Step 1: Install NetworkManager Plugin**
+On systems where NetworkManager manages DNS (most modern Linux desktops), using `nmcli` is
+preferred over `wg-quick`. NM handles DNS integration natively, avoiding conflicts with
+`resolvconf` or `systemd-resolved`.
+
+**Step 1: Import configuration**
 
 ```bash
-# Ubuntu/Debian
-sudo apt-get install network-manager-wireguard
-
-# Fedora
-sudo dnf install NetworkManager-wireguard
+sudo nmcli connection import type wireguard file /etc/wireguard/wg0.conf
 ```
 
-**Step 2: Import Configuration via GUI**
+**Step 2: Configure DNS**
 
-1. Click NetworkManager icon in system tray
-2. Select "VPN Connections" > "Add a VPN connection"
-3. Choose "Import from file" or "WireGuard"
-4. Browse to your configuration file or manually enter settings:
-   - **Interface Name**: wg0
-   - **Private Key**: Paste your client private key
-   - **Address**: `10.200.0.2/32`
-   - **DNS**: `192.168.0.202`
-   - **Peer Public Key**: Server public key
-   - **Endpoint**: `vpn.example.com:51820`
-   - **Allowed IPs**: `192.168.0.0/24, 10.42.0.0/16, 10.43.0.0/16`
-   - **Persistent Keepalive**: `25`
-5. Save and connect
+```bash
+nmcli connection modify wg0 ipv4.dns "192.168.0.202" ipv4.dns-search "homelab.local"
+```
 
 **Step 3: Connect**
 
-Click the VPN connection in NetworkManager to connect/disconnect.
+```bash
+nmcli connection up wg0
+```
+
+**Step 4: Verify DNS is working**
+
+```bash
+resolvectl status wg0
+resolvectl query grafana.homelab.local
+```
+
+**Disconnect:**
+
+```bash
+nmcli connection down wg0
+```
 
 **Advantages:**
 
-- GUI integration with desktop environment
-- Easy switching between VPN on/off
-- Visual connection status
-- No need for sudo to connect
+- No `resolvconf` signature mismatch errors
+- NM handles DNS routing natively — `.homelab.local` queries go to `192.168.0.202`
+- No need for `PostUp`/`PostDown` hooks
+- GUI integration with desktop environment (connection also appears in system tray)
+- No need for sudo to connect after initial import
 
 ## macOS Client Setup
 
@@ -966,6 +977,42 @@ ping vpn.example.com
 nc -u -v vpn.example.com 51820
 ```
 
+### No Peers Listed in `wg show`
+
+**Problem: `wg show` displays the interface but no `[Peer]` section**
+
+```
+interface: wg0
+  public key: <your-client-key>
+  private key: (hidden)
+  listening port: 51820
+```
+
+**Root cause:** The `PublicKey` in the `[Peer]` section of your client config is set to
+your own client's public key instead of the **server's** public key. WireGuard cannot
+match any peer and brings the tunnel up with no peers configured.
+
+**Fix:** Get the server's public key and update your config:
+
+```bash
+# On the Proxmox host — get server public key
+pct exec 203 -- wg show wg0 public-key
+
+# Or read the file Ansible saved on the LXC
+pct exec 203 -- cat /etc/wireguard/server_publickey
+
+# Or use the Ansible-generated config (already has the correct key)
+ls ~/.wireguard/homelab/
+```
+
+Update `/etc/wireguard/wg0.conf` — replace the `PublicKey` line under `[Peer]` with the
+server's public key (not your client public key), then restart:
+
+```bash
+sudo wg-quick down wg0 && sudo wg-quick up wg0
+sudo wg show  # Should now list a [Peer] section
+```
+
 ### DNS Not Working
 
 **Problem: Can ping IPs but not resolve .homelab.local names**
@@ -990,24 +1037,73 @@ nslookup grafana.homelab.local 192.168.0.202
 
 **Solutions:**
 
-1. **Add DNS to config**
+1. **If connecting via `nmcli`**, set DNS on the connection:
+
+```bash
+nmcli connection modify wg0 ipv4.dns "192.168.0.202" ipv4.dns-search "homelab.local"
+nmcli connection down wg0 && nmcli connection up wg0
+```
+
+2. **If connecting via `wg-quick`**, add `PostUp`/`PostDown` hooks to `/etc/wireguard/wg0.conf`:
 
 ```ini
 [Interface]
 DNS = 192.168.0.202
+PostUp = resolvectl dns %i 192.168.0.202; resolvectl domain %i ~homelab.local
+PostDown = resolvectl revert %i
 ```
-
-2. **Manual DNS configuration** (if auto-DNS fails)
-
-See [DNS Configuration](#dns-configuration) section.
 
 3. **Check DNS server is accessible**
 
 ```bash
 ping 192.168.0.202
 
-# If unreachable, routing issue
+# If unreachable, routing issue — verify AllowedIPs includes 192.168.0.0/24
 ```
+
+### `wg-quick` Fails with `resolvconf` Signature Mismatch
+
+**Problem: `wg-quick up wg0` succeeds then immediately tears down the interface**
+
+```
+resolvconf: signature mismatch: /etc/resolv.conf
+resolvconf: run `resolvconf -u` to update
+[#] ip link delete dev wg0
+```
+
+**Root Cause:**
+
+`/etc/resolv.conf` was modified outside of `resolvconf`'s management (e.g., by NetworkManager
+or systemd-resolved). When `wg-quick` tries to configure DNS, it detects the checksum mismatch
+and aborts, rolling back the entire interface setup.
+
+**Solutions (in order of preference):**
+
+**Option 1: Use `nmcli` if the config was generated by NetworkManager** (preferred — NM handles
+DNS itself and avoids the conflict entirely):
+
+```bash
+sudo nmcli connection import type wireguard file /etc/wireguard/wg0.conf
+nmcli connection up wg0
+```
+
+**Option 2: Update the resolvconf database first:**
+
+```bash
+sudo resolvconf -u
+sudo wg-quick up wg0
+```
+
+**Option 3: Fix the symlink if using systemd-resolved (common on Arch Linux):**
+
+```bash
+sudo ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
+sudo resolvconf -u
+sudo wg-quick up wg0
+```
+
+**Option 4: Remove the `DNS =` line from your config** if you don't need VPN-side DNS resolution.
+The tunnel will still work; only DNS routing via the VPN is skipped.
 
 ### Routing Issues
 

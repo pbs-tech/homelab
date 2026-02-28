@@ -139,7 +139,7 @@
 - name: Set up SSH keys for pbs user
   ansible.posix.authorized_key:
     user: pbs
-    key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+    key: "{{ lookup('file', '~/.ssh/homelab_ed25519.pub') }}"
     state: present
 
 # --- Optional: Sync Ansible collections to bastion ---

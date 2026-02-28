@@ -8,7 +8,7 @@
     - name: Setup SSH key authentication
       ansible.posix.authorized_key:
         user: root
-        key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+        key: "{{ lookup('file', '~/.ssh/homelab_ed25519.pub') }}"
         state: present
 
     - name: Test Prometheus deployment
