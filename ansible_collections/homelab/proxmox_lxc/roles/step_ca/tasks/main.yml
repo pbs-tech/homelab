@@ -1,4 +1,9 @@
 ---
+- name: Wait for SSH to be ready after container creation
+  ansible.builtin.wait_for_connection:
+    delay: 5
+    timeout: 60
+
 - name: Install required packages
   ansible.builtin.apt:
     name:
@@ -6,6 +11,11 @@
       - jq
     state: present
     update_cache: true
+
+- name: Wait for SSH to recover after apt update
+  ansible.builtin.wait_for_connection:
+    delay: 5
+    timeout: 60
 
 - name: Create step group
   ansible.builtin.group:
