@@ -110,7 +110,6 @@ vault_proxmox_api_tokens:
     token_id: "{{ vault_proxmox_api_token_id }}"
     token_secret: "{{ vault_proxmox_api_token_secret }}"
 vault_grafana_admin_password: "{{ vault_grafana_password }}"
-vault_wireguard_server_private_key: "{{ vault_wg_private_key }}"
 ```
 
 ### 1.4 Orchestration and Deployment Strategy
@@ -706,7 +705,6 @@ vault_proxmox_api_tokens:
 vault_grafana_admin_password: "{{ encrypted }}"
 vault_grafana_secret_key: "{{ encrypted }}"
 vault_adguard_admin_password: "{{ encrypted }}"
-vault_wireguard_server_private_key: "{{ encrypted }}"
 ```
 
 **Vault Setup:**

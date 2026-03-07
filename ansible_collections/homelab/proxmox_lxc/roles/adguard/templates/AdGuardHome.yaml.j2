@@ -118,6 +118,15 @@ user_rules:
 {% for rule in adguard_user_rules %}
   - "{{ rule }}"
 {% endfor %}
+rewrites:
+{% if adguard_rewrites | default([]) %}
+{% for rewrite in adguard_rewrites %}
+  - domain: "{{ rewrite.domain }}"
+    answer: "{{ rewrite.answer }}"
+{% endfor %}
+{% else %}
+  []
+{% endif %}
 dhcp:
   enabled: {{ adguard_dhcp_enabled | lower }}
   interface_name: ""

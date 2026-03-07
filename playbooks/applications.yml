@@ -29,6 +29,15 @@
       when: inventory_hostname is search('homeassistant')
       tags: [homeassistant, automation]
 
+- name: Deploy TrueNAS VM
+  hosts: nas_vm
+  gather_facts: false
+  become: false
+  roles:
+    - role: homelab.proxmox_lxc.truenas
+      tags: [truenas, nas]
+  tags: [truenas, nas, applications]
+
 - name: Deploy NAS services
   hosts: nas_services
   become: true

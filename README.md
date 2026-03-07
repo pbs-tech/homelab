@@ -219,6 +219,8 @@ ansible-playbook playbooks/site.yml
 | Sonarr | 192.168.0.230 | TV management | proxmox_lxc |
 | Radarr | 192.168.0.231 | Movie management | proxmox_lxc |
 | Jellyfin | 192.168.0.235 | Media streaming | proxmox_lxc |
+| **NAS VMs** | | |
+| TrueNAS | 192.168.0.220 | NAS storage (ISO) | proxmox_lxc |
 | **Cluster** | | |
 | k3-01 | 192.168.0.111 | K3s server node | k3s |
 | k3-02-04 | 192.168.0.112-114 | K3s agent nodes | k3s |

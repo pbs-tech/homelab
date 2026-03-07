@@ -75,6 +75,9 @@ ansible-playbook playbooks/infrastructure.yml --tags "k3s,phase5"
 ansible-playbook playbooks/infrastructure.yml --tags "enclave,phase6" \
   -e enclave_security_acknowledged=true -e enclave_persistent_mode=true
 
+# VM template creation (prerequisite for Ubuntu VM clones)
+ansible-playbook playbooks/create-vm-template.yml --ask-vault-pass
+
 # LEGACY APPROACH - Still supported for backwards compatibility
 ansible-playbook site.yml                                    # Deploy entire infrastructure
 ansible-playbook site.yml --tags "k3s,cluster"              # Deploy only K3s cluster
@@ -254,7 +257,6 @@ Required vault variables:
 - `vault_grafana_admin_password` - Grafana admin password
 - `vault_grafana_secret_key` - Grafana secret key for signing (generate with: `openssl rand -base64 32`)
 - `vault_adguard_admin_password` - AdGuard Home admin password (minimum 12 characters)
-- `vault_wireguard_server_private_key` - WireGuard server private key (generate with: `wg genkey`)
 
 To create Proxmox API tokens:
 
@@ -407,6 +409,7 @@ molecule test -s proxmox-integration
 Molecule tests are automatically executed in GitHub Actions CI pipeline via two workflows:
 
 **1. Smoke Test Workflow** (`.github/workflows/molecule-smoke.yml`)
+
 - **Purpose:** Fast validation of ALL roles across all collections
 - **Trigger:** Pull requests, pushes to main/molecule branches, workflow_dispatch
 - **Duration:** < 15 minutes total (typically 5-8 minutes)
@@ -414,6 +417,7 @@ Molecule tests are automatically executed in GitHub Actions CI pipeline via two 
 - **Optimal for:** Quick feedback on role changes, pre-commit validation
 
 **2. Standard Molecule Workflow** (`.github/workflows/ci.yml`)
+
 - **Purpose:** Comprehensive collection-specific testing
 - **Trigger:** Pull requests, pushes to main, manual workflow dispatch
 - **Strategy:** Matrix testing across all three collections in parallel
@@ -495,6 +499,8 @@ ansible-galaxy collection install *.tar.gz --force
   - Core services: 192.168.0.200-210
   - NAS services: 192.168.0.230-235
   - NAS monitoring: 192.168.0.240+
+- **NAS VMs (KVM/QEMU)**:
+  - TrueNAS: 192.168.0.220 (NAS storage, ISO-based)
 - **Domain**: homelab.local
 
 ### Core Services Deployed
@@ -522,6 +528,10 @@ ansible-galaxy collection install *.tar.gz --force
 - **Prowlarr** (192.168.0.233) - Indexer management
 - **qBittorrent** (192.168.0.234) - BitTorrent client
 - **Jellyfin** (192.168.0.235) - Media streaming server
+
+#### NAS Virtual Machines (KVM/QEMU)
+
+- **TrueNAS** (192.168.0.220) - NAS storage (ISO-based VM via `vm_base`)
 
 #### Security Research & Pentesting (Secure Enclave)
 
@@ -552,6 +562,7 @@ ansible-galaxy collection install *.tar.gz --force
 │   ├── networking.yml               # Phase 2: DNS, VPN, reverse proxy
 │   ├── monitoring.yml               # Phase 3: Prometheus, Grafana, Loki
 │   ├── applications.yml             # Phase 4: Home automation, NAS services
+│   ├── create-vm-template.yml       # Create Ubuntu cloud-init VM template (ID 9000)
 │   ├── enclave.yml                  # Phase 6: Secure enclave (persistent/temporary modes)
 │   ├── secure-enclave.yml           # Legacy secure enclave deployment
 │   ├── update-systems.yml           # Rolling system updates (Pi + LXC)
@@ -570,7 +581,7 @@ ansible-galaxy collection install *.tar.gz --force
     │   │   ├── default/             # Default test scenario
     │   │   └── common-roles/        # Common roles test scenario
     │   └── roles/                   # Shared roles (common_setup, container_base,
-    │                                # security_hardening)
+    │                                # security_hardening, vm_base)
     ├── k3s/                         # K3s cluster management
     │   ├── playbooks/site.yml       # K3s deployment
     │   ├── inventory/hosts.yml      # Raspberry Pi inventory
@@ -587,7 +598,7 @@ ansible-galaxy collection install *.tar.gz --force
         │   ├── default/             # Default test scenario
         │   └── proxmox-integration/ # Proxmox integration test scenario
         └── roles/                   # Service roles (traefik, prometheus,
-                                     # grafana, etc.)
+                                     # grafana, truenas, ubuntu_vm, etc.)
 ```
 
 ## Key Integration Points

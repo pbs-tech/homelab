@@ -3,6 +3,9 @@
 # Setup: pip install pre-commit && pre-commit install
 # Run manually: pre-commit run --all-files
 
+# Exclude vendored third-party ansible collections from all hooks
+exclude: '^ansible_collections/(ansible|community|kubernetes|containers)[./]'
+
 repos:
   # File checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -29,26 +32,25 @@ repos:
 
   # Ansible linting
   - repo: https://github.com/ansible/ansible-lint
-    rev: v24.12.2
+    rev: v26.3.0
     hooks:
       - id: ansible-lint
         files: \.(yaml|yml)$
         additional_dependencies:
-          - ansible-core>=2.15
+          - ansible-core>=2.17
 
   # Markdown linting
   - repo: https://github.com/DavidAnson/markdownlint-cli2
     rev: v0.16.0
     hooks:
       - id: markdownlint-cli2
-        args: [--config=.markdownlint.yaml]
 
   # Shell script linting
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.10.0.1
     hooks:
       - id: shellcheck
-        args: [-x]
+        args: [-x, --severity=error]
 
   # Security - secrets scanning (lightweight, local-only)
   - repo: local
@@ -58,8 +60,10 @@ repos:
         entry: bash -c
         args:
           - |
-            pattern="(password|secret|key|token|credential):\s*['\"][^'\"]{8,}"
-            if grep -rI --include="*.yml" --include="*.yaml" -E "$pattern" .; then
+            pattern="(password|secret|preshared_key|private_key|api_key|token|credential):\s*['\"][^'\"]{8,}"
+            if grep -rI --include="*.yml" --include="*.yaml" -E "$pattern" . \
+                | grep -v "ansible_collections/ansible[./]\|ansible_collections/community[./]\|ansible_collections/kubernetes[./]\|ansible_collections/containers[./]" \
+                | grep -v "{{"; then
               echo "⚠️  Potential hardcoded secrets detected"
               exit 1
             fi

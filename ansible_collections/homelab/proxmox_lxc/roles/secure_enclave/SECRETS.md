@@ -295,28 +295,33 @@ pveum acl modify / -token 'root@pam!ansible' -role PVEVMAdmin
 ## Security Best Practices
 
 ### 1. Principle of Least Privilege
+
 - Grant only necessary permissions
 - Use separate tokens for different purposes
 - Avoid using root account directly
 
 ### 2. Defense in Depth
+
 - Multiple layers of encryption (vault + SSH)
 - Network isolation (enclave separated from production)
 - Access controls (bastion host, key-based auth)
 
 ### 3. Audit and Monitoring
+
 - Enable audit logging (auditd)
 - Monitor API token usage
 - Track all enclave access
 - Regular security audits
 
 ### 4. Secure Development
+
 - Never commit secrets to Git
 - Use .gitignore for sensitive files
 - Scan repositories for secrets (trufflehog, gitleaks)
 - Code review for security issues
 
 ### 5. Backup and Recovery
+
 - Backup encrypted vault files
 - Store vault password in password manager
 - Document recovery procedures
@@ -325,16 +330,19 @@ pveum acl modify / -token 'root@pam!ansible' -role PVEVMAdmin
 ## Compliance Considerations
 
 ### Data Classification
+
 - **Highly Sensitive**: API tokens, private keys, vault passwords
 - **Sensitive**: Configuration files, IP addresses, hostnames
 - **Public**: Role code, documentation, README files
 
 ### Retention Policy
+
 - Keep audit logs for 90 days minimum
 - Archive encrypted vault backups for 1 year
 - Securely delete rotated secrets
 
 ### Access Control
+
 - Limit vault password to authorized personnel only
 - Use separate vaults for different environments (dev/staging/prod)
 - Implement two-person rule for production changes
@@ -342,6 +350,7 @@ pveum acl modify / -token 'root@pam!ansible' -role PVEVMAdmin
 ## Tools and Resources
 
 ### Recommended Tools
+
 - **Ansible Vault**: Built-in encryption for Ansible
 - **1Password/Bitwarden**: Password managers for vault passwords
 - **git-secrets**: Prevent committing secrets to Git

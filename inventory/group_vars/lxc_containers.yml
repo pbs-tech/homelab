@@ -66,4 +66,4 @@ container_defaults:
   swap: 0
   onboot: true
   unprivileged: true
-  ssh_key: "{{ lookup('file', '~/.ssh/id_rsa.pub', errors='ignore') | default('') }}"
+  ssh_key: "{{ lookup('file', '~/.ssh/homelab_ed25519.pub') }}"

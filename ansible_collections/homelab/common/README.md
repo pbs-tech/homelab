@@ -71,6 +71,32 @@ Security configuration and hardening for all infrastructure components.
 - `ssh_permit_root_login`: Root SSH access (default: "prohibit-password")
 - `ssh_password_authentication`: Allow password auth (default: false)
 
+### vm_base
+
+Core role for Proxmox KVM/QEMU virtual machine lifecycle management. Supports two creation modes:
+ISO-based (scratch) and template cloning with cloud-init.
+
+**Features:**
+
+- VM creation from ISO (UEFI/SeaBIOS, VirtIO SCSI, EFI disk)
+- Template cloning with full or linked clones
+- Cloud-init configuration (user, IP, DNS, SSH keys)
+- Disk resizing after clone
+- Per-VM Proxmox firewall deployment (pmxcfs-compatible)
+- VM start and SSH readiness wait
+- Secure API token authentication
+
+**Variables:**
+
+- `vm_clone`: Clone configuration (`enabled`, `template_id`, `full_clone`)
+- `vm_cloudinit`: Cloud-init settings (`enabled`, `user`, `ip_config`, `dns_servers`, `ssh_public_key`)
+- `vm_config`: Hardware settings (`bios`, `machine`, `ostype`, `scsihw`, `agent`, `storage`)
+- `vm_resources`: Resource allocation (`cores`, `memory`, `disk_size`, `sockets`)
+- `vm_iso`: ISO configuration for scratch builds (`storage`, `file`)
+- `vm_network`: Network bridge and firewall settings
+- `vm_firewall_groups`: Security groups to reference in per-VM firewall
+- `vm_wait_for_ssh`: Whether to wait for SSH after VM start
+
 ### monitoring_agent
 
 Monitoring agent deployment for metrics and log collection.

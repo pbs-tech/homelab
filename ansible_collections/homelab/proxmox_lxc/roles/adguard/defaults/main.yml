@@ -80,6 +80,11 @@ adguard_filters:
 # Blocked services
 adguard_blocked_services: []
 
+# DNS rewrites — wildcard routes all homelab.local names through Traefik
+adguard_rewrites:
+  - domain: "*.homelab.local"
+    answer: "192.168.0.205"  # Traefik reverse proxy
+
 # Custom user rules
 adguard_user_rules:
   - "||tk^$important"  # Block .tk TLD

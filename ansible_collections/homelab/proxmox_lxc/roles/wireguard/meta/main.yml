@@ -38,13 +38,5 @@ dependencies:
   - role: homelab.common.container_base
     vars:
       container_unprivileged: true
-  - role: homelab.common.security_hardening
-    vars:
-      ufw_config:
-        service_rules:
-          wireguard:
-            port: 51820
-            protocol: udp
-            comment: "WireGuard VPN"
 
 allow_duplicates: false

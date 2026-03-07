@@ -376,7 +376,6 @@ vault_proxmox_api_tokens:
 vault_grafana_admin_password: "..."
 vault_grafana_secret_key: "..."
 vault_adguard_admin_password: "..."
-vault_wireguard_server_private_key: "..."
 vault_ssl_email: "..."
 ```
 

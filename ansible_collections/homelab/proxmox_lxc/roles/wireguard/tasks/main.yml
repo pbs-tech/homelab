@@ -3,7 +3,7 @@
 
 # Configure Proxmox host for WireGuard LXC support
 - name: Load WireGuard kernel module on Proxmox host
-  ansible.builtin.modprobe:
+  community.general.modprobe:
     name: wireguard
     state: present
   delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
@@ -182,6 +182,22 @@
     msg: "WireGuard server public key: {{ server_publickey_result.stdout }}"
   tags: config
 
+- name: Save server public key to file
+  ansible.builtin.copy:
+    content: "{{ server_publickey_result.stdout }}\n"
+    dest: /etc/wireguard/server_publickey
+    owner: root
+    group: root
+    mode: "0644"
+  tags: config
+
+- name: Fetch server public key to control machine
+  ansible.builtin.fetch:
+    src: /etc/wireguard/server_publickey
+    dest: "{{ wireguard_client_config_dir }}/server_publickey"
+    flat: true
+  tags: config
+
 - name: Deploy WireGuard configuration
   ansible.builtin.template:
     src: wg0.conf.j2
@@ -304,6 +320,29 @@
     daemon_reload: true
   when: wireguard_enable_firewall | default(true)
   tags: firewall
+
+- name: Ensure client config output directory exists
+  ansible.builtin.file:
+    path: "{{ wireguard_client_config_dir }}"
+    state: directory
+    mode: "0700"
+  delegate_to: localhost
+  become: false
+  tags: config
+
+- name: Generate client configuration files locally
+  ansible.builtin.template:
+    src: wg0-client.conf.j2
+    dest: "{{ wireguard_client_config_dir }}/{{ item.name }}-wg0.conf"
+    mode: "0600"
+  delegate_to: localhost
+  become: false
+  loop: "{{ wireguard_clients }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: "'REPLACE' not in (item.public_key | default('REPLACE'))"
+  no_log: true
+  tags: config
 
 - name: Generate client QR codes
   ansible.builtin.shell: |

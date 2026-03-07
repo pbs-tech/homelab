@@ -41,8 +41,15 @@ unbound_private_domains:
   - "homelab.local"
 
 # Local zone for homelab domain
+# "redirect" returns the zone-level IP for any unmatched *.homelab.local query
 unbound_local_zone: "homelab.local"
-unbound_local_zone_type: "static"
+unbound_local_zone_type: "redirect"
+
+# All homelab.local names resolve to Traefik; Traefik routes by Host header
+unbound_traefik_ip: "192.168.0.205"
+
+# Optional per-name overrides (e.g. management interfaces that bypass Traefik)
+unbound_local_data_overrides: []
 
 # DNS over TLS upstream resolvers
 unbound_forward_tls: true

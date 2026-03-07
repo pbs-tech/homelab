@@ -12,6 +12,19 @@ exclude_paths:
   - __pycache__/
   - "*.pyc"
   - .ansible/
+  - ansible_collections/ansible/
+  - ansible_collections/ansible.posix-2.1.0.info/
+  - ansible_collections/community/
+  - ansible_collections/community.crypto-3.1.1.info/
+  - ansible_collections/community.docker-5.0.6.info/
+  - ansible_collections/community.general-12.4.0.info/
+  - ansible_collections/community.grafana-2.3.0.info/
+  - ansible_collections/community.library_inventory_filtering_v1-1.1.5.info/
+  - ansible_collections/community.proxmox-1.5.0.info/
+  - ansible_collections/containers/
+  - ansible_collections/containers.podman-1.19.0.info/
+  - ansible_collections/kubernetes/
+  - ansible_collections/kubernetes.core-6.3.0.info/
 
 # Ansible-lint will include all .yml/.yaml files by default
 # Use exclude_paths to control what gets linted
@@ -22,6 +35,7 @@ skip_list:
   - galaxy[no-changelog] # Collections may not have changelog
   - fqcn[action-core] # Allow core modules without FQCN in collections
   - var-naming[no-role-prefix] # Allow variables without role prefix in vars files
+  - yaml[document-start] # Encrypted vault files cannot have --- prepended
 
 warn_list:
   - experimental # Allow experimental rules as warnings

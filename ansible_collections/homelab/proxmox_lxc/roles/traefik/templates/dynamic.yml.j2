@@ -4,8 +4,10 @@ http:
     {{ service_name }}-router:
       rule: "Host(`{{ service_config.domain }}`)"
       service: {{ service_name }}-service
+{% if traefik_tls_enabled | default(false) %}
       tls:
         certResolver: {{ traefik_ssl_resolver }}
+{% endif %}
       middlewares:
         - default-headers
 {% endfor %}
@@ -14,8 +16,10 @@ http:
     k3s-router:
       rule: "Host(`k3s.{{ homelab_domain }}`) || HostRegexp(`{subdomain:[a-z0-9-]+}.k3s.{{ homelab_domain }}`)"
       service: k3s-service
+{% if traefik_tls_enabled | default(false) %}
       tls:
         certResolver: {{ traefik_ssl_resolver }}
+{% endif %}
       middlewares:
         - default-headers
 
@@ -40,15 +44,17 @@ http:
     default-headers:
       headers:
         frameDeny: true
-        sslRedirect: true
         browserXssFilter: true
         contentTypeNosniff: true
+{% if traefik_tls_enabled | default(false) %}
+        sslRedirect: true
         forceSTSHeader: true
         stsIncludeSubdomains: true
         stsPreload: true
         stsSeconds: 31536000
         customRequestHeaders:
           X-Forwarded-Proto: "https"
+{% endif %}
 
     secure-headers:
       headers:

@@ -11,7 +11,7 @@
 
   block:
     - name: Run API validation tasks
-      ansible.builtin.include_tasks: ../../tasks/proxmox_api_validation.yml
+      ansible.builtin.include_tasks: ../../../tasks/proxmox_api_validation.yml
 
 # Validate and parse API token
 # Token format should be: user@realm!tokenname
@@ -38,7 +38,6 @@
          if '!' in proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id
          else proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id }}
   delegate_to: localhost
-  run_once: true
 
 - name: Set container configuration variables
   ansible.builtin.set_fact:

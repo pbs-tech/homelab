@@ -150,7 +150,7 @@
   args:
     executable: /bin/bash
   register: password_hash_result
-  when: adguard_admin_password_hash == ""
+  when: adguard_admin_password_hash | length == 0
   changed_when: false
   no_log: true
   tags: config
@@ -159,7 +159,7 @@
   ansible.builtin.set_fact:
     adguard_admin_password_hash: "{{ password_hash_result.stdout | trim }}"
   when:
-    - adguard_admin_password_hash == ""
+    - adguard_admin_password_hash | length == 0
     - password_hash_result.stdout is defined
   no_log: true
   tags: config

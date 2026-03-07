@@ -255,6 +255,13 @@ The collection includes 29 roles organized by function:
 | `qbittorrent` | BitTorrent client |
 | `jellyfin` | Media streaming server |
 
+### Virtual Machines (KVM/QEMU)
+
+| Role | Description |
+|------|-------------|
+| `truenas` | TrueNAS SCALE VM (ISO-based install via `vm_base`) |
+| `ubuntu_vm` | Ubuntu cloud-init VM (template clone via `vm_base`) |
+
 ## Service Interactions
 
 ```text

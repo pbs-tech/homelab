@@ -58,10 +58,6 @@
     - phase5
   when: not skip_k3s | default(false)
 
-- name: Deploy secure enclave (security research)
-  import_playbook: enclave.yml
-  tags:
-    - enclave
-    - security-research
-    - phase6
-  when: not skip_enclave | default(false)
+# Phase 6: Secure enclave is deliberately excluded from static imports.
+# It deploys intentionally vulnerable systems and requires explicit invocation:
+#   ansible-playbook playbooks/enclave.yml -e enclave_security_acknowledged=true

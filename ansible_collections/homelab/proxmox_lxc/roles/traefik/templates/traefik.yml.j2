@@ -13,15 +13,18 @@ api:
 entryPoints:
   web:
     address: ":{{ traefik_http_port }}"
+{% if traefik_tls_enabled | default(false) %}
     http:
       redirections:
         entrypoint:
           to: websecure
           scheme: https
+{% endif %}
 
   websecure:
     address: ":{{ traefik_https_port }}"
 
+{% if traefik_tls_enabled | default(false) %}
 certificatesResolvers:
   {{ traefik_ssl_resolver }}:
     acme:
@@ -29,6 +32,7 @@ certificatesResolvers:
       storage: /var/lib/traefik/acme.json
       httpChallenge:
         entryPoint: web
+{% endif %}
 
 providers:
   file:

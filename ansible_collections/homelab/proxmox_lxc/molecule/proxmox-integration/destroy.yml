@@ -11,10 +11,10 @@
     - name: Stop the test container
       community.proxmox.proxmox:
         vmid: 250
-        node: {{ proxmox_node }}
-        api_user: {{ proxmox_user }}
-        api_password: {{ lookup('env', 'PROXMOX_PASSWORD') }}"
-        api_host: {{ proxmox_host }}
+        node: "{{ proxmox_node }}"
+        api_user: "{{ proxmox_user }}"
+        api_password: "{{ lookup('env', 'PROXMOX_PASSWORD') }}"
+        api_host: "{{ proxmox_host }}"
         state: stopped
         force: true
       ignore_errors: true
@@ -22,9 +22,9 @@
     - name: Remove the test container
       community.proxmox.proxmox:
         vmid: 250
-        node: {{ proxmox_node }}
-        api_user: {{ proxmox_user }}
-        api_password: {{ lookup('env', 'PROXMOX_PASSWORD') }}"
-        api_host: {{ proxmox_host }}
+        node: "{{ proxmox_node }}"
+        api_user: "{{ proxmox_user }}"
+        api_password: "{{ lookup('env', 'PROXMOX_PASSWORD') }}"
+        api_host: "{{ proxmox_host }}"
         state: absent
       ignore_errors: true

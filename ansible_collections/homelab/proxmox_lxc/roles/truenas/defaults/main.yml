@@ -1,0 +1,30 @@
+---
+# TrueNAS SCALE deployment defaults
+
+truenas_version: "24.10.2"
+truenas_iso_filename: "TrueNAS-SCALE-{{ truenas_version }}.iso"
+truenas_iso_url: "https://download.truenas.com/TrueNAS-SCALE-ElectricEel/{{ truenas_version }}/{{ truenas_iso_filename }}"
+
+# Whether to auto-download the ISO to the Proxmox host
+truenas_download_iso: true
+
+# Override vm_base defaults for TrueNAS
+vm_resources:
+  cores: 4
+  memory: 8192
+  disk_size: 32
+  sockets: 1
+
+vm_config:
+  bios: ovmf
+  machine: q35
+  ostype: l26
+  scsihw: virtio-scsi-single
+  agent: "1"
+  onboot: true
+  storage: local-lvm
+
+vm_firewall_groups:
+  - basic-network
+  - allow-ssh
+  - allow-web     # TrueNAS WebUI on port 80/443

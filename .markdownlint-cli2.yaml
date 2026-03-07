@@ -1,0 +1,50 @@
+---
+# Markdownlint-cli2 configuration for homelab project
+# See: https://github.com/DavidAnson/markdownlint-cli2
+# Note: When loaded via --config flag, rules go under 'config:' key
+
+config:
+  # Line length - disable (too restrictive for technical documentation)
+  MD013: false
+
+  # Allow inline HTML (badges, callouts, etc.)
+  MD033: false
+
+  # Allow bare URLs (common in technical docs)
+  MD034: false
+
+  # Allow emphasis used as headers
+  MD036: false
+
+  # Allow punctuation in headers (technical terms)
+  MD026: false
+
+  # Allow multiple consecutive blank lines
+  MD012: false
+
+  # Allow duplicate headings that are not siblings
+  MD024:
+    siblings_only: true
+
+  # Fenced code blocks - disable language requirement for legacy docs
+  MD040: false
+
+  # Allow lists without surrounding blank lines
+  MD032: false
+
+  # Allow fenced code blocks without surrounding blank lines
+  MD031: false
+
+  # ATX-style headers required
+  MD003:
+    style: atx
+
+  # Consistent unordered list style
+  MD004:
+    style: dash
+
+  # Allow backslash escapes
+  MD044: false
+
+  # Require alt text in images
+  MD045: false
