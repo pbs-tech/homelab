@@ -18,9 +18,11 @@
           swap: "{{ lxc_swap | default(0) }}"
           disk_size: "{{ lxc_disk_size | default(4) }}"
       when: container_id is defined
+      tags: always
 
     - name: Gather facts after container is available
       ansible.builtin.setup:
+      tags: always
 
   roles:
     - role: homelab.common.common_setup
