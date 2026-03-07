@@ -68,17 +68,31 @@
     mode: "0644"
   when: not step_ca_binary.stat.exists
 
+- name: Create step-ca extraction directory
+  ansible.builtin.file:
+    path: /tmp/step-ca-src
+    state: directory
+    mode: "0755"
+  when: not step_ca_binary.stat.exists
+
 - name: Extract step-ca binary
   ansible.builtin.unarchive:
     src: /tmp/step-ca.tar.gz
-    dest: /tmp
+    dest: /tmp/step-ca-src
     remote_src: true
-    extra_opts: ["--strip-components=1"]
+  when: not step_ca_binary.stat.exists
+
+- name: Find step-ca binary in extraction directory
+  ansible.builtin.find:
+    paths: /tmp/step-ca-src
+    patterns: "step-ca"
+    recurse: true
+  register: step_ca_found
   when: not step_ca_binary.stat.exists
 
 - name: Install step-ca binary
   ansible.builtin.copy:
-    src: /tmp/step-ca
+    src: "{{ step_ca_found.files[0].path }}"
     dest: /usr/local/bin/step-ca
     owner: root
     group: root
@@ -100,17 +114,31 @@
     mode: "0644"
   when: not step_binary.stat.exists
 
+- name: Create step CLI extraction directory
+  ansible.builtin.file:
+    path: /tmp/step-cli-src
+    state: directory
+    mode: "0755"
+  when: not step_binary.stat.exists
+
 - name: Extract step CLI binary
   ansible.builtin.unarchive:
     src: /tmp/step-cli.tar.gz
-    dest: /tmp
+    dest: /tmp/step-cli-src
     remote_src: true
-    extra_opts: ["--strip-components=1"]
+  when: not step_binary.stat.exists
+
+- name: Find step CLI binary in extraction directory
+  ansible.builtin.find:
+    paths: /tmp/step-cli-src
+    patterns: "step"
+    recurse: true
+  register: step_cli_found
   when: not step_binary.stat.exists
 
 - name: Install step CLI binary
   ansible.builtin.copy:
-    src: /tmp/step/bin/step
+    src: "{{ step_cli_found.files[0].path }}"
     dest: /usr/local/bin/step
     owner: root
     group: root
