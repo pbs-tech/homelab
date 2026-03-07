@@ -1,0 +1,215 @@
+---
+- name: Install required packages
+  ansible.builtin.apt:
+    name:
+      - curl
+      - jq
+    state: present
+    update_cache: true
+
+- name: Create step group
+  ansible.builtin.group:
+    name: "{{ step_ca_group }}"
+    system: true
+    state: present
+
+- name: Create step user
+  ansible.builtin.user:
+    name: "{{ step_ca_user }}"
+    group: "{{ step_ca_group }}"
+    system: true
+    shell: /usr/sbin/nologin
+    home: "{{ step_ca_config_dir }}"
+    create_home: false
+
+- name: Create step-ca directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ step_ca_user }}"
+    group: "{{ step_ca_group }}"
+    mode: "0750"
+  loop:
+    - "{{ step_ca_config_dir }}"
+    - "{{ step_ca_data_dir }}"
+
+- name: Configure DNS resolver to use Unbound (resolves homelab.local)
+  ansible.builtin.copy:
+    content: |
+      # Managed by Ansible - step-ca needs local DNS to validate TLS-ALPN-01 challenges
+      nameserver {{ step_ca_dns_resolver }}
+      nameserver 1.1.1.1
+    dest: /etc/resolv.conf
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Check if step-ca binary is installed
+  ansible.builtin.stat:
+    path: /usr/local/bin/step-ca
+  register: step_ca_binary
+
+- name: Download step-ca binary
+  ansible.builtin.get_url:
+    url: >-
+      https://github.com/smallstep/certificates/releases/download/v{{ step_ca_version
+      }}/step-ca_linux_{{ step_ca_version }}_amd64.tar.gz
+    dest: /tmp/step-ca.tar.gz
+    mode: "0644"
+  when: not step_ca_binary.stat.exists
+
+- name: Extract step-ca binary
+  ansible.builtin.unarchive:
+    src: /tmp/step-ca.tar.gz
+    dest: /tmp
+    remote_src: true
+    extra_opts: ["--strip-components=1"]
+  when: not step_ca_binary.stat.exists
+
+- name: Install step-ca binary
+  ansible.builtin.copy:
+    src: /tmp/step-ca
+    dest: /usr/local/bin/step-ca
+    owner: root
+    group: root
+    mode: "0755"
+    remote_src: true
+  when: not step_ca_binary.stat.exists
+
+- name: Check if step CLI binary is installed
+  ansible.builtin.stat:
+    path: /usr/local/bin/step
+  register: step_binary
+
+- name: Download step CLI binary
+  ansible.builtin.get_url:
+    url: >-
+      https://github.com/smallstep/cli/releases/download/v{{ step_cli_version
+      }}/step_linux_{{ step_cli_version }}_amd64.tar.gz
+    dest: /tmp/step-cli.tar.gz
+    mode: "0644"
+  when: not step_binary.stat.exists
+
+- name: Extract step CLI binary
+  ansible.builtin.unarchive:
+    src: /tmp/step-cli.tar.gz
+    dest: /tmp
+    remote_src: true
+    extra_opts: ["--strip-components=1"]
+  when: not step_binary.stat.exists
+
+- name: Install step CLI binary
+  ansible.builtin.copy:
+    src: /tmp/step/bin/step
+    dest: /usr/local/bin/step
+    owner: root
+    group: root
+    mode: "0755"
+    remote_src: true
+  when: not step_binary.stat.exists
+
+- name: Check if CA is already initialized
+  ansible.builtin.stat:
+    path: "{{ step_ca_config_dir }}/config/ca.json"
+  register: ca_config
+
+- name: Generate random CA password
+  ansible.builtin.shell: |
+    set -o pipefail
+    head -c 32 /dev/urandom | base64 | tr -d '/+=' | head -c 32
+  args:
+    executable: /bin/bash
+  register: ca_password_generated
+  changed_when: false
+  when: not ca_config.stat.exists
+
+- name: Write CA password file
+  ansible.builtin.copy:
+    content: "{{ ca_password_generated.stdout }}"
+    dest: "{{ step_ca_config_dir }}/password"
+    owner: "{{ step_ca_user }}"
+    group: "{{ step_ca_group }}"
+    mode: "0600"
+  when: not ca_config.stat.exists
+
+- name: Initialize CA
+  ansible.builtin.command:
+    cmd: >-
+      step ca init
+      --name {{ step_ca_name | quote }}
+      --dns {{ step_ca_dns_names | join(',') }}
+      --address :{{ step_ca_port }}
+      --provisioner {{ step_ca_admin_provisioner | quote }}
+      --password-file {{ step_ca_config_dir }}/password
+      --provisioner-password-file {{ step_ca_config_dir }}/password
+      --deployment-type standalone
+    creates: "{{ step_ca_config_dir }}/config/ca.json"
+  become: true
+  become_user: "{{ step_ca_user }}"
+  environment:
+    STEPPATH: "{{ step_ca_config_dir }}"
+
+- name: Add ACME provisioner to CA config
+  ansible.builtin.shell: |
+    set -o pipefail
+    # Check if ACME provisioner already exists
+    if jq -e '.authority.provisioners[] | select(.type == "ACME")' \
+        {{ step_ca_config_dir }}/config/ca.json > /dev/null 2>&1; then
+      echo "already_exists"
+      exit 0
+    fi
+    # Add ACME provisioner directly to the config
+    tmp=$(mktemp)
+    jq '.authority.provisioners += [{
+      "type": "ACME",
+      "name": "{{ step_ca_acme_provisioner }}",
+      "forceCN": false,
+      "claims": {
+        "maxTLSCertDuration": "{{ step_ca_acme_max_tls_duration }}",
+        "defaultTLSCertDuration": "{{ step_ca_acme_default_tls_duration }}"
+      }
+    }]' {{ step_ca_config_dir }}/config/ca.json > "$tmp"
+    mv "$tmp" {{ step_ca_config_dir }}/config/ca.json
+    chown {{ step_ca_user }}:{{ step_ca_group }} {{ step_ca_config_dir }}/config/ca.json
+    echo "added"
+  args:
+    executable: /bin/bash
+  register: acme_provisioner
+  changed_when: acme_provisioner.stdout == "added"
+  notify: Restart step-ca
+
+- name: Deploy step-ca systemd service
+  ansible.builtin.template:
+    src: step-ca.service.j2
+    dest: /etc/systemd/system/step-ca.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart step-ca
+
+- name: Enable and start step-ca
+  ansible.builtin.systemd:
+    name: step-ca
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Wait for step-ca to be ready
+  ansible.builtin.wait_for:
+    port: "{{ step_ca_port }}"
+    delay: 2
+    timeout: 30
+
+- name: Allow step-ca port through firewall
+  ansible.builtin.iptables:
+    chain: INPUT
+    protocol: tcp
+    destination_port: "{{ step_ca_port }}"
+    jump: ACCEPT
+    comment: "step-ca ACME server"
+  when: step_ca_enable_firewall | bool
+
+- name: Save iptables rules
+  ansible.builtin.shell: iptables-save > /etc/iptables/rules.v4
+  changed_when: true
+  when: step_ca_enable_firewall | bool

@@ -42,6 +42,10 @@
       when: inventory_hostname.startswith('openwrt')
       tags: [network, openwrt]
 
+    - role: homelab.proxmox_lxc.step_ca
+      when: inventory_hostname.startswith('step-ca')
+      tags: [pki, step_ca]
+
 - name: Deploy reverse proxy infrastructure
   hosts: networking
   become: true

@@ -4,7 +4,7 @@
     that:
       - traefik_version is defined
       - traefik_ssl_email is defined
-      - traefik_ssl_email != 'admin@homelab.local' or not traefik_ssl_enabled | default(false)
+      - traefik_ssl_email != 'admin@homelab.local' or not traefik_tls_enabled | default(false) or traefik_ssl_resolver != 'letsencrypt'
       - homelab_domain is defined
     fail_msg: |
       Required Traefik configuration variables are missing or using defaults.
@@ -76,6 +76,23 @@
     path: /usr/local/bin/traefik
     capability: cap_net_bind_service=+ep
     state: present
+
+- name: Fetch step-ca root certificate from CA host
+  ansible.builtin.slurp:
+    src: "{{ step_ca_config_dir }}/certs/root_ca.crt"
+  delegate_to: step-ca
+  register: step_ca_root_cert
+  when: traefik_tls_enabled | default(false)
+
+- name: Install step-ca root certificate on Traefik host
+  ansible.builtin.copy:
+    content: "{{ step_ca_root_cert.content | b64decode }}"
+    dest: "{{ step_ca_root_cert_path }}"
+    owner: traefik
+    group: traefik
+    mode: "0644"
+  when: traefik_tls_enabled | default(false)
+  notify: Restart traefik
 
 - name: Create Traefik static configuration
   ansible.builtin.template:

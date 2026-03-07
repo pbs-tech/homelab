@@ -1,0 +1,8 @@
+---
+galaxy_info:
+  role_name: step_ca
+  author: homelab
+  description: Deploys smallstep step-ca as a local ACME certificate authority
+  license: MIT
+  min_ansible_version: "2.17"
+dependencies: []
