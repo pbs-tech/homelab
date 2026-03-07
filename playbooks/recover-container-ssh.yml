@@ -1,0 +1,80 @@
+---
+# Recovery playbook: inject SSH key into already-running LXC containers
+# Use this when containers were provisioned with an empty ssh_key and
+# cannot be reached via SSH.
+#
+# Prerequisites: Proxmox hosts must be accessible via SSH (run bootstrap-proxmox.yml first).
+#
+# Usage:
+#   ansible-playbook playbooks/recover-container-ssh.yml
+#   ansible-playbook playbooks/recover-container-ssh.yml --limit prometheus,grafana
+
+- name: Push SSH key into running LXC containers via pct exec
+  hosts: lxc_containers
+  gather_facts: false
+  become: true
+  vars:
+    ssh_pubkey: "{{ lookup('file', '~/.ssh/homelab_ed25519.pub') }}"
+  tasks:
+    - name: Inject key and create ansible user in container
+      ansible.builtin.shell:
+        cmd: |
+          set -euo pipefail
+          pct exec "{{ container_id | int }}" -- bash -c '
+            set -euo pipefail
+            PUBKEY="{{ ssh_pubkey }}"
+
+            # Inject key into root
+            mkdir -p /root/.ssh
+            chmod 700 /root/.ssh
+            grep -qxF "$PUBKEY" /root/.ssh/authorized_keys 2>/dev/null \
+              || echo "$PUBKEY" >> /root/.ssh/authorized_keys
+            chmod 600 /root/.ssh/authorized_keys
+
+            # Create ansible user if missing
+            if ! id ansible &>/dev/null; then
+              useradd -m -s /bin/bash ansible
+            fi
+            usermod -p "*" ansible
+            mkdir -p /home/ansible/.ssh
+            chmod 700 /home/ansible/.ssh
+            grep -qxF "$PUBKEY" /home/ansible/.ssh/authorized_keys 2>/dev/null \
+              || echo "$PUBKEY" >> /home/ansible/.ssh/authorized_keys
+            chmod 600 /home/ansible/.ssh/authorized_keys
+            chown -R ansible:ansible /home/ansible/.ssh
+
+            # Ensure passwordless sudo
+            echo "ansible ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/ansible
+            chmod 440 /etc/sudoers.d/ansible
+            visudo -cf /etc/sudoers.d/ansible
+
+            # Create pbs user if missing
+            if ! id pbs &>/dev/null; then
+              useradd -m -s /bin/bash pbs
+            fi
+            usermod -p "*" pbs
+            mkdir -p /home/pbs/.ssh
+            chmod 700 /home/pbs/.ssh
+            grep -qxF "$PUBKEY" /home/pbs/.ssh/authorized_keys 2>/dev/null \
+              || echo "$PUBKEY" >> /home/pbs/.ssh/authorized_keys
+            chmod 600 /home/pbs/.ssh/authorized_keys
+            chown -R pbs:pbs /home/pbs/.ssh
+
+            echo "ansible ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/pbs
+            chmod 440 /etc/sudoers.d/pbs
+          '
+        executable: /bin/bash
+      register: recover_result
+      changed_when: true
+      delegate_to: >-
+        {{ '192.168.0.57' if proxmox_node | default('pve-mac') == 'pve-nas' else '192.168.0.56' }}
+      become: true
+      vars:
+        ansible_user: ansible
+      when: container_id is defined
+
+    - name: Verify SSH connectivity after recovery
+      ansible.builtin.wait_for_connection:
+        delay: 2
+        timeout: 30
+      when: container_id is defined

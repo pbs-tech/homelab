@@ -1,8 +1,54 @@
 ---
-# PyMarkdownLnt configuration for homelab project
+# Shared configuration for markdownlint-cli2 AND PyMarkdownLnt
+# markdownlint-cli2 reads the flat MD rules at the top level
+# PyMarkdownLnt reads the 'plugins:' key (ignores flat MD rules)
+# See: https://github.com/DavidAnson/markdownlint-cli2
 # See: https://pymarkdownlnt.readthedocs.io/en/latest/
 
-# Plugin configuration - disable problematic rules for technical documentation
+# ---- markdownlint flat rules (used by markdownlint-cli2) ----
+# Line length - disable (too restrictive for technical documentation)
+MD013: false
+# Allow inline HTML (badges, callouts, etc.)
+MD033: false
+# Allow bare URLs (common in technical docs)
+MD034: false
+# Allow emphasis used as headers
+MD036: false
+# Allow punctuation in headers (technical terms)
+MD026: false
+# Allow multiple consecutive blank lines
+MD012: false
+# Allow fenced code blocks without language
+MD040: false
+# Allow lists without surrounding blank lines
+MD032: false
+# Allow fenced code blocks without surrounding blank lines
+MD031: false
+# ATX-style headers required
+MD003:
+  style: atx
+# Consistent unordered list style
+MD004:
+  style: dash
+# Allow backslash escapes
+MD044: false
+# Alt text in images
+MD045: false
+# Allow ordered lists with continuous numbering across lists
+MD029: false
+# Allow hard tabs inside code blocks (e.g. Makefile examples)
+MD010:
+  code_blocks: false
+# Allow broken link fragments (local docs may reference anchors not yet present)
+MD051: false
+# Allow headings not surrounded by blank lines (common in technical READMEs)
+MD022: false
+# Allow duplicate headings (changelogs and docs often repeat section names)
+MD024: false
+# Allow tables with inconsistent column counts
+MD056: false
+
+# ---- PyMarkdownLnt plugin configuration (used by pymarkdown) ----
 plugins:
   # Disable line-length rule globally (too restrictive for technical docs)
   md013:

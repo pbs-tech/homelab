@@ -22,12 +22,13 @@ This role provides configuration management for WireGuard VPN server deployment 
 - Public IP or dynamic DNS for external access
 - UDP port forwarding configuration
 
-### Required Vault Variables
+### Vault Variables
 
-The following vault variable must be configured before deployment:
-
-- `vault_wireguard_server_private_key` - WireGuard server private key
-  (generate with: `wg genkey`)
+No vault variables are required for this role. The server private key is
+auto-generated on the LXC at `/etc/wireguard/server_privatekey` on first run.
+If you want to pin a specific key (e.g. to survive container rebuilds), set
+`wireguard_use_vault_key: true` and provide `vault_wireguard_server_private_key`
+in your vault.
 
 ## Role Variables
 
@@ -115,6 +116,7 @@ wireguard_log_level: info
 ## Current Status
 
 This role currently contains:
+
 - ✅ Default variable definitions
 - ✅ Configuration templates
 - ⚠️ Task implementation needed
@@ -217,6 +219,7 @@ PersistentKeepalive = 25
 ### DNS Integration
 
 Configure WireGuard clients to use homelab DNS:
+
 ```yaml
 wireguard_dns_servers:
   - 192.168.0.202  # AdGuard/Unbound
@@ -225,6 +228,7 @@ wireguard_dns_servers:
 ### Monitoring Integration
 
 Monitor WireGuard connections with Prometheus:
+
 ```yaml
 wireguard_enable_metrics: true
 wireguard_metrics_port: 9586
@@ -233,8 +237,9 @@ wireguard_metrics_port: 9586
 ### Traefik Integration
 
 Access internal services via VPN:
+
 - Connect to VPN
-- Access services at their internal URLs (e.g., http://grafana.homelab.local)
+- Access services at their internal URLs (e.g., <http://grafana.homelab.local>)
 
 ## Troubleshooting
 

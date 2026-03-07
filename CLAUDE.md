@@ -257,7 +257,6 @@ Required vault variables:
 - `vault_grafana_admin_password` - Grafana admin password
 - `vault_grafana_secret_key` - Grafana secret key for signing (generate with: `openssl rand -base64 32`)
 - `vault_adguard_admin_password` - AdGuard Home admin password (minimum 12 characters)
-- `vault_wireguard_server_private_key` - WireGuard server private key (generate with: `wg genkey`)
 
 To create Proxmox API tokens:
 
@@ -410,6 +409,7 @@ molecule test -s proxmox-integration
 Molecule tests are automatically executed in GitHub Actions CI pipeline via two workflows:
 
 **1. Smoke Test Workflow** (`.github/workflows/molecule-smoke.yml`)
+
 - **Purpose:** Fast validation of ALL roles across all collections
 - **Trigger:** Pull requests, pushes to main/molecule branches, workflow_dispatch
 - **Duration:** < 15 minutes total (typically 5-8 minutes)
@@ -417,6 +417,7 @@ Molecule tests are automatically executed in GitHub Actions CI pipeline via two 
 - **Optimal for:** Quick feedback on role changes, pre-commit validation
 
 **2. Standard Molecule Workflow** (`.github/workflows/ci.yml`)
+
 - **Purpose:** Comprehensive collection-specific testing
 - **Trigger:** Pull requests, pushes to main, manual workflow dispatch
 - **Strategy:** Matrix testing across all three collections in parallel

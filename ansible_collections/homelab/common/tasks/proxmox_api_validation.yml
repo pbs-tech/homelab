@@ -84,8 +84,8 @@
   changed_when: false
   no_log: true  # Protect API token from logs
   when:
-    - proxmox_api_token_id is defined and proxmox_api_token_id != ""
-    - proxmox_api_token_secret is defined and proxmox_api_token_secret != ""
+    - proxmox_api_token_id is defined and proxmox_api_token_id | length > 0
+    - proxmox_api_token_secret is defined and proxmox_api_token_secret | length > 0
   tags:
     - proxmox
     - validation
@@ -109,9 +109,9 @@
   changed_when: false
   no_log: true  # Protect password from logs
   when:
-    - proxmox_api_token_id is not defined or proxmox_api_token_id == ""
-    - proxmox_user is defined and proxmox_user != ""
-    - proxmox_password is defined and proxmox_password != ""
+    - proxmox_api_token_id is not defined or proxmox_api_token_id | length == 0
+    - proxmox_user is defined and proxmox_user | length > 0
+    - proxmox_password is defined and proxmox_password | length > 0
   tags:
     - proxmox
     - validation

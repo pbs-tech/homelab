@@ -1,0 +1,15 @@
+---
+- name: Create datasource without `ds_type` and `ds_url` (expect failure)
+  register: result
+  community.grafana.grafana_datasource:
+    name: datasource-postgres
+  ignore_errors: true
+
+- ansible.builtin.debug:
+    var: result
+
+- ansible.builtin.assert:
+    that:
+      - not result.changed
+      - result.failed
+      - "result.msg == 'state is present but all of the following are missing: ds_type, ds_url'"

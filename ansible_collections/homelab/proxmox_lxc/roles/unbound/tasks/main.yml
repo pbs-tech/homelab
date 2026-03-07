@@ -114,7 +114,7 @@
   ansible.builtin.file:
     path: /etc/resolv.conf
     state: absent
-  when: ansible_facts['service_mgr'] == 'systemd'
+  when: ansible_service_mgr | default('systemd') == 'systemd'
   tags: service
 
 - name: Create resolv.conf for localhost

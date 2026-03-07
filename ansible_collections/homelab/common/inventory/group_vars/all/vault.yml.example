@@ -31,8 +31,5 @@ vault_grafana_secret_key: "your-grafana-secret-key-base64"
 # AdGuard Home - minimum 12 characters
 vault_adguard_admin_password: "your-adguard-admin-password"
 
-# WireGuard VPN - Generate with: wg genkey
-vault_wireguard_server_private_key: "your-wireguard-server-private-key"
-
 # Security Configuration
 vault_ansible_vault_password: secure_vault_password_change_me

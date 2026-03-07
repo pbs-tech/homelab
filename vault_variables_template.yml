@@ -106,13 +106,6 @@ vault_smtp_config:
 # SECURITY TOKENS AND KEYS
 # ===========================================
 
-# WireGuard private keys
-vault_wireguard_keys:
-  server_private_key: server_private_key_base64_encoded
-  client_private_keys:
-    admin: client_private_key_base64_encoded
-    mobile: mobile_client_private_key_base64_encoded
-
 # TLS Certificate private keys (if not using Let's Encrypt)
 vault_tls_private_keys:
   wildcard_homelab_local: |

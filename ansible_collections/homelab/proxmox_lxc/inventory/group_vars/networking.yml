@@ -12,5 +12,5 @@ wireguard_clients:
     description: Arch Linux control machine
     public_key: "n2ivP54eS2XygydmVJWqloOtxthDj+Sav9sUwGW3LAU="
     allowed_ips: 10.200.0.2/32
-    preshared_key: "wwiv10bYbGVxnbEU6ue7naERzhzhsNOz7jH3ihDtFDI="
+    preshared_key: "{{ vault_wireguard_client_preshared_key_control_machine }}"
     persistent_keepalive: 25

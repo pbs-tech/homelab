@@ -7,11 +7,11 @@
   tasks:
     - name: Create test namespace marker
       set_fact:
-        molecule_test_id: {{ ansible_date_time.epoch }}
+        molecule_test_id: "{{ ansible_date_time.epoch }}"
 
     - name: Stop existing K3s services (if any)
       systemd:
-        name: {{ item }}
+        name: "{{ item }}"
         state: stopped
         enabled: false
       loop:
@@ -72,7 +72,7 @@
           assert:
             that:
               - available_memory.stdout | int >= 1000
-                fail_msg: Insufficient memory for K3s testing: {{ available_memory.stdout }}MB
+            fail_msg: "Insufficient memory for K3s testing: {{ available_memory.stdout }}MB"
 
     - name: Create test marker file
       copy:

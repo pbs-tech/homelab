@@ -3,7 +3,7 @@
 
 # Configure Proxmox host for WireGuard LXC support
 - name: Load WireGuard kernel module on Proxmox host
-  ansible.builtin.modprobe:
+  community.general.modprobe:
     name: wireguard
     state: present
   delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"

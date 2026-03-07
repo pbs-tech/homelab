@@ -38,7 +38,6 @@
          if '!' in proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id
          else proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id }}
   delegate_to: localhost
-  run_once: true
 
 - name: Set container configuration variables
   ansible.builtin.set_fact:

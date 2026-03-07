@@ -45,8 +45,8 @@ vault_grafana_secret_key: "your-grafana-secret-key-base64"
 # AdGuard Home - minimum 12 characters
 vault_adguard_admin_password: "your-adguard-admin-password"
 
-# WireGuard VPN
-vault_wireguard_server_private_key: "your-wireguard-server-private-key"
-# Generate with: wg genkey
+# WireGuard client preshared keys (one per client peer)
+# Generate with: wg genpsk
+vault_wireguard_client_preshared_key_control_machine: "your-preshared-key-base64"
 
 # Additional secrets can be added here as needed

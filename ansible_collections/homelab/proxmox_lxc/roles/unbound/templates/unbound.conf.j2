@@ -34,13 +34,12 @@ server:
     private-address: 172.16.0.0/12
     private-domain: "homelab.local"
 
-    # Local DNS records
-    local-zone: "homelab.local" static
-    {% for host, details in hostvars.items() %}
-    {% if 'ansible_host' in details %}
-    local-data: "{{ host }}.homelab.local. IN A {{ details.ansible_host }}"
-    {% endif %}
-    {% endfor %}
+    # Local DNS records — redirect all *.homelab.local to Traefik
+    local-zone: "{{ unbound_local_zone }}" {{ unbound_local_zone_type }}
+    local-data: "{{ unbound_local_zone }}. IN A {{ unbound_traefik_ip }}"
+{% for entry in unbound_local_data_overrides %}
+    local-data: "{{ entry.name }}. IN A {{ entry.address }}"
+{% endfor %}
 
     # Security: Block known malicious domains
     include: /etc/unbound/unbound.conf.d/security-blocklist.conf

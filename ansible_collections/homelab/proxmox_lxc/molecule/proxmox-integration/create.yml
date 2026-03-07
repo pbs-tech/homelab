@@ -11,11 +11,11 @@
     - name: Create LXC container for testing
       community.proxmox.proxmox:
         vmid: 250
-        node: {{ proxmox_node }}
-        api_user: {{ proxmox_user }}
-        api_password: {{ lookup('env', 'PROXMOX_PASSWORD') }}"
-        api_host: {{ proxmox_host }}
-        password: {{ lookup('env', 'CONTAINER_PASSWORD') | default('molecule123', true') }}"
+        node: "{{ proxmox_node }}"
+        api_user: "{{ proxmox_user }}"
+        api_password: "{{ lookup('env', 'PROXMOX_PASSWORD') }}"
+        api_host: "{{ proxmox_host }}"
+        password: "{{ lookup('env', 'CONTAINER_PASSWORD') | default('molecule123', true) }}"
         hostname: molecule-test-lxc
         ostemplate: local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst
         cores: 2
@@ -30,10 +30,10 @@
     - name: Start the test container
       community.proxmox.proxmox:
         vmid: 250
-        node: {{ proxmox_node }}
-        api_user: {{ proxmox_user }}
-        api_password: {{ lookup('env', 'PROXMOX_PASSWORD') }}"
-        api_host: {{ proxmox_host }}
+        node: "{{ proxmox_node }}"
+        api_user: "{{ proxmox_user }}"
+        api_password: "{{ lookup('env', 'PROXMOX_PASSWORD') }}"
+        api_host: "{{ proxmox_host }}"
         state: started
       when: container_create is changed
 
@@ -49,5 +49,5 @@
         name: molecule-test-lxc
         ansible_host: 192.168.0.250
         ansible_user: root
-        ansible_ssh_pass: {{ lookup('env', 'CONTAINER_PASSWORD') | default('molecule123', true') }}"
+        ansible_ssh_pass: "{{ lookup('env', 'CONTAINER_PASSWORD') | default('molecule123', true) }}"
         groups: proxmox_test_containers

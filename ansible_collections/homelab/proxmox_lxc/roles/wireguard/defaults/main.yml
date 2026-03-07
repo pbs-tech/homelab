@@ -5,9 +5,11 @@ wireguard_interface: wg0
 wireguard_server_ip: 10.200.0.1/24
 wireguard_server_network: 10.200.0.0/24
 
-# Server private key - MUST be set in vault
-# Generate with: wg genkey
-wireguard_server_private_key: "{{ vault_wireguard_server_private_key }}"
+# Server private key - auto-generated on the LXC at /etc/wireguard/server_privatekey
+# on first run and read back by the role. No vault variable required.
+# Set wireguard_use_vault_key: true and provide vault_wireguard_server_private_key
+# only if you want to pin a specific key (e.g. to survive container rebuilds).
+wireguard_server_private_key: "{{ vault_wireguard_server_private_key | default('') }}"
 
 # Security settings
 wireguard_mtu: 1420

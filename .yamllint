@@ -10,6 +10,14 @@ ignore: |
   node_modules/
   __pycache__/
   .ansible/
+  ansible_collections/ansible/
+  ansible_collections/ansible.*/
+  ansible_collections/community/
+  ansible_collections/community.*/
+  ansible_collections/kubernetes/
+  ansible_collections/kubernetes.*/
+  ansible_collections/containers/
+  ansible_collections/containers.*/
 
 rules:
   # Line length - be more permissive for Ansible
