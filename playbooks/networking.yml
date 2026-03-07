@@ -11,6 +11,8 @@
     - name: Ensure networking containers exist
       ansible.builtin.include_role:
         name: homelab.common.container_base
+        apply:
+          tags: always
       vars:
         container_resources:
           cores: "{{ lxc_cores | default(1) }}"
