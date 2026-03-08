@@ -1,0 +1,11 @@
+---
+- name: Download Grafana community dashboards
+  ansible.builtin.get_url:
+    url: "https://grafana.com/api/dashboards/{{ item.id }}/revisions/latest/download"
+    dest: "{{ grafana_dashboards_dir }}/{{ item.filename }}.json"
+    owner: "{{ grafana_user }}"
+    group: "{{ grafana_group }}"
+    mode: "0644"
+  loop: "{{ grafana_community_dashboards }}"
+  loop_control:
+    label: "{{ item.description }}"

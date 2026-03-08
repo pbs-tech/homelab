@@ -66,3 +66,21 @@ grafana_configure_firewall: true
 grafana_plugins:
   - grafana-piechart-panel
   - grafana-worldmap-panel
+
+# Community dashboards to provision (downloaded from grafana.com at deploy time)
+grafana_community_dashboards:
+  - id: 1860
+    filename: node-exporter-full
+    description: "Node Exporter Full - system metrics for all nodes"
+  - id: 10347
+    filename: proxmox-prometheus
+    description: "Proxmox via Prometheus - Proxmox cluster monitoring"
+  - id: 15661
+    filename: k3s-cluster-monitoring
+    description: "Kubernetes Cluster Monitoring - K3s cluster overview"
+  - id: 13639
+    filename: loki-logs
+    description: "Logs / Loki - log browsing and volume"
+  - id: 3662
+    filename: prometheus-overview
+    description: "Prometheus 2.0 Overview - Prometheus self-monitoring"
