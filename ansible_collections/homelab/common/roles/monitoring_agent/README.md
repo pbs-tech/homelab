@@ -1,6 +1,14 @@
 # Monitoring Agent Role
 
-Comprehensive monitoring and observability agent role for homelab infrastructure, providing metrics collection, log aggregation, health monitoring, and performance analysis for both K3s nodes and LXC containers.
+Comprehensive monitoring and observability agent role for homelab infrastructure, providing metrics
+collection, log aggregation, health monitoring, and performance analysis for both K3s nodes and
+LXC containers.
+
+This role is applied to:
+
+- **K3s nodes** (`k3s_cluster` host group)
+- **Non-monitoring LXC containers** (`lxc_containers:!monitoring` host pattern in
+  `playbooks/monitoring.yml`)
 
 ## Features
 
@@ -53,8 +61,8 @@ monitoring_scripts_dir: "{{ monitoring_home }}/scripts"
 
 ```yaml
 # Exposed service ports
-node_exporter_port: 9100
-promtail_port: 9080
+node_exporter_port: 9100   # Prometheus node metrics endpoint
+promtail_port: 9080        # Promtail log shipper endpoint
 monitoring_agent_port: 9090
 ```
 
@@ -683,6 +691,17 @@ node_exporter_version: 1.8.0  # New version
 promtail_version: 3.0.0        # New version
 monitoring_force_reinstall: true
 ```
+
+## Known Limitations
+
+### Templates Directory Not Populated
+
+The `templates/` directory for this role is not yet populated with the Jinja2 template files
+documented in the "Files and Templates" section above. The role will fail at runtime when tasks
+attempt to deploy service unit files and configuration templates.
+
+Template creation is out of scope for the current implementation phase. Until templates are added,
+the role cannot be applied to live hosts.
 
 ## License
 

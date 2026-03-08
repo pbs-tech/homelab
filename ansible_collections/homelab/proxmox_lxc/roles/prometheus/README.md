@@ -99,6 +99,19 @@ prometheus_scrape_configs:
           - '192.168.0.114:9100'
 ```
 
+### Dynamic LXC Container Scraping
+
+The role includes a `lxc-containers` scrape job that is dynamically generated from the Ansible
+`lxc_containers` inventory group at deploy time. Each LXC container is added as a target using
+`{{ host }}.{{ homelab_domain }}:9100`. New containers are automatically included on the next
+deploy — no manual target configuration is required.
+
+### Proxmox NAS Exporter
+
+A `proxmox-pve-nas` scrape job targets the PVE exporter for the NAS Proxmox host at
+`pve-exporter-nas.{{ homelab_domain }}:9221`, enabling Proxmox NAS node metrics alongside the
+existing `proxmox-pve-mac` job.
+
 ### AlertManager Integration
 
 ```yaml
@@ -208,9 +221,29 @@ Prometheus will scrape:
 - Kubelet metrics (10250)
 - K3s API server metrics (6443)
 
+### Bundled Alert Rules
+
+The role ships a pre-configured rule file at `files/rules/node.rules.yml` with two alert groups:
+
+**`node` group** — host-level alerts:
+
+| Alert | Condition |
+|---|---|
+| HostDown | Target unreachable for 2 minutes |
+| HighCPUUsage | CPU idle < 10% for 10 minutes |
+| HighMemoryUsage | Available memory < 10% for 5 minutes |
+| DiskSpaceLow | Filesystem free space < 15% for 5 minutes |
+| HighDiskIOSaturation | Disk I/O saturation > 95% for 5 minutes |
+
+**`proxmox` group** — Proxmox node alerts:
+
+| Alert | Condition |
+|---|---|
+| ProxmoxNodeDown | Proxmox PVE exporter target unreachable for 2 minutes |
+
 ### Custom Alert Rules
 
-Create alert rule files in `/etc/prometheus/rules/`:
+Create additional rule files in `/etc/prometheus/rules/`:
 
 ```yaml
 # /etc/prometheus/rules/homelab.yml
@@ -267,7 +300,7 @@ scrape_configs:
 
 ### Directory Structure
 
-```
+```text
 /etc/prometheus/          # Configuration directory
 ├── prometheus.yml        # Main configuration
 └── rules/               # Alert rules directory

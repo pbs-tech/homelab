@@ -155,6 +155,23 @@ grafana_datasources:
           url: "$${__value.raw}"
 ```
 
+### Community Dashboard Provisioning
+
+```yaml
+# Community dashboards downloaded from grafana.com at deploy time
+# and auto-provisioned via the filesystem provisioner
+grafana_community_dashboards:
+  - id: 1860    # Node Exporter Full
+  - id: 10347   # Proxmox via Prometheus
+  - id: 15661   # Kubernetes Cluster Monitoring
+  - id: 13639   # Logs / Loki
+  - id: 3662    # Prometheus 2.0 Overview
+```
+
+Dashboards are fetched from `https://grafana.com/api/dashboards/<id>/revisions/latest/download`
+during the deploy run and written to `{{ grafana_dashboards_dir }}`. The existing filesystem
+provisioner picks them up automatically — no manual import step is required.
+
 ### Plugin Configuration
 
 ```yaml
@@ -321,7 +338,7 @@ Common dashboard imports:
 
 ### Directory Structure
 
-```
+```text
 /etc/grafana/
 ├── grafana.ini              # Main configuration
 ├── provisioning/
@@ -591,15 +608,14 @@ traefik_labels:
 
 ## Popular Dashboard IDs
 
-Import these from grafana.com:
+Import these from grafana.com. The five dashboards below are provisioned automatically via
+`grafana_community_dashboards` (see Role Variables above):
 
-- **1860** - Node Exporter Full (Linux hosts)
-- **12019** - Loki Dashboard Quick Search
-- **13639** - Kubernetes Cluster Monitoring
-- **7249** - Kubernetes Cluster (Prometheus)
+- **1860** - Node Exporter Full
+- **10347** - Proxmox via Prometheus
+- **15661** - Kubernetes Cluster Monitoring
+- **13639** - Logs / Loki
 - **3662** - Prometheus 2.0 Overview
-- **11074** - Node Exporter for Prometheus
-- **12633** - Proxmox via Prometheus
 
 ## License
 

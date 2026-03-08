@@ -122,13 +122,26 @@ loki_max_query_series: 500
 loki_max_query_lookback: 0s  # 0 = unlimited
 ```
 
-### Table Manager
+### TSDB Schema Configuration
+
+The role uses a dual-schema configuration to support both existing data and new ingestion:
 
 ```yaml
-# Table manager for retention
-loki_table_manager_retention_deletes_enabled: "{{ loki_retention_enabled }}"
-loki_table_manager_retention_period: "{{ loki_retention_period }}"
+# TSDB schema directories (new data from loki_tsdb_schema_from onward)
+loki_tsdb_active_dir: "{{ loki_data_dir }}/tsdb-active"
+loki_tsdb_cache_dir: "{{ loki_data_dir }}/tsdb-cache"
+
+# Date from which the v13/tsdb schema applies (ISO 8601 date string)
+loki_tsdb_schema_from: "2026-03-08"
 ```
+
+The schema config produced uses two entries:
+
+- **v11 / boltdb-shipper** (from 2020-10-24) — legacy schema retained for querying existing data
+- **v13 / tsdb** (from `loki_tsdb_schema_from`) — new schema for all data ingested after that date
+
+Note: The `table_manager` block has been removed. Retention is now handled exclusively by
+the `compactor` block.
 
 ## Usage
 
@@ -214,11 +227,22 @@ schema_config:
       index:
         prefix: index_
         period: 24h
+    - from: {{ loki_tsdb_schema_from }}
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
 
 storage_config:
   boltdb_shipper:
     active_index_directory: {{ loki_data_dir }}/boltdb-shipper-active
     cache_location: {{ loki_data_dir }}/boltdb-shipper-cache
+    shared_store: filesystem
+  tsdb_shipper:
+    active_index_directory: {{ loki_tsdb_active_dir }}
+    cache_location: {{ loki_tsdb_cache_dir }}
     shared_store: filesystem
   filesystem:
     directory: {{ loki_storage_filesystem_directory }}
@@ -239,10 +263,6 @@ compactor:
   retention_enabled: {{ loki_retention_enabled }}
   retention_delete_delay: 2h
   retention_delete_worker_count: 150
-
-table_manager:
-  retention_deletes_enabled: {{ loki_table_manager_retention_deletes_enabled }}
-  retention_period: {{ loki_table_manager_retention_period }}
 
 analytics:
   reporting_enabled: false
@@ -266,14 +286,16 @@ loki_endpoint: http://192.168.0.210:3100
 
 ### Directory Structure
 
-```
+```text
 /etc/loki/
 └── loki.yml                # Main configuration
 
 /var/lib/loki/
 ├── chunks/                 # Log chunk storage
-├── boltdb-shipper-active/  # Active index
-├── boltdb-shipper-cache/   # Index cache
+├── boltdb-shipper-active/  # Active index (legacy v11 schema)
+├── boltdb-shipper-cache/   # Index cache (legacy v11 schema)
+├── tsdb-active/            # Active index (v13 tsdb schema)
+├── tsdb-cache/             # Index cache (v13 tsdb schema)
 ├── boltdb-compactor/       # Compaction working dir
 └── rules/                  # Alert rules
 
