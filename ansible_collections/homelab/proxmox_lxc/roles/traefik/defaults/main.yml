@@ -6,14 +6,14 @@ traefik_http_port: 80
 traefik_https_port: 443
 
 # SSL/TLS settings
-# Uses step-ca (192.168.0.211) as a local ACME CA via TLS-ALPN-01 challenge.
+# Uses step-ca (192.168.0.212) as a local ACME CA via TLS-ALPN-01 challenge.
 # Certs are signed by the homelab root CA — install it on clients once.
 traefik_tls_enabled: true
 traefik_ssl_email: admin@homelab.local
 traefik_ssl_resolver: step-ca
 
 # step-ca ACME endpoint and root cert (fetched from step-ca host during deploy)
-step_ca_acme_url: "https://192.168.0.211:8443/acme/acme/directory"
+step_ca_acme_url: "https://192.168.0.212:8443/acme/acme/directory"
 step_ca_root_cert_path: "/etc/traefik/step-ca-root.crt"
 step_ca_config_dir: /etc/step-ca
 

@@ -16,7 +16,7 @@ step_ca_port: 8443
 step_ca_name: "Homelab CA"
 step_ca_dns_names:
   - "step-ca.homelab.local"
-  - "192.168.0.211"
+  - "192.168.0.212"
 
 # Admin provisioner (JWK, used for CA management only)
 step_ca_admin_provisioner: "admin"

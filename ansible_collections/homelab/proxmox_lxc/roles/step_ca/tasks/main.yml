@@ -247,6 +247,13 @@
     comment: "step-ca ACME server"
   when: step_ca_enable_firewall | bool
 
+- name: Ensure /etc/iptables directory exists
+  ansible.builtin.file:
+    path: /etc/iptables
+    state: directory
+    mode: "0755"
+  when: step_ca_enable_firewall | bool
+
 - name: Save iptables rules
   ansible.builtin.shell: iptables-save > /etc/iptables/rules.v4
   changed_when: true
