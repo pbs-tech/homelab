@@ -70,6 +70,23 @@
     comment: "Prometheus"
   when: prometheus_configure_firewall
 
+- name: Create Prometheus rules directory
+  ansible.builtin.file:
+    path: /etc/prometheus/rules
+    state: directory
+    owner: prometheus
+    group: prometheus
+    mode: "0755"
+
+- name: Deploy Prometheus alert rules
+  ansible.builtin.copy:
+    src: rules/
+    dest: /etc/prometheus/rules/
+    owner: prometheus
+    group: prometheus
+    mode: "0644"
+  notify: Restart prometheus
+
 - name: Enable and start Prometheus
   ansible.builtin.systemd:
     name: prometheus
