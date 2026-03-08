@@ -6,10 +6,10 @@ https://dev.azure.com/ansible/ansible.posix/_apis/build/status/CI?branchName=mai
 
 ## Communication
 
-* Join the Ansible forum:
-  * [Get Help](https://forum.ansible.com/c/help/6): get help or help others.
-  * [Social Spaces](https://forum.ansible.com/c/chat/4): gather and interact with fellow enthusiasts.
-  * [News & Announcements](https://forum.ansible.com/c/news/5): track project-wide announcements including social events.
+- Join the Ansible forum:
+  - [Get Help](https://forum.ansible.com/c/help/6): get help or help others.
+  - [Social Spaces](https://forum.ansible.com/c/chat/4): gather and interact with fellow enthusiasts.
+  - [News & Announcements](https://forum.ansible.com/c/news/5): track project-wide announcements including social events.
 
 ## Description
 
@@ -18,10 +18,10 @@ An Ansible Collection of modules and plugins that target POSIX UNIX/Linux and de
 
 ## Requirements
 
-* Python:
-  * The Python interpreter version must meet Ansible Core's requirements.
-* Ansible Core:
-  * ansible-core 2.15 or later
+- Python:
+  - The Python interpreter version must meet Ansible Core's requirements.
+- Ansible Core:
+  - ansible-core 2.15 or later
 
 ## Installation
 
@@ -53,7 +53,7 @@ ansible-galaxy collection install ansible.posix:==1.0.0
 
 See [using Ansible collections](https://docs.ansible.com/ansible/devel/user_guide/collections_using.html) for more details.
 
-* The Ansible [Bullhorn newsletter](https://docs.ansible.com/ansible/devel/community/communication.html#the-bullhorn): used to announce releases and important changes.
+- The Ansible [Bullhorn newsletter](https://docs.ansible.com/ansible/devel/community/communication.html#the-bullhorn): used to announce releases and important changes.
 
 For more information about communication, see the [Ansible communication guide](https://docs.ansible.com/ansible/devel/community/communication.html).
 
@@ -79,19 +79,19 @@ ansible-doc -t callback ansible.posix.profile_tasks
 
 The following ansible-core versions have been tested with this collection:
 
-* ansible-core 2.19 (devel)
-* ansible-core 2.18 (stable) *
-* ansible-core 2.17 (stable)
-* ansible-core 2.16 (stable)
-* ansible-core 2.15 (stable)
+- ansible-core 2.19 (devel)
+- ansible-core 2.18 (stable) *
+- ansible-core 2.17 (stable)
+- ansible-core 2.16 (stable)
+- ansible-core 2.15 (stable)
 
 ## Contributing
 
 We welcome community contributions to this collection. For more details, see [Contributing to Ansible-maintained collections](https://docs.ansible.com/ansible/devel/community/contributing_maintained_collections.html#contributing-maintained-collections) for complete details.
 
-* [Issues](https://github.com/ansible-collections/ansible.posix/issues)
-* [Pull Requests](https://github.com/ansible-collections/ansible.posix/pulls)
-* [Ansible Community Guide](https://docs.ansible.com/ansible/latest/community/index.html)
+- [Issues](https://github.com/ansible-collections/ansible.posix/issues)
+- [Pull Requests](https://github.com/ansible-collections/ansible.posix/pulls)
+- [Ansible Community Guide](https://docs.ansible.com/ansible/latest/community/index.html)
 
 ## Support
 

@@ -21,13 +21,13 @@ If you encounter abusive behavior violating the [Ansible Code of Conduct](https:
 
 ## Communication
 
-* Join the Ansible forum:
-  * [Tag `inventory-filter-dev`](https://forum.ansible.com/tag/inventory-filter-dev): discuss the collection.
-  * [Collection Development](https://forum.ansible.com/c/project/collection-development/27): discuss development and testing of collections. Please add the `inventory-filter-dev` tag when starting new discussions involving this collection.
-  * [Social Spaces](https://forum.ansible.com/c/chat/4): gather and interact with fellow enthusiasts.
-  * [News & Announcements](https://forum.ansible.com/c/news/5): track project-wide announcements including social events.
+- Join the Ansible forum:
+  - [Tag `inventory-filter-dev`](https://forum.ansible.com/tag/inventory-filter-dev): discuss the collection.
+  - [Collection Development](https://forum.ansible.com/c/project/collection-development/27): discuss development and testing of collections. Please add the `inventory-filter-dev` tag when starting new discussions involving this collection.
+  - [Social Spaces](https://forum.ansible.com/c/chat/4): gather and interact with fellow enthusiasts.
+  - [News & Announcements](https://forum.ansible.com/c/news/5): track project-wide announcements including social events.
 
-* The Ansible [Bullhorn newsletter](https://docs.ansible.com/ansible/devel/community/communication.html#the-bullhorn): used to announce releases and important changes.
+- The Ansible [Bullhorn newsletter](https://docs.ansible.com/ansible/devel/community/communication.html#the-bullhorn): used to announce releases and important changes.
 
 For more information about communication, see the [Ansible communication guide](https://docs.ansible.com/ansible/devel/community/communication.html).
 
@@ -37,7 +37,7 @@ Tested with the current Ansible 2.9, ansible-base 2.10, ansible-core 2.11, ansib
 
 ## Included content
 
-* `inventory_filter` docs fragment and plugin utils.
+- `inventory_filter` docs fragment and plugin utils.
 
 ## Using this collection
 
@@ -79,14 +79,14 @@ Since multiple versions are maintained in parallel, there is no need to wait bet
 
 ## More information
 
-* [Ansible Collection overview](https://github.com/ansible-collections/overview)
-* [Ansible User guide](https://docs.ansible.com/ansible/latest/user_guide/index.html)
-* [Ansible Developer guide](https://docs.ansible.com/ansible/latest/dev_guide/index.html)
-* [Antsibull-nox documentation](https://ansible.readthedocs.io/projects/antsibull-nox/)
-* [Ansible Collections Checklist](https://github.com/ansible-collections/overview/blob/master/collection_requirements.rst)
-* [Ansible Community code of conduct](https://docs.ansible.com/ansible/latest/community/code_of_conduct.html)
-* [The Bullhorn (the Ansible Contributor newsletter)](https://us19.campaign-archive.com/home/?u=56d874e027110e35dea0e03c1&id=d6635f5420)
-* [Changes impacting Contributors](https://github.com/ansible-collections/overview/issues/45)
+- [Ansible Collection overview](https://github.com/ansible-collections/overview)
+- [Ansible User guide](https://docs.ansible.com/ansible/latest/user_guide/index.html)
+- [Ansible Developer guide](https://docs.ansible.com/ansible/latest/dev_guide/index.html)
+- [Antsibull-nox documentation](https://ansible.readthedocs.io/projects/antsibull-nox/)
+- [Ansible Collections Checklist](https://github.com/ansible-collections/overview/blob/master/collection_requirements.rst)
+- [Ansible Community code of conduct](https://docs.ansible.com/ansible/latest/community/code_of_conduct.html)
+- [The Bullhorn (the Ansible Contributor newsletter)](https://us19.campaign-archive.com/home/?u=56d874e027110e35dea0e03c1&id=d6635f5420)
+- [Changes impacting Contributors](https://github.com/ansible-collections/overview/issues/45)
 
 ## Licensing
 

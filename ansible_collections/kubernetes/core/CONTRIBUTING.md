@@ -32,18 +32,18 @@ New modules should be submitted to the [kubernetes.core](https://github.com/ansi
 
 Expected test criteria:
 
-* Resource creation under check mode
-* Resource creation
-* Resource creation again (idempotency) under check mode
-* Resource creation again (idempotency)
-* Resource modification under check mode
-* Resource modification
-* Resource modification again (idempotency) under check mode
-* Resource modification again (idempotency)
-* Resource deletion under check mode
-* Resource deletion
-* Resource deletion (of a non-existent resource) under check mode
-* Resource deletion (of a non-existent resource)
+- Resource creation under check mode
+- Resource creation
+- Resource creation again (idempotency) under check mode
+- Resource creation again (idempotency)
+- Resource modification under check mode
+- Resource modification
+- Resource modification again (idempotency) under check mode
+- Resource modification again (idempotency)
+- Resource deletion under check mode
+- Resource deletion
+- Resource deletion (of a non-existent resource) under check mode
+- Resource deletion (of a non-existent resource)
 
 Where modules have multiple parameters we recommend running through the 4-step modification cycle for each parameter the module accepts, as well as a modification cycle where as most, if not all, parameters are modified at the same time.
 

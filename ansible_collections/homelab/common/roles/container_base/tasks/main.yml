@@ -190,6 +190,30 @@
     - containers
     - state
 
+- name: Fix SSH in container (Ubuntu 22.04 socket activation kills sshd in LXC)
+  ansible.builtin.shell:
+    cmd: |
+      pct exec {{ container_vmid | int }} -- bash -c '
+        systemctl mask ssh.socket 2>/dev/null || true
+        systemctl unmask ssh.service 2>/dev/null || true
+        systemctl enable ssh.service
+        systemctl restart ssh.service
+      '
+    executable: /bin/bash
+  delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  retries: 12
+  delay: 5
+  register: ssh_fix_result
+  until: ssh_fix_result.rc == 0
+  changed_when: true
+  tags:
+    - proxmox
+    - lxc
+    - containers
+
 - name: Wait for container SSH to be available
   ansible.builtin.wait_for:
     host: "{{ ansible_host }}"

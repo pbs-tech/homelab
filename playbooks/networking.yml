@@ -11,6 +11,8 @@
     - name: Ensure networking containers exist
       ansible.builtin.include_role:
         name: homelab.common.container_base
+        apply:
+          tags: always
       vars:
         container_resources:
           cores: "{{ lxc_cores | default(1) }}"
@@ -18,9 +20,11 @@
           swap: "{{ lxc_swap | default(0) }}"
           disk_size: "{{ lxc_disk_size | default(4) }}"
       when: container_id is defined
+      tags: always
 
     - name: Gather facts after container is available
       ansible.builtin.setup:
+      tags: always
 
   roles:
     - role: homelab.common.common_setup
@@ -41,6 +45,10 @@
     - role: homelab.proxmox_lxc.openwrt
       when: inventory_hostname.startswith('openwrt')
       tags: [network, openwrt]
+
+    - role: homelab.proxmox_lxc.step_ca
+      when: inventory_hostname.startswith('step-ca')
+      tags: [pki, step_ca]
 
 - name: Deploy reverse proxy infrastructure
   hosts: networking

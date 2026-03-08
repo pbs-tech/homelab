@@ -32,12 +32,12 @@ If you encounter abusive behavior, please refer to the [policy violations](https
 If your collection is not present on the Ansible forum yet, please check out the existing [tags](https://forum.ansible.com/tags) and [groups](https://forum.ansible.com/g) - use what suits your collection. If there is no appropritate tag and group yet, please [request one](https://forum.ansible.com/t/requesting-a-forum-group/503/17).
 -->
 
-* Join the Ansible forum:
-  * [Get Help](https://forum.ansible.com/c/help/6): get help or help others. Please add appropriate tags if you start new discussions, for example the `proxmox` tag.
-  * [Posts tagged with 'proxmox'](https://forum.ansible.com/tag/proxmox): subscribe to participate in collection/technology-related conversations.
-  * [The Proxmox collection group on the forum](https://forum.ansible.com/g/proxmox-collection): by joining the team you will automatically get subscribed to the posts tagged with [proxmox](https://forum.ansible.com/tags).
-  * [Social Spaces](https://forum.ansible.com/c/chat/4): gather and interact with fellow enthusiasts.
-  * [News & Announcements](https://forum.ansible.com/c/news/5): track project-wide announcements including social events. The [Bullhorn newsletter](https://docs.ansible.com/ansible/devel/community/communication.html#the-bullhorn), which is used to announce releases and important changes, can also be found here.
+- Join the Ansible forum:
+  - [Get Help](https://forum.ansible.com/c/help/6): get help or help others. Please add appropriate tags if you start new discussions, for example the `proxmox` tag.
+  - [Posts tagged with 'proxmox'](https://forum.ansible.com/tag/proxmox): subscribe to participate in collection/technology-related conversations.
+  - [The Proxmox collection group on the forum](https://forum.ansible.com/g/proxmox-collection): by joining the team you will automatically get subscribed to the posts tagged with [proxmox](https://forum.ansible.com/tags).
+  - [Social Spaces](https://forum.ansible.com/c/chat/4): gather and interact with fellow enthusiasts.
+  - [News & Announcements](https://forum.ansible.com/c/news/5): track project-wide announcements including social events. The [Bullhorn newsletter](https://docs.ansible.com/ansible/devel/community/communication.html#the-bullhorn), which is used to announce releases and important changes, can also be found here.
 
 For more information about communication, see the [Ansible communication guide](https://docs.ansible.com/ansible/devel/community/communication.html).
 
@@ -55,9 +55,9 @@ Want to submit code changes? Take a look at the [Quick-start development guide](
 
 We also use the following guidelines:
 
-* [Collection review checklist](https://docs.ansible.com/ansible/devel/community/collection_contributors/collection_reviewing.html)
-* [Ansible development guide](https://docs.ansible.com/ansible/devel/dev_guide/index.html)
-* [Ansible collection development guide](https://docs.ansible.com/ansible/devel/dev_guide/developing_collections.html#contributing-to-collections)
+- [Collection review checklist](https://docs.ansible.com/ansible/devel/community/collection_contributors/collection_reviewing.html)
+- [Ansible development guide](https://docs.ansible.com/ansible/devel/dev_guide/index.html)
+- [Ansible collection development guide](https://docs.ansible.com/ansible/devel/dev_guide/developing_collections.html#contributing-to-collections)
 
 ## Collection maintenance
 
@@ -69,8 +69,8 @@ To learn how to maintain/become a maintainer of this collection, refer to the [M
 
 It is necessary for maintainers of this collection to be subscribed to:
 
-* The collection itself (the `Watch` button -> `All Activity` in the upper right corner of the repository's homepage).
-* The [news-for-maintainers repository](https://github.com/ansible-collections/news-for-maintainers).
+- The collection itself (the `Watch` button -> `All Activity` in the upper right corner of the repository's homepage).
+- The [news-for-maintainers repository](https://github.com/ansible-collections/news-for-maintainers).
 
 They also should be subscribed to Ansible's [The Bullhorn newsletter](https://docs.ansible.com/ansible/devel/community/communication.html#the-bullhorn).
 
@@ -90,8 +90,8 @@ Ansible-core 2.17, 2.18, and the current development version of ansible-core.
 
 In order to use the modules in this collection, you'll need:
 
-* Python >= 3.7
-* Proxmoxer >= 2.0
+- Python >= 3.7
+- Proxmoxer >= 2.0
 
 ## Using this collection
 
@@ -137,12 +137,12 @@ Our first order of business is that we get this collection up and running, that 
 
 ## More information
 
-* [Ansible user guide](https://docs.ansible.com/ansible/devel/user_guide/index.html)
-* [Ansible developer guide](https://docs.ansible.com/ansible/devel/dev_guide/index.html)
-* [Ansible collections requirements](https://docs.ansible.com/ansible/devel/community/collection_contributors/collection_requirements.html)
-* [Ansible community Code of Conduct](https://docs.ansible.com/ansible/devel/community/code_of_conduct.html)
-* [The Bullhorn (the Ansible contributor newsletter)](https://docs.ansible.com/ansible/devel/community/communication.html#the-bullhorn)
-* [Important announcements for maintainers](https://github.com/ansible-collections/news-for-maintainers)
+- [Ansible user guide](https://docs.ansible.com/ansible/devel/user_guide/index.html)
+- [Ansible developer guide](https://docs.ansible.com/ansible/devel/dev_guide/index.html)
+- [Ansible collections requirements](https://docs.ansible.com/ansible/devel/community/collection_contributors/collection_requirements.html)
+- [Ansible community Code of Conduct](https://docs.ansible.com/ansible/devel/community/code_of_conduct.html)
+- [The Bullhorn (the Ansible contributor newsletter)](https://docs.ansible.com/ansible/devel/community/communication.html#the-bullhorn)
+- [Important announcements for maintainers](https://github.com/ansible-collections/news-for-maintainers)
 
 ## Licensing
 

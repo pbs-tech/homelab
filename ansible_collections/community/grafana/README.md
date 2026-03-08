@@ -14,14 +14,14 @@ The collection includes a variety of Ansible content to help automate the manage
 
 ## Communication
 
-* Join the Ansible forum:
-  * [Get Help](https://forum.ansible.com/c/help/6): get help or help others.
-  * [Posts tagged with 'grafana'](https://forum.ansible.com/tag/grafana): subscribe to participate in collection-related conversations.
-  * [Ansible Forum Group 'grafana-collection'](https://forum.ansible.com/g/grafana-collection): by joining the team you will automatically get subscribed to the posts tagged with [grafana](https://forum.ansible.com/tag/grafana).
-  * [Social Spaces](https://forum.ansible.com/c/chat/4): gather and interact with fellow enthusiasts.
-  * [News & Announcements](https://forum.ansible.com/c/news/5): track project-wide announcements including social events.
+- Join the Ansible forum:
+  - [Get Help](https://forum.ansible.com/c/help/6): get help or help others.
+  - [Posts tagged with 'grafana'](https://forum.ansible.com/tag/grafana): subscribe to participate in collection-related conversations.
+  - [Ansible Forum Group 'grafana-collection'](https://forum.ansible.com/g/grafana-collection): by joining the team you will automatically get subscribed to the posts tagged with [grafana](https://forum.ansible.com/tag/grafana).
+  - [Social Spaces](https://forum.ansible.com/c/chat/4): gather and interact with fellow enthusiasts.
+  - [News & Announcements](https://forum.ansible.com/c/news/5): track project-wide announcements including social events.
 
-* The Ansible [Bullhorn newsletter](https://docs.ansible.com/ansible/devel/community/communication.html#the-bullhorn): used to announce releases and important changes.
+- The Ansible [Bullhorn newsletter](https://docs.ansible.com/ansible/devel/community/communication.html#the-bullhorn): used to announce releases and important changes.
 
 For more information about communication, see the [Ansible communication guide](https://docs.ansible.com/ansible/devel/community/communication.html).
 
@@ -29,25 +29,25 @@ For more information about communication, see the [Ansible communication guide](
 
 Click on the name of a plugin or module to view that content's documentation:
 
-* **Connection Plugins**:
-* **Filter Plugins**:
-* **Inventory Source**:
-* **Callback Plugins**:
-  * [grafana_annotations](https://docs.ansible.com/ansible/latest/collections/community/grafana/grafana_annotations_callback.html)
-* **Lookup Plugins**:
-  * [grafana_dashboard](https://docs.ansible.com/ansible/latest/collections/community/grafana/grafana_dashboard_lookup.html)
-* **Modules**:
-  * [grafana_dashboard](https://docs.ansible.com/ansible/latest/collections/community/grafana/grafana_dashboard_module.html)
-  * [grafana_datasource](https://docs.ansible.com/ansible/latest/collections/community/grafana/grafana_datasource_module.html)
-  * [grafana_folder](https://docs.ansible.com/ansible/latest/collections/community/grafana/grafana_folder_module.html)
-  * [grafana_notification_channel](https://docs.ansible.com/ansible/latest/collections/community/grafana/grafana_notification_channel_module.html)
-  * [grafana_contact_point](https://docs.ansible.com/ansible/latest/collections/community/grafana/grafana_contact_point_module.html)
-  * [grafana_organization](https://docs.ansible.com/ansible/latest/collections/community/grafana/grafana_organization_module.html)
-  * [grafana_organization_user](https://docs.ansible.com/ansible/latest/collections/community/grafana/grafana_organization_user_module.html)
-  * [grafana_plugin](https://docs.ansible.com/ansible/latest/collections/community/grafana/grafana_plugin_module.html)
-  * [grafana_team](https://docs.ansible.com/ansible/latest/collections/community/grafana/grafana_team_module.html)
-  * [grafana_user](https://docs.ansible.com/ansible/latest/collections/community/grafana/grafana_user_module.html)
-  * [grafana_silence](https://docs.ansible.com/ansible/latest/collections/community/grafana/grafana_silence_module.html)
+- **Connection Plugins**:
+- **Filter Plugins**:
+- **Inventory Source**:
+- **Callback Plugins**:
+  - [grafana_annotations](https://docs.ansible.com/ansible/latest/collections/community/grafana/grafana_annotations_callback.html)
+- **Lookup Plugins**:
+  - [grafana_dashboard](https://docs.ansible.com/ansible/latest/collections/community/grafana/grafana_dashboard_lookup.html)
+- **Modules**:
+  - [grafana_dashboard](https://docs.ansible.com/ansible/latest/collections/community/grafana/grafana_dashboard_module.html)
+  - [grafana_datasource](https://docs.ansible.com/ansible/latest/collections/community/grafana/grafana_datasource_module.html)
+  - [grafana_folder](https://docs.ansible.com/ansible/latest/collections/community/grafana/grafana_folder_module.html)
+  - [grafana_notification_channel](https://docs.ansible.com/ansible/latest/collections/community/grafana/grafana_notification_channel_module.html)
+  - [grafana_contact_point](https://docs.ansible.com/ansible/latest/collections/community/grafana/grafana_contact_point_module.html)
+  - [grafana_organization](https://docs.ansible.com/ansible/latest/collections/community/grafana/grafana_organization_module.html)
+  - [grafana_organization_user](https://docs.ansible.com/ansible/latest/collections/community/grafana/grafana_organization_user_module.html)
+  - [grafana_plugin](https://docs.ansible.com/ansible/latest/collections/community/grafana/grafana_plugin_module.html)
+  - [grafana_team](https://docs.ansible.com/ansible/latest/collections/community/grafana/grafana_team_module.html)
+  - [grafana_user](https://docs.ansible.com/ansible/latest/collections/community/grafana/grafana_user_module.html)
+  - [grafana_silence](https://docs.ansible.com/ansible/latest/collections/community/grafana/grafana_silence_module.html)
 
 ## Supported Versions
 
@@ -199,10 +199,10 @@ See LICENCE to see the full text.
 
 Any contribution is welcome and we only ask contributors to:
 
-* Provide *at least* integration tests for any contribution.
-* The Pull Request *MUST* contain a changelog fragment. See [Ansible documentation](https://docs.ansible.com/ansible/latest/community/development_process.html#creating-a-changelog-fragment) about fragments.
-* Create an issue for any significant contribution that would change a large portion of the code base.
-* Use [ruff](https://github.com/astral-sh/ruff) to lint and [black](https://github.com/psf/black) to format your changes on python code.
+- Provide *at least* integration tests for any contribution.
+- The Pull Request *MUST* contain a changelog fragment. See [Ansible documentation](https://docs.ansible.com/ansible/latest/community/development_process.html#creating-a-changelog-fragment) about fragments.
+- Create an issue for any significant contribution that would change a large portion of the code base.
+- Use [ruff](https://github.com/astral-sh/ruff) to lint and [black](https://github.com/psf/black) to format your changes on python code.
 
 ## Contributors ✨
 

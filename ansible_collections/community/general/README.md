@@ -27,13 +27,13 @@ If you encounter abusive behavior violating the [Ansible Code of Conduct](https:
 
 ## Communication
 
-* Join the Ansible forum:
-  * [Get Help](https://forum.ansible.com/c/help/6): get help or help others. This is for questions about modules or plugins in the collection. Please add appropriate tags if you start new discussions.
-  * [Tag `community-general`](https://forum.ansible.com/tag/community-general): discuss the *collection itself*, instead of specific modules or plugins.
-  * [Social Spaces](https://forum.ansible.com/c/chat/4): gather and interact with fellow enthusiasts.
-  * [News & Announcements](https://forum.ansible.com/c/news/5): track project-wide announcements including social events.
+- Join the Ansible forum:
+  - [Get Help](https://forum.ansible.com/c/help/6): get help or help others. This is for questions about modules or plugins in the collection. Please add appropriate tags if you start new discussions.
+  - [Tag `community-general`](https://forum.ansible.com/tag/community-general): discuss the *collection itself*, instead of specific modules or plugins.
+  - [Social Spaces](https://forum.ansible.com/c/chat/4): gather and interact with fellow enthusiasts.
+  - [News & Announcements](https://forum.ansible.com/c/news/5): track project-wide announcements including social events.
 
-* The Ansible [Bullhorn newsletter](https://docs.ansible.com/projects/ansible/devel/community/communication.html#the-bullhorn): used to announce releases and important changes.
+- The Ansible [Bullhorn newsletter](https://docs.ansible.com/projects/ansible/devel/community/communication.html#the-bullhorn): used to announce releases and important changes.
 
 For more information about communication, see the [Ansible communication guide](https://docs.ansible.com/projects/ansible/devel/community/communication.html).
 
@@ -102,13 +102,13 @@ See [here](https://docs.ansible.com/projects/ansible/devel/dev_guide/developing_
 
 To learn how to maintain / become a maintainer of this collection, refer to:
 
-* [Committer guidelines](https://github.com/ansible-collections/community.general/blob/stable-12/commit-rights.md).
-* [Maintainer guidelines](https://github.com/ansible/community-docs/blob/stable-12/maintaining.rst).
+- [Committer guidelines](https://github.com/ansible-collections/community.general/blob/stable-12/commit-rights.md).
+- [Maintainer guidelines](https://github.com/ansible/community-docs/blob/stable-12/maintaining.rst).
 
 It is necessary for maintainers of this collection to be subscribed to:
 
-* The collection itself (the `Watch` button → `All Activity` in the upper right corner of the repository's homepage).
-* The "Changes Impacting Collection Contributors and Maintainers" [issue](https://github.com/ansible-collections/overview/issues/45).
+- The collection itself (the `Watch` button → `All Activity` in the upper right corner of the repository's homepage).
+- The "Changes Impacting Collection Contributors and Maintainers" [issue](https://github.com/ansible-collections/overview/issues/45).
 
 They also should be subscribed to Ansible's [The Bullhorn newsletter](https://docs.ansible.com/projects/ansible/devel/community/communication.html#the-bullhorn).
 
@@ -128,10 +128,10 @@ See [this issue](https://github.com/ansible-collections/community.general/issues
 
 ## More information
 
-* [Ansible Collection overview](https://github.com/ansible-collections/overview)
-* [Ansible User guide](https://docs.ansible.com/projects/ansible/latest/user_guide/index.html)
-* [Ansible Developer guide](https://docs.ansible.com/projects/ansible/latest/dev_guide/index.html)
-* [Ansible Community code of conduct](https://docs.ansible.com/projects/ansible/latest/community/code_of_conduct.html)
+- [Ansible Collection overview](https://github.com/ansible-collections/overview)
+- [Ansible User guide](https://docs.ansible.com/projects/ansible/latest/user_guide/index.html)
+- [Ansible Developer guide](https://docs.ansible.com/projects/ansible/latest/dev_guide/index.html)
+- [Ansible Community code of conduct](https://docs.ansible.com/projects/ansible/latest/community/code_of_conduct.html)
 
 ## Licensing
 

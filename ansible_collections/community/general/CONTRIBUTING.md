@@ -17,8 +17,8 @@ There you can find feature ideas to implement, reports about bugs to solve, or s
 Also somebody may already have started discussing or working on implementing the same or a similar idea,
 so you can cooperate to create a better solution together.
 
-* If you are interested in starting with an easy issue, look for [issues with an `easyfix` label](https://github.com/ansible-collections/community.general/labels/easyfix).
-* Often issues that are waiting for contributors to pick up have [the `waiting_on_contributor` label](https://github.com/ansible-collections/community.general/labels/waiting_on_contributor).
+- If you are interested in starting with an easy issue, look for [issues with an `easyfix` label](https://github.com/ansible-collections/community.general/labels/easyfix).
+- Often issues that are waiting for contributors to pick up have [the `waiting_on_contributor` label](https://github.com/ansible-collections/community.general/labels/waiting_on_contributor).
 
 ## Review pull requests
 
@@ -33,13 +33,13 @@ Also, consider taking up a valuable, reviewed, but abandoned pull request which 
 
 Please read our ['Contributing to collections'](https://docs.ansible.com/projects/ansible/devel/dev_guide/developing_collections_contributing.html#contributing-to-a-collection-community-general) guide.
 
-* Try committing your changes with an informative but short commit message.
-* Do not squash your commits and force-push to your branch if not needed. Reviews of your pull request are much easier with individual commits to comprehend the pull request history. All commits of your pull request branch will be squashed into one commit by GitHub upon merge.
-* Do not add merge commits to your PR. The bot will complain and you will have to rebase ([instructions for rebasing](https://docs.ansible.com/projects/ansible/latest/dev_guide/developing_rebasing.html)) to remove them before your PR can be merged. To avoid that git automatically does merges during pulls, you can configure it to do rebases instead by running `git config pull.rebase true` inside the repository checkout.
-* Make sure your PR includes a [changelog fragment](https://docs.ansible.com/projects/ansible/devel/community/collection_development_process.html#creating-a-changelog-fragment).
-  * You must not include a fragment for new modules or new plugins. Also you shouldn't include one for docs-only changes. (If you're not sure, simply don't include one, we'll tell you whether one is needed or not :) )
-  * Please always include a link to the pull request itself, and if the PR is about an issue, also a link to the issue. Also make sure the fragment ends with a period, and begins with a lower-case letter after `-`. (Again, if you don't do this, we'll add suggestions to fix it, so don't worry too much :) )
-* Note that we format the code with `ruff format`. If your change does not match the formatters expectations, CI will fail and your PR will not get merged. See below for how to format code with antsibull-nox.
+- Try committing your changes with an informative but short commit message.
+- Do not squash your commits and force-push to your branch if not needed. Reviews of your pull request are much easier with individual commits to comprehend the pull request history. All commits of your pull request branch will be squashed into one commit by GitHub upon merge.
+- Do not add merge commits to your PR. The bot will complain and you will have to rebase ([instructions for rebasing](https://docs.ansible.com/projects/ansible/latest/dev_guide/developing_rebasing.html)) to remove them before your PR can be merged. To avoid that git automatically does merges during pulls, you can configure it to do rebases instead by running `git config pull.rebase true` inside the repository checkout.
+- Make sure your PR includes a [changelog fragment](https://docs.ansible.com/projects/ansible/devel/community/collection_development_process.html#creating-a-changelog-fragment).
+  - You must not include a fragment for new modules or new plugins. Also you shouldn't include one for docs-only changes. (If you're not sure, simply don't include one, we'll tell you whether one is needed or not :) )
+  - Please always include a link to the pull request itself, and if the PR is about an issue, also a link to the issue. Also make sure the fragment ends with a period, and begins with a lower-case letter after `-`. (Again, if you don't do this, we'll add suggestions to fix it, so don't worry too much :) )
+- Note that we format the code with `ruff format`. If your change does not match the formatters expectations, CI will fail and your PR will not get merged. See below for how to format code with antsibull-nox.
 
 You can also read the Ansible community's [Quick-start development guide](https://docs.ansible.com/projects/ansible/devel/community/create_pr_quick_start.html).
 
@@ -170,9 +170,9 @@ The following commands show how to run integration tests:
 
 Integration tests on Docker have the following parameters:
 
-* `image_name` (required): The name of the Docker image. To get the list of supported Docker images, run
+- `image_name` (required): The name of the Docker image. To get the list of supported Docker images, run
   `ansible-test integration --help` and look for _target docker images_.
-* `test_name` (optional): The name of the integration test.
+- `test_name` (optional): The name of the integration test.
   For modules, this equals the short name of the module; for example, `pacman` in case of `community.general.pacman`.
   For plugins, the plugin type is added before the plugin's short name, for example `callback_yaml` for the `community.general.yaml` callback.
 
@@ -206,16 +206,16 @@ See the files under [.devcontainer](.devcontainer) for details on what is deploy
 
 Beware of:
 
-* By default, the devcontainer installs the latest version of `ansible-core`.
+- By default, the devcontainer installs the latest version of `ansible-core`.
   When testing your changes locally, keep in mind that the collection must support older versions of
   `ansible-core` and, depending on what is being tested, results may vary.
-* Integration tests executed directly inside the devcontainer without isolation (see above) may fail if
+- Integration tests executed directly inside the devcontainer without isolation (see above) may fail if
   they expected to be run in full fledged VMs. On the other hand, the devcontainer setup allows running
   containers inside the container (the `docker-in-docker` feature).
-* The devcontainer is built with a directory structure such that
+- The devcontainer is built with a directory structure such that
   `.../ansible_collections/community/general` contains the project repository, so `ansible-test` and
   other standard tools should work without any additional setup
-* By default, the devcontainer installs `pre-commit` and configures it to perform `ruff check` and
+- By default, the devcontainer installs `pre-commit` and configures it to perform `ruff check` and
   `ruff format` on the Python files, prior to commiting. That configuration is going to be used by
   `git` even outside the devcontainer. To prevent errors, you have to either install `pre-commit` in
   your computer, outside the devcontainer, or run `pre-commit uninstall` from within the devcontainer
@@ -235,12 +235,12 @@ Creating new modules and plugins requires a bit more work than other Pull Reques
 
 3. When creating a new module or plugin, please make sure that you follow various guidelines:
 
-   * Follow [development conventions](https://docs.ansible.com/projects/ansible/devel/dev_guide/developing_modules_best_practices.html);
-   * Follow [documentation standards](https://docs.ansible.com/projects/ansible/devel/dev_guide/developing_modules_documenting.html) and
+   - Follow [development conventions](https://docs.ansible.com/projects/ansible/devel/dev_guide/developing_modules_best_practices.html);
+   - Follow [documentation standards](https://docs.ansible.com/projects/ansible/devel/dev_guide/developing_modules_documenting.html) and
      the [Ansible style guide](https://docs.ansible.com/projects/ansible/devel/dev_guide/style_guide/index.html#style-guide);
-   * Make sure your modules and plugins are [GPL-3.0-or-later](https://www.gnu.org/licenses/gpl-3.0-standalone.html) licensed
+   - Make sure your modules and plugins are [GPL-3.0-or-later](https://www.gnu.org/licenses/gpl-3.0-standalone.html) licensed
      (new module_utils can also be [BSD-2-clause](https://opensource.org/licenses/BSD-2-Clause) licensed);
-   * Make sure that new plugins and modules have tests (unit tests, integration tests, or both); it is preferable to have some tests
+   - Make sure that new plugins and modules have tests (unit tests, integration tests, or both); it is preferable to have some tests
      which run in CI.
 
 4. Action plugins need to be accompanied by a module, even if the module file only contains documentation
