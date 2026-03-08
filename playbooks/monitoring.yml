@@ -72,13 +72,28 @@
       when: service_port is defined
 
 - name: Deploy monitoring agents to LXC containers
-  hosts: lxc_containers
+  hosts: lxc_containers:!monitoring
   become: true
-  gather_facts: true
-  tags:
-    - monitoring
-    - exporters
-    - lxc
+  gather_facts: false  # Defer until containers exist
+  pre_tasks:
+    - name: Ensure monitoring containers exist
+      ansible.builtin.include_role:
+        name: homelab.common.container_base
+      vars:
+        container_resources:
+          cores: "{{ lxc_cores | default(1) }}"
+          memory: "{{ lxc_memory | default(512) }}"
+          swap: "{{ lxc_swap | default(0) }}"
+          disk_size: "{{ lxc_disk_size | default(8) }}"
+      when: container_id is defined
+
+    - name: Gather facts after container is available
+      ansible.builtin.setup:
 
   roles:
     - role: homelab.common.monitoring_agent
+      tags:
+        - monitoring_agent
+        - exporters
+        - node_exporter
+        - promtail
