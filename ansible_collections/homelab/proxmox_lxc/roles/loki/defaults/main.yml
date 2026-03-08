@@ -39,9 +39,12 @@ loki_max_query_lookback: 0s
 loki_compaction_working_directory: "{{ loki_data_dir }}/boltdb-compactor"
 loki_compaction_shared_store_type: filesystem
 
-# Table manager settings
-loki_table_manager_retention_deletes_enabled: "{{ loki_retention_enabled }}"
-loki_table_manager_retention_period: "{{ loki_retention_period }}"
+# TSDB storage directories (schema v13, Loki 2.8+)
+loki_tsdb_active_dir: "{{ loki_data_dir }}/tsdb-active"
+loki_tsdb_cache_dir: "{{ loki_data_dir }}/tsdb-cache"
+
+# Schema migration date — new data is written using tsdb from this date forward
+loki_tsdb_schema_from: "2026-03-08"
 
 # Firewall configuration
 loki_configure_firewall: true

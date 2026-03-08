@@ -39,6 +39,8 @@
     - "{{ loki_data_dir }}/chunks"
     - "{{ loki_data_dir }}/boltdb-compactor"
     - "{{ loki_log_dir }}"
+    - "{{ loki_tsdb_active_dir }}"
+    - "{{ loki_tsdb_cache_dir }}"
 
 - name: Download Loki binary
   ansible.builtin.get_url:
