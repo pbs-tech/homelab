@@ -68,7 +68,9 @@
 
     - name: Report service status
       ansible.builtin.debug:
-        msg: "Service {{ inventory_hostname }} at {{ ansible_host }}:{{ service_port }} - {{ 'OK' if service_check is succeeded else 'Starting (may need more time)' }}"
+        msg: >-
+          Service {{ inventory_hostname }} at {{ ansible_host }}:{{ service_port }} -
+          {{ 'OK' if service_check is succeeded else 'Starting (may need more time)' }}
       when: service_port is defined
 
 - name: Deploy monitoring agents to LXC containers
