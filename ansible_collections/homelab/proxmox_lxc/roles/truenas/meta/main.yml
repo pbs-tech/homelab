@@ -1,0 +1,23 @@
+---
+galaxy_info:
+  author: "Homelab Administrator"
+  description: >
+    Deploys TrueNAS SCALE as a KVM/QEMU VM on Proxmox, including ISO download,
+    VM creation, and storage configuration for homelab NAS workloads.
+  license: MIT
+  min_ansible_version: "2.17"
+
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+
+  galaxy_tags:
+    - homelab
+    - proxmox
+    - truenas
+    - nas
+    - storage
+    - kvm
+
+dependencies: []
