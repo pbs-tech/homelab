@@ -1,0 +1,60 @@
+#!/usr/bin/env python3
+"""Infrastructure health check script for {{ inventory_hostname }}."""
+
+import json
+import sys
+import time
+from datetime import datetime
+
+try:
+    import psutil
+except ImportError:
+    print("psutil not available", file=sys.stderr)
+    sys.exit(1)
+
+THRESHOLDS = {
+    "cpu": {{ health_checks.checks | selectattr('name', 'equalto', 'system_resources') | map(attribute='thresholds') | map(attribute='cpu') | first | default(90) }},
+    "memory": {{ health_checks.checks | selectattr('name', 'equalto', 'system_resources') | map(attribute='thresholds') | map(attribute='memory') | first | default(90) }},
+    "disk": {{ health_checks.checks | selectattr('name', 'equalto', 'system_resources') | map(attribute='thresholds') | map(attribute='disk') | first | default(95) }},
+}
+
+LOG_FILE = "{{ monitoring_log_dir }}/health_check.log"
+
+
+def check_resources():
+    """Check CPU, memory, and disk usage."""
+    results = {}
+
+    cpu = psutil.cpu_percent(interval=1)
+    results["cpu_percent"] = cpu
+    results["cpu_ok"] = cpu < THRESHOLDS["cpu"]
+
+    mem = psutil.virtual_memory()
+    results["memory_percent"] = mem.percent
+    results["memory_ok"] = mem.percent < THRESHOLDS["memory"]
+
+    disk = psutil.disk_usage("/")
+    disk_pct = disk.percent
+    results["disk_percent"] = disk_pct
+    results["disk_ok"] = disk_pct < THRESHOLDS["disk"]
+
+    return results
+
+
+def main():
+    timestamp = datetime.utcnow().isoformat()
+    results = check_resources()
+    results["timestamp"] = timestamp
+    results["host"] = "{{ inventory_hostname }}"
+    results["overall_ok"] = all(v for k, v in results.items() if k.endswith("_ok"))
+
+    with open(LOG_FILE, "a") as f:
+        f.write(json.dumps(results) + "\n")
+
+    if not results["overall_ok"]:
+        print(f"WARN: health check failed on {{ inventory_hostname }}: {results}", file=sys.stderr)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

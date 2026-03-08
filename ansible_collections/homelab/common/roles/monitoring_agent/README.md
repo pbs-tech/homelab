@@ -692,17 +692,6 @@ promtail_version: 3.0.0        # New version
 monitoring_force_reinstall: true
 ```
 
-## Known Limitations
-
-### Templates Directory Not Populated
-
-The `templates/` directory for this role is not yet populated with the Jinja2 template files
-documented in the "Files and Templates" section above. The role will fail at runtime when tasks
-attempt to deploy service unit files and configuration templates.
-
-Template creation is out of scope for the current implementation phase. Until templates are added,
-the role cannot be applied to live hosts.
-
 ## License
 
 Apache License 2.0 - See collection LICENSE file for details.
