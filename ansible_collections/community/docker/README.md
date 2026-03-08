@@ -24,15 +24,15 @@ If you encounter abusive behavior violating the [Ansible Code of Conduct](https:
 
 ## Communication
 
-* Join the Ansible forum:
-  * [Get Help](https://forum.ansible.com/c/help/6): get help or help others. Please add appropriate tags if you start new discussions, for example the `docker`, `docker-compose`, or `docker-swarm` tags.
-  * [Posts tagged with 'docker'](https://forum.ansible.com/tag/docker): subscribe to participate in Docker related conversations.
-  * [Posts tagged with 'docker-compose'](https://forum.ansible.com/tag/docker-compose): subscribe to participate in Docker Compose related conversations.
-  * [Posts tagged with 'docker-swarm'](https://forum.ansible.com/tag/docker-swarm): subscribe to participate in Docker Swarm related conversations.
-  * [Social Spaces](https://forum.ansible.com/c/chat/4): gather and interact with fellow enthusiasts.
-  * [News & Announcements](https://forum.ansible.com/c/news/5): track project-wide announcements including social events.
+- Join the Ansible forum:
+  - [Get Help](https://forum.ansible.com/c/help/6): get help or help others. Please add appropriate tags if you start new discussions, for example the `docker`, `docker-compose`, or `docker-swarm` tags.
+  - [Posts tagged with 'docker'](https://forum.ansible.com/tag/docker): subscribe to participate in Docker related conversations.
+  - [Posts tagged with 'docker-compose'](https://forum.ansible.com/tag/docker-compose): subscribe to participate in Docker Compose related conversations.
+  - [Posts tagged with 'docker-swarm'](https://forum.ansible.com/tag/docker-swarm): subscribe to participate in Docker Swarm related conversations.
+  - [Social Spaces](https://forum.ansible.com/c/chat/4): gather and interact with fellow enthusiasts.
+  - [News & Announcements](https://forum.ansible.com/c/news/5): track project-wide announcements including social events.
 
-* The Ansible [Bullhorn newsletter](https://docs.ansible.com/ansible/devel/community/communication.html#the-bullhorn): used to announce releases and important changes.
+- The Ansible [Bullhorn newsletter](https://docs.ansible.com/ansible/devel/community/communication.html#the-bullhorn): used to announce releases and important changes.
 
 For more information about communication, see the [Ansible communication guide](https://docs.ansible.com/ansible/devel/community/communication.html).
 
@@ -46,11 +46,11 @@ Some modules and plugins require Docker CLI, or other external, programs. Some r
 
 Installing the Docker SDK for Python also installs the requirements for the modules and plugins that use `requests`. If you want to directly install the Python libraries instead of the SDK, you need the following ones:
 
-* [requests](https://pypi.org/project/requests/);
-* [pywin32](https://pypi.org/project/pywin32/) when using named pipes on Windows with the Windows 32 API;
-* [paramiko](https://pypi.org/project/paramiko/) when using SSH to connect to the Docker daemon with `use_ssh_client=false`;
-* [pyOpenSSL](https://pypi.org/project/pyOpenSSL/) when using TLS to connect to the Docker daemon;
-* [backports.ssl_match_hostname](https://pypi.org/project/backports.ssl_match_hostname/) when using TLS to connect to the Docker daemon on Python 2.
+- [requests](https://pypi.org/project/requests/);
+- [pywin32](https://pypi.org/project/pywin32/) when using named pipes on Windows with the Windows 32 API;
+- [paramiko](https://pypi.org/project/paramiko/) when using SSH to connect to the Docker daemon with `use_ssh_client=false`;
+- [pyOpenSSL](https://pypi.org/project/pyOpenSSL/) when using TLS to connect to the Docker daemon;
+- [backports.ssl_match_hostname](https://pypi.org/project/backports.ssl_match_hostname/) when using TLS to connect to the Docker daemon on Python 2.
 
 If you have Docker SDK for Python < 2.0.0 installed ([docker-py](https://pypi.org/project/docker-py/)), you can still use it for modules that support it, though we recommend to uninstall it and then install [docker](https://pypi.org/project/docker/), the Docker SDK for Python >= 2.0.0. Note that both libraries cannot be installed at the same time. If you accidentally did install them simultaneously, you have to uninstall *both* before re-installing one of them.
 
@@ -66,57 +66,57 @@ If you use the Ansible package and do not update collections independently, use 
 
 ## Included content
 
-* Connection plugins:
-  * community.docker.docker: use Docker containers as remotes using the Docker CLI program
-  * community.docker.docker_api: use Docker containers as remotes using the Docker API
-  * community.docker.nsenter: execute commands on the host running the controller container
-* Inventory plugins:
-  * community.docker.docker_containers: dynamic inventory plugin for Docker containers
-  * community.docker.docker_machine: collect Docker machines as inventory
-  * community.docker.docker_swarm: collect Docker Swarm nodes as inventory
-* Modules:
-  * Docker:
-    * community.docker.docker_container: manage Docker containers
-    * community.docker.docker_container_copy_into: copy a file into a Docker container
-    * community.docker.docker_container_exec: run commands in Docker containers
-    * community.docker.docker_container_info: retrieve information on Docker containers
-    * community.docker.docker_host_info: retrieve information on the Docker daemon
-    * community.docker.docker_image: manage Docker images
-    * community.docker.docker_image_build: build Docker images using Docker buildx
-    * community.docker.docker_image_export: export (archive) Docker images
-    * community.docker.docker_image_info: retrieve information on Docker images
-    * community.docker.docker_image_load: load Docker images from archives
-    * community.docker.docker_image_pull: pull Docker images from registries
-    * community.docker.docker_image_push: push Docker images to registries
-    * community.docker.docker_image_remove: remove Docker images
-    * community.docker.docker_image_tag: tag Docker images with new names and/or tags
-    * community.docker.docker_login: log in and out to/from registries
-    * community.docker.docker_network: manage Docker networks
-    * community.docker.docker_network_info: retrieve information on Docker networks
-    * community.docker.docker_plugin: manage Docker plugins
-    * community.docker.docker_prune: prune Docker containers, images, networks, volumes, and build data
-    * community.docker.docker_volume: manage Docker volumes
-    * community.docker.docker_volume_info: retrieve information on Docker volumes
-  * Docker Compose:
-    * community.docker.docker_compose_v2: manage Docker Compose files (Docker compose CLI plugin)
-    * community.docker.docker_compose_v2_exec: run command in a container of a Compose service
-    * community.docker.docker_compose_v2_pull: pull a Docker compose project
-    * community.docker.docker_compose_v2_run: run command in a new container of a Compose service
-  * Docker Swarm:
-    * community.docker.docker_config: manage configurations
-    * community.docker.docker_node: manage Docker Swarm nodes
-    * community.docker.docker_node_info: retrieve information on Docker Swarm nodes
-    * community.docker.docker_secret: manage secrets
-    * community.docker.docker_swarm: manage Docker Swarm
-    * community.docker.docker_swarm_info: retrieve information on Docker Swarm
-    * community.docker.docker_swarm_service: manage Docker Swarm services
-    * community.docker.docker_swarm_service_info: retrieve information on Docker Swarm services
-  * Docker Stack:
-    * community.docker.docker_stack: manage Docker Stacks
-    * community.docker.docker_stack_info: retrieve information on Docker Stacks
-    * community.docker.docker_stack_task_info: retrieve information on tasks in Docker Stacks
-  * Other:
-    * current_container_facts: return facts about whether the module runs in a Docker container
+- Connection plugins:
+  - community.docker.docker: use Docker containers as remotes using the Docker CLI program
+  - community.docker.docker_api: use Docker containers as remotes using the Docker API
+  - community.docker.nsenter: execute commands on the host running the controller container
+- Inventory plugins:
+  - community.docker.docker_containers: dynamic inventory plugin for Docker containers
+  - community.docker.docker_machine: collect Docker machines as inventory
+  - community.docker.docker_swarm: collect Docker Swarm nodes as inventory
+- Modules:
+  - Docker:
+    - community.docker.docker_container: manage Docker containers
+    - community.docker.docker_container_copy_into: copy a file into a Docker container
+    - community.docker.docker_container_exec: run commands in Docker containers
+    - community.docker.docker_container_info: retrieve information on Docker containers
+    - community.docker.docker_host_info: retrieve information on the Docker daemon
+    - community.docker.docker_image: manage Docker images
+    - community.docker.docker_image_build: build Docker images using Docker buildx
+    - community.docker.docker_image_export: export (archive) Docker images
+    - community.docker.docker_image_info: retrieve information on Docker images
+    - community.docker.docker_image_load: load Docker images from archives
+    - community.docker.docker_image_pull: pull Docker images from registries
+    - community.docker.docker_image_push: push Docker images to registries
+    - community.docker.docker_image_remove: remove Docker images
+    - community.docker.docker_image_tag: tag Docker images with new names and/or tags
+    - community.docker.docker_login: log in and out to/from registries
+    - community.docker.docker_network: manage Docker networks
+    - community.docker.docker_network_info: retrieve information on Docker networks
+    - community.docker.docker_plugin: manage Docker plugins
+    - community.docker.docker_prune: prune Docker containers, images, networks, volumes, and build data
+    - community.docker.docker_volume: manage Docker volumes
+    - community.docker.docker_volume_info: retrieve information on Docker volumes
+  - Docker Compose:
+    - community.docker.docker_compose_v2: manage Docker Compose files (Docker compose CLI plugin)
+    - community.docker.docker_compose_v2_exec: run command in a container of a Compose service
+    - community.docker.docker_compose_v2_pull: pull a Docker compose project
+    - community.docker.docker_compose_v2_run: run command in a new container of a Compose service
+  - Docker Swarm:
+    - community.docker.docker_config: manage configurations
+    - community.docker.docker_node: manage Docker Swarm nodes
+    - community.docker.docker_node_info: retrieve information on Docker Swarm nodes
+    - community.docker.docker_secret: manage secrets
+    - community.docker.docker_swarm: manage Docker Swarm
+    - community.docker.docker_swarm_info: retrieve information on Docker Swarm
+    - community.docker.docker_swarm_service: manage Docker Swarm services
+    - community.docker.docker_swarm_service_info: retrieve information on Docker Swarm services
+  - Docker Stack:
+    - community.docker.docker_stack: manage Docker Stacks
+    - community.docker.docker_stack_info: retrieve information on Docker Stacks
+    - community.docker.docker_stack_task_info: retrieve information on tasks in Docker Stacks
+  - Other:
+    - current_container_facts: return facts about whether the module runs in a Docker container
 
 ## Using this collection
 
@@ -145,13 +145,13 @@ See the [changelog](https://github.com/ansible-collections/community.docker/tree
 
 ## More information
 
-* [Ansible Collection overview](https://github.com/ansible-collections/overview)
-* [Ansible User guide](https://docs.ansible.com/ansible/latest/user_guide/index.html)
-* [Ansible Developer guide](https://docs.ansible.com/ansible/latest/dev_guide/index.html)
-* [Ansible Collections Checklist](https://github.com/ansible-collections/overview/blob/master/collection_requirements.rst)
-* [Ansible Community code of conduct](https://docs.ansible.com/ansible/latest/community/code_of_conduct.html)
-* [The Bullhorn (the Ansible Contributor newsletter)](https://us19.campaign-archive.com/home/?u=56d874e027110e35dea0e03c1&id=d6635f5420)
-* [Changes impacting Contributors](https://github.com/ansible-collections/overview/issues/45)
+- [Ansible Collection overview](https://github.com/ansible-collections/overview)
+- [Ansible User guide](https://docs.ansible.com/ansible/latest/user_guide/index.html)
+- [Ansible Developer guide](https://docs.ansible.com/ansible/latest/dev_guide/index.html)
+- [Ansible Collections Checklist](https://github.com/ansible-collections/overview/blob/master/collection_requirements.rst)
+- [Ansible Community code of conduct](https://docs.ansible.com/ansible/latest/community/code_of_conduct.html)
+- [The Bullhorn (the Ansible Contributor newsletter)](https://us19.campaign-archive.com/home/?u=56d874e027110e35dea0e03c1&id=d6635f5420)
+- [Changes impacting Contributors](https://github.com/ansible-collections/overview/issues/45)
 
 ## Licensing
 

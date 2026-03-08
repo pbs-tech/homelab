@@ -26,14 +26,14 @@ If you encounter abusive behavior violating the [Ansible Code of Conduct](https:
 
 ## Communication
 
-* Join the Ansible forum:
-  * [Get Help](https://forum.ansible.com/c/help/6): get help or help others. Please add appropriate tags if you start new discussions, for example the `crypto` or `acme` tags.
-  * [Posts tagged with 'crypto'](https://forum.ansible.com/tag/crypto): subscribe to participate in cryptography related conversations.
-  * [Posts tagged with 'acme'](https://forum.ansible.com/tag/acme): subscribe to participate in ACME (RFC 8555) related conversations.
-  * [Social Spaces](https://forum.ansible.com/c/chat/4): gather and interact with fellow enthusiasts.
-  * [News & Announcements](https://forum.ansible.com/c/news/5): track project-wide announcements including social events.
+- Join the Ansible forum:
+  - [Get Help](https://forum.ansible.com/c/help/6): get help or help others. Please add appropriate tags if you start new discussions, for example the `crypto` or `acme` tags.
+  - [Posts tagged with 'crypto'](https://forum.ansible.com/tag/crypto): subscribe to participate in cryptography related conversations.
+  - [Posts tagged with 'acme'](https://forum.ansible.com/tag/acme): subscribe to participate in ACME (RFC 8555) related conversations.
+  - [Social Spaces](https://forum.ansible.com/c/chat/4): gather and interact with fellow enthusiasts.
+  - [News & Announcements](https://forum.ansible.com/c/news/5): track project-wide announcements including social events.
 
-* The Ansible [Bullhorn newsletter](https://docs.ansible.com/ansible/devel/community/communication.html#the-bullhorn): used to announce releases and important changes.
+- The Ansible [Bullhorn newsletter](https://docs.ansible.com/ansible/devel/community/communication.html#the-bullhorn): used to announce releases and important changes.
 
 For more information about communication, see the [Ansible communication guide](https://docs.ansible.com/ansible/devel/community/communication.html).
 
@@ -96,10 +96,10 @@ We plan to regularly release minor and patch versions, whenever new features are
 
 ## More information
 
-* [Ansible Collection overview](https://github.com/ansible-collections/overview)
-* [Ansible User guide](https://docs.ansible.com/ansible/latest/user_guide/index.html)
-* [Ansible Developer guide](https://docs.ansible.com/ansible/latest/dev_guide/index.html)
-* [Ansible Community code of conduct](https://docs.ansible.com/ansible/latest/community/code_of_conduct.html)
+- [Ansible Collection overview](https://github.com/ansible-collections/overview)
+- [Ansible User guide](https://docs.ansible.com/ansible/latest/user_guide/index.html)
+- [Ansible Developer guide](https://docs.ansible.com/ansible/latest/dev_guide/index.html)
+- [Ansible Community code of conduct](https://docs.ansible.com/ansible/latest/community/code_of_conduct.html)
 
 ## Licensing
 

@@ -57,13 +57,13 @@ The most common use case is to use `community.docker.docker_container` to start 
 Recommendations
 ---------------
 
-* Don't forget to publish the service ports when starting the container
-* Take into consideration that the services inside the container will take a while to get started. Use both/either `ansible.builtin.wait_for` to check for the availability of the network port and/or `retries` on the first task effectively using those services
-* As a precautionary measure, start using the role in a test that is marked either `disabled` or `unsupported`, and move forward from there.
+- Don't forget to publish the service ports when starting the container
+- Take into consideration that the services inside the container will take a while to get started. Use both/either `ansible.builtin.wait_for` to check for the availability of the network port and/or `retries` on the first task effectively using those services
+- As a precautionary measure, start using the role in a test that is marked either `disabled` or `unsupported`, and move forward from there.
 
 Known Issues & Caveats
 ----------------------
 
-* Support only Ubuntu and Fedora, having been tested in Ubuntu Jammy and Fedora 37, respectively
-* Lack mechanism to choose or constraint the `docker` version to be used
-* Lack option to prevent `docker` from being removed at the end of the integration test
+- Support only Ubuntu and Fedora, having been tested in Ubuntu Jammy and Fedora 37, respectively
+- Lack mechanism to choose or constraint the `docker` version to be used
+- Lack option to prevent `docker` from being removed at the end of the integration test
