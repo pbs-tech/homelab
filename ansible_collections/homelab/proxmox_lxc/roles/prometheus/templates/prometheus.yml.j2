@@ -62,3 +62,20 @@ scrape_configs:
         - "{{ adguard_ip | default('192.168.0.204') }}:80"
         - "{{ traefik_ip | default('192.168.0.205') }}:8080"
         - "{{ homeassistant_ip | default('192.168.0.208') }}:8123"
+
+  - job_name: 'lxc-containers'
+    static_configs:
+      - targets:
+{% for host in groups['lxc_containers'] %}
+          - '{{ host }}.{{ homelab_domain }}:9100'
+{% endfor %}
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: '([^:.]+)\..*:.*'
+        target_label: instance
+        replacement: '$1'
+
+  - job_name: 'proxmox-pve-nas'
+    static_configs:
+      - targets:
+          - 'pve-exporter-nas.{{ homelab_domain }}:9221'
