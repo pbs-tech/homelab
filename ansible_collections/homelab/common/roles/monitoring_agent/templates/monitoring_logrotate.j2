@@ -1,0 +1,13 @@
+{{ monitoring_log_dir }}/*.log {
+    daily
+    rotate 7
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 {{ monitoring_user }} {{ monitoring_user }}
+    sharedscripts
+    postrotate
+        systemctl reload-or-restart promtail 2>/dev/null || true
+    endscript
+}

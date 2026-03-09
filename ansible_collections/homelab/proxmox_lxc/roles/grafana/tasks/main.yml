@@ -96,6 +96,9 @@
     mode: "0644"
   notify: Restart grafana
 
+- name: Download and provision community dashboards
+  ansible.builtin.import_tasks: dashboards.yml
+
 - name: Install Grafana plugins
   community.grafana.grafana_plugin:
     name: "{{ item }}"

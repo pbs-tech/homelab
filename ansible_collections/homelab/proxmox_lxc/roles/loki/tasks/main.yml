@@ -39,6 +39,8 @@
     - "{{ loki_data_dir }}/chunks"
     - "{{ loki_data_dir }}/boltdb-compactor"
     - "{{ loki_log_dir }}"
+    - "{{ loki_tsdb_active_dir }}"
+    - "{{ loki_tsdb_cache_dir }}"
 
 - name: Download Loki binary
   ansible.builtin.get_url:
@@ -108,7 +110,7 @@
 
 - name: Check Loki readiness
   ansible.builtin.uri:
-    url: "http://{{ ansible_default_ipv4.address }}:{{ loki_port }}/ready"
+    url: "http://{{ inventory_hostname }}:{{ loki_port }}/ready"
     method: GET
     return_content: true
   register: loki_health

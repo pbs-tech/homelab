@@ -17,3 +17,11 @@ prometheus_configure_firewall: true
 
 # Bastion host for running ansible
 k3s_bastion_ip: 192.168.0.110
+
+# Service endpoint IPs (used in homelab-services scrape job)
+alertmanager_ip: "192.168.0.206"
+pve_exporter_ip: "192.168.0.207"
+grafana_ip: "192.168.0.201"
+adguard_ip: "192.168.0.204"
+traefik_ip: "192.168.0.205"
+homeassistant_ip: "192.168.0.208"

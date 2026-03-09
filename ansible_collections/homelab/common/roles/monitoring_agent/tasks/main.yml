@@ -8,6 +8,7 @@
       - wget
       - jq
       - python3-pip
+      - unzip
     state: present
 
 - name: Install Python monitoring libraries

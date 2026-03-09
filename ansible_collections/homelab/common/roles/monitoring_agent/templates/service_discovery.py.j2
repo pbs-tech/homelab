@@ -1,0 +1,51 @@
+#!/usr/bin/env python3
+"""Service discovery script for {{ inventory_hostname }}."""
+
+import json
+import subprocess
+import sys
+from datetime import datetime
+
+LOG_FILE = "{{ monitoring_log_dir }}/service_discovery.log"
+
+MONITORED_SERVICES = [
+    "ssh",
+    "node_exporter",
+    "promtail",
+]
+
+
+def check_service(name):
+    """Check if a systemd service is active."""
+    try:
+        result = subprocess.run(
+            ["systemctl", "is-active", name],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        return result.stdout.strip() == "active"
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return False
+
+
+def main():
+    timestamp = datetime.utcnow().isoformat()
+    services = {svc: check_service(svc) for svc in MONITORED_SERVICES}
+
+    record = {
+        "timestamp": timestamp,
+        "host": "{{ inventory_hostname }}",
+        "services": services,
+    }
+
+    with open(LOG_FILE, "a") as f:
+        f.write(json.dumps(record) + "\n")
+
+    failed = [k for k, v in services.items() if not v]
+    if failed:
+        print(f"WARN: services down on {{ inventory_hostname }}: {failed}", file=sys.stderr)
+
+
+if __name__ == "__main__":
+    main()

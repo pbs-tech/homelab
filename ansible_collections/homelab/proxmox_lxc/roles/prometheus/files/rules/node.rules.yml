@@ -1,0 +1,75 @@
+---
+groups:
+  - name: node
+    interval: 1m
+    rules:
+      - alert: HostDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Host {{ $labels.instance }} is unreachable"
+          description: >-
+            {{ $labels.instance }} (job: {{ $labels.job }}) has been unreachable
+            for more than 1 minute.
+
+      - alert: HighCPUUsage
+        expr: >-
+          100 - (avg by(instance)
+          (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value | humanize }}% on {{ $labels.instance }}"
+
+      - alert: HighMemoryUsage
+        expr: >-
+          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))
+          * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value | humanize }}% on {{ $labels.instance }}"
+
+      - alert: DiskSpaceLow
+        expr: >-
+          (node_filesystem_avail_bytes{mountpoint="/", fstype!="tmpfs"}
+          / node_filesystem_size_bytes{mountpoint="/", fstype!="tmpfs"})
+          * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: >-
+            Only {{ $value | humanize }}% disk free on {{ $labels.instance }}
+            (mountpoint: /).
+
+      - alert: HighDiskIOSaturation
+        expr: rate(node_disk_io_time_seconds_total[5m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High disk I/O saturation on {{ $labels.instance }}"
+          description: >-
+            Disk I/O saturation is {{ $value | humanize }} on {{ $labels.instance }}.
+
+  - name: proxmox
+    interval: 1m
+    rules:
+      - alert: ProxmoxNodeDown
+        expr: pve_up{id=~"node/.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Proxmox node {{ $labels.id }} is down"
+          description: >-
+            Proxmox node {{ $labels.id }} has been reporting down
+            for more than 1 minute.
