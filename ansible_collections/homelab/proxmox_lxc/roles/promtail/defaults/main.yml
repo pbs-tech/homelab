@@ -23,7 +23,7 @@ promtail_positions_file: "{{ promtail_data_dir }}/positions.yaml"
 # Service identification labels
 promtail_service_name: "{{ inventory_hostname }}"
 promtail_environment: homelab
-promtail_instance: "{{ ansible_default_ipv4.address }}"
+promtail_instance: "{{ inventory_hostname }}"
 
 # Log scraping configuration
 promtail_scrape_configs:

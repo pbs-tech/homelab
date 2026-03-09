@@ -83,7 +83,7 @@ ruler:
     local:
       directory: {{ loki_data_dir }}/rules
   rule_path: {{ loki_data_dir }}/rules
-  alertmanager_url: http://192.168.0.206:9093
+  alertmanager_url: "http://{{ alertmanager_ip | default('192.168.0.206') }}:9093"
   ring:
     kvstore:
       store: inmemory

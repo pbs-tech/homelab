@@ -110,7 +110,7 @@
 
 - name: Check Loki readiness
   ansible.builtin.uri:
-    url: "http://{{ ansible_default_ipv4.address }}:{{ loki_port }}/ready"
+    url: "http://{{ inventory_hostname }}:{{ loki_port }}/ready"
     method: GET
     return_content: true
   register: loki_health

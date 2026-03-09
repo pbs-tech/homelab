@@ -15,7 +15,7 @@ grafana_admin_user: admin
 grafana_admin_password: "{{ vault_grafana_admin_password }}"
 
 # Server configuration
-grafana_domain: "{{ ansible_default_ipv4.address }}"
+grafana_domain: "{{ inventory_hostname }}"
 grafana_root_url: "http://{{ grafana_domain }}:{{ grafana_port }}"
 
 # Security settings
