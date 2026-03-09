@@ -36,19 +36,23 @@ grafana_log_level: info
 # MUST be set in vault - generate with: openssl rand -base64 32
 grafana_secret_key: "{{ vault_grafana_secret_key }}"
 
+# Datasource endpoint URLs
+prometheus_url: "http://192.168.0.200:9090"
+loki_url: "http://192.168.0.210:3100"
+
 # Datasources configuration
 grafana_datasources:
   - name: Prometheus
     type: prometheus
     access: proxy
-    url: http://192.168.0.200:9090
+    url: "{{ prometheus_url }}"
     is_default: true
     basic_auth: false
     editable: true
   - name: Loki
     type: loki
     access: proxy
-    url: http://192.168.0.210:3100
+    url: "{{ loki_url }}"
     is_default: false
     basic_auth: false
     editable: true
