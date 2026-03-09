@@ -84,7 +84,7 @@
         rule: allow
         port: "{{ item.port }}"
         proto: "{{ item.proto }}"
-        src: "{{ ansible_default_ipv4.network }}/{{ ansible_default_ipv4.netmask }}"
+        src: "{{ container_network_cidr }}"
         comment: "{{ item.comment }}"
       loop:
         - { port: "10250", proto: tcp, comment: Kubelet metrics }
