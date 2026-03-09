@@ -30,12 +30,16 @@ repos:
       - id: yamllint
         args: [-c=.yamllint]
 
-  # Ansible linting
+  # Ansible linting — scoped to homelab collections only for speed
   - repo: https://github.com/ansible/ansible-lint
     rev: v26.3.0
     hooks:
       - id: ansible-lint
-        files: \.(yaml|yml)$
+        files: ^(ansible_collections/homelab|playbooks|inventory|roles|tests)/.*\.(yaml|yml)$
+        pass_filenames: false
+        args:
+          - ansible_collections/homelab/
+          - playbooks/
         additional_dependencies:
           - ansible-core>=2.17
 

@@ -10,7 +10,7 @@
       (e.g., 192.168.0.0/24). Got: {{ container_network_cidr | default('undefined') }}
     quiet: true
   when:
-    - "'proxmox_hosts' in group_names or ansible_hostname is match('pve.*')"
+    - "'proxmox_hosts' in group_names or inventory_hostname is match('pve.*')"
     - container_network_cidr is defined
 
 - name: Warn if container_network_cidr uses default value
@@ -19,7 +19,7 @@
       WARNING: Using default container_network_cidr (192.168.0.0/24).
       Consider defining a more specific CIDR for better security.
   when:
-    - "'proxmox_hosts' in group_names or ansible_hostname is match('pve.*')"
+    - "'proxmox_hosts' in group_names or inventory_hostname is match('pve.*')"
     - container_network_cidr is not defined
 
 - name: Get current UFW status
@@ -58,7 +58,7 @@
         - { port: "3128", proto: tcp, comment: "Proxmox SPICE proxy" }
         - { port: "5900:5999", proto: tcp, comment: "Proxmox VNC" }
         - { port: "111", proto: tcp, comment: "Proxmox RPC" }
-      when: "'proxmox_hosts' in group_names or ansible_hostname is match('pve.*')"
+      when: "'proxmox_hosts' in group_names or inventory_hostname is match('pve.*')"
 
     - name: Allow K3s API server port (6443)
       community.general.ufw:
@@ -117,7 +117,7 @@
         route: true
         dest: "{{ container_network_cidr | default('192.168.0.0/24') }}"
         comment: Allow traffic to LXC containers
-      when: "'proxmox_hosts' in group_names or ansible_hostname is match('pve.*')"
+      when: "'proxmox_hosts' in group_names or inventory_hostname is match('pve.*')"
 
     - name: Allow routed traffic FROM container network (Proxmox hosts)
       community.general.ufw:
@@ -125,7 +125,7 @@
         route: true
         src: "{{ container_network_cidr | default('192.168.0.0/24') }}"
         comment: Allow traffic from LXC containers
-      when: "'proxmox_hosts' in group_names or ansible_hostname is match('pve.*')"
+      when: "'proxmox_hosts' in group_names or inventory_hostname is match('pve.*')"
 
     - name: Enable UFW with logging
       community.general.ufw:
