@@ -1,11 +1,88 @@
 ---
-- name: Download Grafana community dashboards
-  ansible.builtin.get_url:
-    url: "https://grafana.com/api/dashboards/{{ item.id }}/revisions/latest/download"
-    dest: "{{ grafana_dashboards_dir }}/{{ item.filename }}.json"
-    owner: "{{ grafana_user }}"
-    group: "{{ grafana_group }}"
-    mode: "0644"
+- name: Remove old community dashboard files from provisioning directory
+  ansible.builtin.file:
+    path: "{{ grafana_dashboards_dir }}/{{ item.filename }}.json"
+    state: absent
   loop: "{{ grafana_community_dashboards }}"
   loop_control:
     label: "{{ item.description }}"
+
+# Always reload so the provisioner unregisters any removed files from its DB.
+# With disableDeletion: false this causes Grafana to drop dashboards whose
+# files are gone, clearing the provisioning lock before the API import.
+- name: Reload Grafana dashboard provisioner
+  ansible.builtin.uri:
+    url: "{{ grafana_root_url }}/api/admin/provisioning/dashboards/reload"
+    method: POST
+    user: "{{ grafana_admin_user }}"
+    password: "{{ grafana_admin_password }}"
+    force_basic_auth: true
+    status_code: [200]
+  no_log: true
+
+- name: Download Grafana community dashboard JSON files
+  ansible.builtin.get_url:
+    url: "https://grafana.com/api/dashboards/{{ item.id }}/revisions/latest/download"
+    dest: "/tmp/grafana-dash-{{ item.id }}.json"
+    mode: "0644"
+    force: true
+  loop: "{{ grafana_community_dashboards }}"
+  loop_control:
+    label: "{{ item.description }}"
+
+- name: Read dashboard JSON content
+  ansible.builtin.slurp:
+    src: "/tmp/grafana-dash-{{ item.id }}.json"
+  loop: "{{ grafana_community_dashboards }}"
+  register: grafana_dash_slurp
+
+# Delete any existing copy (provisioned or API-imported) by UID so that the
+# subsequent import always starts from a clean slate with no duplicates.
+- name: Delete existing community dashboards by UID
+  vars:
+    _uid: "{{ (item.content | b64decode | from_json).uid | default('') }}"
+  ansible.builtin.uri:
+    url: "{{ grafana_root_url }}/api/dashboards/uid/{{ _uid }}"
+    method: DELETE
+    user: "{{ grafana_admin_user }}"
+    password: "{{ grafana_admin_password }}"
+    force_basic_auth: true
+    status_code: [200, 404]
+  loop: "{{ grafana_dash_slurp.results }}"
+  loop_control:
+    label: "{{ item.item.description }}"
+  when: _uid | length > 0
+  no_log: true
+
+- name: Import dashboards via Grafana API
+  vars:
+    _dash: "{{ item.content | b64decode | from_json }}"
+    _uid_map:
+      prometheus: prometheus
+      loki: loki
+    _inputs: >-
+      {%- set ns = namespace(result=[]) -%}
+      {%- for inp in _dash.__inputs | default([]) -%}
+        {%- if inp.type == 'datasource' -%}
+          {%- set uid = _uid_map.get(inp.pluginId, inp.pluginId) -%}
+          {%- set ns.result = ns.result + [{'name': inp.name, 'type': 'datasource', 'pluginId': inp.pluginId, 'value': uid}] -%}
+        {%- endif -%}
+      {%- endfor -%}
+      {{ ns.result | to_json }}
+  ansible.builtin.uri:
+    url: "{{ grafana_root_url }}/api/dashboards/import"
+    method: POST
+    user: "{{ grafana_admin_user }}"
+    password: "{{ grafana_admin_password }}"
+    force_basic_auth: true
+    body_format: json
+    body:
+      dashboard: "{{ _dash }}"
+      inputs: "{{ _inputs | from_json }}"
+      folderId: 0
+      overwrite: true
+    status_code: [200]
+  loop: "{{ grafana_dash_slurp.results }}"
+  loop_control:
+    label: "{{ item.item.description }}"
+  no_log: true

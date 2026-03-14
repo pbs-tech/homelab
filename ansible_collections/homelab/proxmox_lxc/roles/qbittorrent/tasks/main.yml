@@ -33,25 +33,32 @@
     quiet: true
 
 # Ensure group exists for PGID (required for directory ownership)
+# GID may already be in use by the default container user — tolerate that gracefully.
 - name: Ensure media group exists for qBittorrent
   ansible.builtin.group:
     name: "{{ qbittorrent_group_name | default('media') }}"
     gid: "{{ qbittorrent_pgid }}"
-    system: true
     state: present
   when: qbittorrent_ensure_user | default(true)
+  register: group_result
+  failed_when: >
+    group_result is failed and
+    'already exists' not in (group_result.msg | default(''))
 
 # Ensure user exists for PUID (required for directory ownership)
 - name: Ensure media user exists for qBittorrent
   ansible.builtin.user:
     name: "{{ qbittorrent_user_name | default('media') }}"
     uid: "{{ qbittorrent_puid }}"
-    group: "{{ qbittorrent_group_name | default('media') }}"
-    system: true
     shell: /usr/sbin/nologin
     create_home: false
     state: present
   when: qbittorrent_ensure_user | default(true)
+  register: user_result
+  failed_when: >
+    user_result is failed and
+    'already exists' not in (user_result.msg | default('')) and
+    'not unique' not in (user_result.msg | default(''))
 
 - name: Create qbittorrent directories
   ansible.builtin.file:
@@ -101,7 +108,18 @@
   loop:
     - tcp
     - udp
-  when: qbittorrent_configure_firewall
+  when: qbittorrent_configure_firewall and not (qbittorrent_vpn_enabled | default(true))
+
+- name: Pull Gluetun Docker image
+  community.docker.docker_image:
+    name: qmcgaw/gluetun
+    tag: latest
+    source: pull
+  retries: 3
+  delay: 10
+  register: gluetun_pull_result
+  until: gluetun_pull_result is succeeded
+  when: qbittorrent_vpn_enabled | default(true)
 
 - name: Pull qBittorrent Docker image
   community.docker.docker_image:

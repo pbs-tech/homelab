@@ -48,3 +48,20 @@ config:
 
   # Require alt text in images
   MD045: false
+
+ignores:
+  - ".git/**"
+  - ".venv/**"
+  - "venv/**"
+  - ".cache/**"
+  - ".molecule/**"
+  - "molecule/**"
+  - "node_modules/**"
+  - "__pycache__/**"
+  - ".ansible/**"
+  - "vendor/**"
+  - "third-party/**"
+  - "ansible_collections/community/**"
+  - "ansible_collections/containers/**"
+  - "ansible_collections/kubernetes/**"
+  - "ansible_collections/ansible/**"

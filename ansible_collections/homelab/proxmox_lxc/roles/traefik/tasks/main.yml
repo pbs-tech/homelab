@@ -156,6 +156,15 @@
   when: traefik_dashboard_enabled | default(true)
   tags: firewall
 
+- name: Allow Traefik metrics
+  ansible.builtin.iptables:
+    chain: INPUT
+    protocol: tcp
+    destination_port: "{{ traefik_metrics_port }}"
+    jump: ACCEPT
+    comment: "Traefik Metrics"
+  tags: firewall
+
 - name: Create iptables rules directory
   ansible.builtin.file:
     path: /etc/iptables

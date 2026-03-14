@@ -1,24 +1,29 @@
 # Markdownlint ignore patterns
 
 # Ignore generated files and caches
-.venv/
-venv/
-.cache/
-.molecule/
-molecule/
-node_modules/
-__pycache__/
-.ansible/
+.git/**
+.venv/**
+venv/**
+.cache/**
+.molecule/**
+molecule/**
+node_modules/**
+__pycache__/**
+.ansible/**
 
 # Ignore specific files that may have formatting issues
 **/CHANGELOG.md
 **/LICENSE.md
 
 # Ignore vendor/third-party documentation
-vendor/
-third-party/
+vendor/**
+third-party/**
+ansible_collections/community/**
+ansible_collections/containers/**
+ansible_collections/kubernetes/**
+ansible_collections/ansible/**
 
 # Ignore local development files
-.local/
+.local/**
 *.tmp.md
 *.draft.md

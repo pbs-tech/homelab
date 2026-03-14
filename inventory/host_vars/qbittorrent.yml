@@ -1,0 +1,4 @@
+---
+# qBittorrent host-specific configuration
+# TUN device required for Gluetun VPN sidecar container
+container_tun_enabled: true

@@ -38,6 +38,10 @@
          if '!' in proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id
          else proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id }}
   delegate_to: localhost
+  tags:
+    - proxmox
+    - lxc
+    - containers
 
 - name: Set container configuration variables
   ansible.builtin.set_fact:
@@ -56,6 +60,10 @@
     container_onboot: "{{ lxc_config.onboot }}"
     container_state: present
     container_ssh_key: "{{ container_defaults.ssh_key | default(omit) }}"
+  tags:
+    - proxmox
+    - lxc
+    - containers
 
 - name: Create LXC container using API token authentication (preferred)
   community.proxmox.proxmox:
@@ -98,6 +106,43 @@
   until: container_creation_result is succeeded
   delegate_to: localhost
   become: false
+  tags:
+    - proxmox
+    - lxc
+    - containers
+
+- name: Enforce container resource allocation
+  ansible.builtin.command:
+    cmd: >-
+      pct set {{ container_vmid | int }}
+      --cores {{ lxc_cores | default(1) }}
+      --memory {{ lxc_memory | default(512) }}
+      --swap {{ lxc_swap | default(0) }}
+  delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  changed_when: false
+  tags:
+    - proxmox
+    - lxc
+    - containers
+
+- name: Bind-mount TUN device into LXC config (required for VPN clients in unprivileged containers)
+  ansible.builtin.lineinfile:
+    path: "/etc/pve/lxc/{{ container_vmid }}.conf"
+    line: "{{ item }}"
+    state: present
+  loop:
+    - "lxc.cgroup2.devices.allow: c 10:200 rwm"
+    - "lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file"
+  register: tun_config_result
+  delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  when: container_tun_enabled | default(false)
+  notify: Restart container for TUN device
   tags:
     - proxmox
     - lxc

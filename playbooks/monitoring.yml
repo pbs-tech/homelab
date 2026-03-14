@@ -10,6 +10,11 @@
     - name: Ensure monitoring containers exist
       ansible.builtin.include_role:
         name: homelab.common.container_base
+        apply:
+          tags:
+            - proxmox
+            - lxc
+            - containers
       vars:
         container_resources:
           cores: "{{ lxc_cores | default(1) }}"
@@ -17,6 +22,10 @@
           swap: "{{ lxc_swap | default(0) }}"
           disk_size: "{{ lxc_disk_size | default(8) }}"
       when: container_id is defined
+      tags:
+        - proxmox
+        - lxc
+        - containers
 
     - name: Gather facts after container is available
       ansible.builtin.setup:
@@ -44,6 +53,9 @@
     - role: homelab.proxmox_lxc.pve_exporter
       when: inventory_hostname.startswith('pve-exporter')
       tags: [pve_exporter, metrics]
+
+    - role: homelab.common.monitoring_agent
+      tags: [monitoring_agent, node_exporter]
 
   post_tasks:
     - name: Wait for service startup
@@ -81,6 +93,11 @@
     - name: Ensure monitoring containers exist
       ansible.builtin.include_role:
         name: homelab.common.container_base
+        apply:
+          tags:
+            - proxmox
+            - lxc
+            - containers
       vars:
         container_resources:
           cores: "{{ lxc_cores | default(1) }}"
@@ -88,6 +105,10 @@
           swap: "{{ lxc_swap | default(0) }}"
           disk_size: "{{ lxc_disk_size | default(8) }}"
       when: container_id is defined
+      tags:
+        - proxmox
+        - lxc
+        - containers
 
     - name: Gather facts after container is available
       ansible.builtin.setup:
