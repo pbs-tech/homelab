@@ -96,9 +96,6 @@
     mode: "0644"
   notify: Restart grafana
 
-- name: Download and provision community dashboards
-  ansible.builtin.import_tasks: dashboards.yml
-
 - name: Install Grafana plugins
   community.grafana.grafana_plugin:
     name: "{{ item }}"
@@ -127,6 +124,65 @@
     port: "{{ grafana_port }}"
     delay: 10
     timeout: 60
+
+- name: Reset Grafana admin password via binary
+  ansible.builtin.command:
+    argv:
+      - /usr/share/grafana/bin/grafana
+      - cli
+      - --homepath=/usr/share/grafana
+      - --config=/etc/grafana/grafana.ini
+      - --pluginsDir=/var/lib/grafana/plugins
+      - admin
+      - reset-admin-password
+      - "{{ grafana_admin_password }}"
+  register: grafana_passwd_result
+  changed_when: "'Admin password changed successfully' in grafana_passwd_result.stdout"
+  no_log: true
+
+# Grafana will not let you change a provisioned datasource's UID via PUT.
+# Workaround: delete datasources with wrong UIDs so the provisioner recreates
+# them from the config file (which has the correct uid: field).
+- name: Get current datasource state to check UIDs
+  ansible.builtin.uri:
+    url: "{{ grafana_root_url }}/api/datasources/name/{{ item.name }}"
+    method: GET
+    user: "{{ grafana_admin_user }}"
+    password: "{{ grafana_admin_password }}"
+    force_basic_auth: true
+    status_code: [200, 404]
+  loop: "{{ grafana_datasources }}"
+  register: grafana_ds_current
+  no_log: true
+
+- name: Delete datasources that have wrong UIDs
+  ansible.builtin.uri:
+    url: "{{ grafana_root_url }}/api/datasources/{{ item.json.id }}"
+    method: DELETE
+    user: "{{ grafana_admin_user }}"
+    password: "{{ grafana_admin_password }}"
+    force_basic_auth: true
+    status_code: [200, 404]
+  loop: "{{ grafana_ds_current.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when:
+    - item.status == 200
+    - item.json.uid != item.item.uid
+  no_log: true
+
+- name: Reload datasource provisioner to recreate datasources with correct UIDs
+  ansible.builtin.uri:
+    url: "{{ grafana_root_url }}/api/admin/provisioning/datasources/reload"
+    method: POST
+    user: "{{ grafana_admin_user }}"
+    password: "{{ grafana_admin_password }}"
+    force_basic_auth: true
+    status_code: [200]
+  no_log: true
+
+- name: Import community dashboards via Grafana API
+  ansible.builtin.import_tasks: dashboards.yml
 
 - name: Check Grafana health
   ansible.builtin.uri:

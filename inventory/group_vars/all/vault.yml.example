@@ -49,4 +49,10 @@ vault_adguard_admin_password: "your-adguard-admin-password"
 # Generate with: wg genpsk
 vault_wireguard_client_preshared_key_control_machine: "your-preshared-key-base64"
 
+# NordVPN OpenVPN service credentials (for qBittorrent VPN via Gluetun)
+# Obtain from: https://my.nordaccount.com/dashboard/nordvpn/manual-configuration/
+# Select "OpenVPN" - these credentials never rotate and require no key management.
+vault_nordvpn_openvpn_username: "your-nordvpn-service-username"
+vault_nordvpn_openvpn_password: "your-nordvpn-service-password"
+
 # Additional secrets can be added here as needed

@@ -152,7 +152,11 @@ run_shellcheck() {
         -not -path "*/venv/*" \
         -not -path "*/.venv/*" \
         -not -path "*/node_modules/*" \
-        -not -path "*/.git/*")
+        -not -path "*/.git/*" \
+        -not -path "*/ansible_collections/community/*" \
+        -not -path "*/ansible_collections/containers/*" \
+        -not -path "*/ansible_collections/kubernetes/*" \
+        -not -path "*/ansible_collections/ansible/*")
 
     if [ -z "$shell_files" ]; then
         log_warning "No shell scripts found to check"

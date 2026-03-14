@@ -1,0 +1,8 @@
+---
+# Prometheus requires more resources than the monitoring group default:
+# - Large TSDB head block (15d retention, 30+ targets)
+# - WAL replay at startup needs ~1.5GB peak
+lxc_cores: 2
+lxc_memory: 2048
+lxc_swap: 1024
+lxc_disk_size: 16

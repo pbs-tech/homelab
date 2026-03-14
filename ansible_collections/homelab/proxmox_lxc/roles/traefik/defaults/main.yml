@@ -4,6 +4,7 @@ traefik_dashboard_enabled: true
 traefik_dashboard_port: 8080
 traefik_http_port: 80
 traefik_https_port: 443
+traefik_metrics_port: 8082
 
 # SSL/TLS settings
 # Uses step-ca (192.168.0.212) as a local ACME CA via TLS-ALPN-01 challenge.
@@ -46,6 +47,36 @@ services:
     ip: 192.168.0.208
     port: 8123
     domain: ha.{{ homelab_domain }}
+
+  sonarr:
+    ip: 192.168.0.230
+    port: 8989
+    domain: sonarr.{{ homelab_domain }}
+
+  radarr:
+    ip: 192.168.0.231
+    port: 7878
+    domain: radarr.{{ homelab_domain }}
+
+  bazarr:
+    ip: 192.168.0.232
+    port: 6767
+    domain: bazarr.{{ homelab_domain }}
+
+  prowlarr:
+    ip: 192.168.0.233
+    port: 9696
+    domain: prowlarr.{{ homelab_domain }}
+
+  qbittorrent:
+    ip: 192.168.0.234
+    port: 8080
+    domain: qbittorrent.{{ homelab_domain }}
+
+  jellyfin:
+    ip: 192.168.0.235
+    port: 8096
+    domain: jellyfin.{{ homelab_domain }}
 
 
 # K3s cluster integration (disabled by default - requires proper kubeconfig)

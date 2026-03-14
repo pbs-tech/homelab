@@ -52,8 +52,8 @@ proxmox_default_node: pve-mac
 homelab_network:
   gateway_ip: 192.168.0.1
   dns_servers:
-    - 1.1.1.1
-    - 1.0.0.1
+    - 192.168.0.204  # AdGuard Home (filters + homelab.local rewrites)
+    - 192.168.0.202  # Unbound (fallback, homelab.local redirect zone)
 
 homelab_domain: homelab.local
 

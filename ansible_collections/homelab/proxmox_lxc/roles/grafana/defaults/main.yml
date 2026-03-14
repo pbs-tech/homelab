@@ -43,6 +43,7 @@ loki_url: "http://192.168.0.210:3100"
 # Datasources configuration
 grafana_datasources:
   - name: Prometheus
+    uid: prometheus
     type: prometheus
     access: proxy
     url: "{{ prometheus_url }}"
@@ -50,6 +51,7 @@ grafana_datasources:
     basic_auth: false
     editable: true
   - name: Loki
+    uid: loki
     type: loki
     access: proxy
     url: "{{ loki_url }}"
@@ -72,6 +74,7 @@ grafana_plugins:
   - grafana-worldmap-panel
 
 # Community dashboards to provision (downloaded from grafana.com at deploy time)
+# Note: datasource inputs are resolved dynamically from each dashboard's __inputs at import time
 grafana_community_dashboards:
   - id: 1860
     filename: node-exporter-full
@@ -79,9 +82,9 @@ grafana_community_dashboards:
   - id: 10347
     filename: proxmox-prometheus
     description: "Proxmox via Prometheus - Proxmox cluster monitoring"
-  - id: 15661
+  - id: 16450
     filename: k3s-cluster-monitoring
-    description: "Kubernetes Cluster Monitoring - K3s cluster overview"
+    description: "Kubernetes / Views / K3s Cluster"
   - id: 13639
     filename: loki-logs
     description: "Logs / Loki - log browsing and volume"
