@@ -60,6 +60,17 @@
     'already exists' not in (user_result.msg | default('')) and
     'not unique' not in (user_result.msg | default(''))
 
+- name: Validate qBittorrent admin password is configured
+  ansible.builtin.assert:
+    that:
+      - qbittorrent_admin_password is defined
+      - qbittorrent_admin_password | length >= 8
+      - qbittorrent_admin_password != 'adminadmin'
+    fail_msg: >
+      qBittorrent admin password must be set in vault (vault_qbittorrent_admin_password),
+      be at least 8 characters, and not be the default 'adminadmin'.
+    success_msg: "qBittorrent admin password is properly configured"
+
 - name: Create qbittorrent directories
   ansible.builtin.file:
     path: "{{ item }}"
@@ -70,6 +81,49 @@
   loop:
     - "{{ qbittorrent_data_dir }}"
     - "{{ qbittorrent_config_dir }}"
+
+- name: Check if qBittorrent config already exists
+  ansible.builtin.stat:
+    path: "{{ qbittorrent_config_dir }}/qBittorrent/qBittorrent.conf"
+  register: qbt_conf_stat
+
+- name: Pre-configure qBittorrent WebUI password (first install only)
+  when: not qbt_conf_stat.stat.exists
+  block:
+    - name: Generate qBittorrent WebUI password hash
+      ansible.builtin.command:
+        argv:
+          - python3
+          - -c
+          - |
+            import hashlib, os, base64
+            password = os.environ['QB_PASS'].encode('utf-8')
+            salt = os.urandom(16)
+            key = hashlib.pbkdf2_hmac('sha1', password, salt, 100000, dklen=32)
+            print(base64.b64encode(salt).decode() + ':' + base64.b64encode(key).decode())
+      environment:
+        QB_PASS: "{{ qbittorrent_admin_password }}"
+      register: qbittorrent_password_hash
+      changed_when: false
+      no_log: true
+
+    - name: Create qBittorrent config subdirectory
+      ansible.builtin.file:
+        path: "{{ qbittorrent_config_dir }}/qBittorrent"
+        state: directory
+        owner: "{{ qbittorrent_puid }}"
+        group: "{{ qbittorrent_pgid }}"
+        mode: "0755"
+
+    - name: Write initial qBittorrent.conf with configured credentials
+      ansible.builtin.template:
+        src: qbittorrent.conf.j2
+        dest: "{{ qbittorrent_config_dir }}/qBittorrent/qBittorrent.conf"
+        owner: "{{ qbittorrent_puid }}"
+        group: "{{ qbittorrent_pgid }}"
+        mode: "0600"
+      vars:
+        _password_hash: "{{ qbittorrent_password_hash.stdout | trim }}"
 
 - name: Deploy docker-compose.yml
   ansible.builtin.template:
@@ -168,5 +222,5 @@
     msg: |
       qBittorrent is ready!
       Access URL: http://{{ ansible_host }}:{{ qbittorrent_webui_port }}
-      Default credentials: admin / adminadmin
-      IMPORTANT: Change the default password immediately!
+      Username: {{ qbittorrent_admin_username }}
+      Password: configured via vault_qbittorrent_admin_password

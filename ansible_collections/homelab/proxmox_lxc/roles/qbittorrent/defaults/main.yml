@@ -15,6 +15,10 @@ qbittorrent_memory_limit: "1g"
 qbittorrent_configure_firewall: true
 qbittorrent_extra_volumes: []
 
+# WebUI credentials
+qbittorrent_admin_username: "admin"
+qbittorrent_admin_password: "{{ vault_qbittorrent_admin_password }}"
+
 # Gluetun VPN settings (routes all qBittorrent traffic through NordVPN)
 qbittorrent_vpn_enabled: true
 qbittorrent_vpn_service_provider: nordvpn
