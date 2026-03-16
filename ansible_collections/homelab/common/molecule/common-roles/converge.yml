@@ -56,6 +56,9 @@
             # Skip actual Proxmox API calls in molecule
             ansible_check_mode: false
       rescue:
+        - name: Log actual failure reason
+          ansible.builtin.debug:
+            var: ansible_failed_result
         - name: Handle expected Proxmox API failures
           ansible.builtin.debug:
             msg: "Container base role encountered expected failures in molecule environment (no Proxmox API)"

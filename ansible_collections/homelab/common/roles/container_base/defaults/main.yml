@@ -33,16 +33,16 @@ container_node: >-
     inventory_hostname.startswith('jellyfin') or
     inventory_hostname.startswith('pve-exporter-nas')
   ) -%}
-  {{ proxmox_config.pve_nas.node }}
+  {{ proxmox_config['pve-nas'].node }}
   {%- else -%}
-  {{ proxmox_config.pve_mac.node }}
+  {{ proxmox_config['pve-mac'].node }}
   {%- endif %}
 
 # Proxmox API settings based on node
 proxmox_api: >-
-  {% if container_node == proxmox_config.pve_nas.node -%}
-  {{ proxmox_config.pve_nas }}{%- else -%}
-  {{ proxmox_config.pve_mac }}{%- endif %}
+  {% if container_node == proxmox_config['pve-nas'].node -%}
+  {{ proxmox_config['pve-nas'] }}{%- else -%}
+  {{ proxmox_config['pve-mac'] }}{%- endif %}
 
 # Additional users to create in containers (with SSH key + sudo access)
 # These users get the same SSH keys as root (injected by Proxmox pubkey)

@@ -63,10 +63,12 @@ lint-shellcheck: ## Run shellcheck on shell scripts
 	@echo "$(YELLOW)Running shellcheck on shell scripts...$(NC)"
 	@./scripts/lint.sh --shellcheck-only
 
-lint-fix: ## Attempt to auto-fix linting issues where possible
-	@echo "$(YELLOW)Auto-fixing linting issues...$(NC)"
+lint-report: ## Show linting issues in parsable format (yamllint has no auto-fix mode)
+	@echo "$(YELLOW)Showing linting issues...$(NC)"
 	yamllint . --format parsable | head -20 || true
-	@echo "$(YELLOW)Note: Some issues may need manual fixing$(NC)"
+	@echo "$(YELLOW)Note: Issues must be fixed manually$(NC)"
+
+lint-fix: lint-report ## Alias for lint-report (no auto-fix available)
 
 # ============================================
 # Testing Targets
@@ -267,9 +269,9 @@ deploy-phase2: lint ## Deploy Phase 2 (Networking)
 	@echo "$(YELLOW)Deploying Phase 2: Networking...$(NC)"
 	ansible-playbook playbooks/infrastructure.yml --tags "networking,phase2"
 
-deploy-security: lint ## Deploy security-focused configuration
-	@echo "$(YELLOW)Deploying security configuration...$(NC)"
-	ansible-playbook security-deploy.yml
+deploy-security: lint ## Deploy security-focused configuration (Phase 1+2)
+	@echo "$(YELLOW)Deploying security configuration (foundation + networking phases)...$(NC)"
+	ansible-playbook playbooks/infrastructure.yml --tags "foundation,phase1,phase2"
 
 # ============================================
 # Secure Enclave Targets
@@ -343,10 +345,10 @@ docs: ## Generate documentation
 	@echo "$(YELLOW)Available documentation:$(NC)"
 	@find . -name "*.md" -not -path "./.git/*" | sed 's/^/  - /'
 
-performance: ## Run performance tests locally
-	@echo "$(YELLOW)Running performance tests...$(NC)"
-	@mkdir -p tests/performance/results
-	@ansible-playbook tests/performance/local_performance_test.yml
+performance: ## Run performance tests locally (NOT YET IMPLEMENTED)
+	@echo "$(RED)ERROR: tests/performance/local_performance_test.yml does not exist yet$(NC)"
+	@echo "$(YELLOW)This target is a placeholder — implement the playbook first$(NC)"
+	@exit 1
 
 drift-check: ## Check for configuration drift
 	@echo "$(YELLOW)Checking for configuration drift...$(NC)"
@@ -366,18 +368,15 @@ monitor: ## Display monitoring dashboard URLs
 	@echo "Traefik: http://192.168.0.205:8080"
 	@echo "AlertManager: http://192.168.0.206:9093"
 
-backup: ## Create infrastructure backup
-	@echo "$(YELLOW)Creating infrastructure backup...$(NC)"
-	@ansible-playbook playbooks/backup.yml
+backup: ## Create infrastructure backup (NOT YET IMPLEMENTED)
+	@echo "$(RED)ERROR: playbooks/backup.yml does not exist yet$(NC)"
+	@echo "$(YELLOW)This target is a placeholder — implement the playbook first$(NC)"
+	@exit 1
 
-restore: ## Restore from backup (requires BACKUP_TIMESTAMP variable)
-	@echo "$(YELLOW)Restoring from backup...$(NC)"
-	@if [ -z "$(BACKUP_TIMESTAMP)" ]; then \
-		echo "$(RED)Error: BACKUP_TIMESTAMP variable is required$(NC)"; \
-		echo "Usage: make restore BACKUP_TIMESTAMP=2024-01-15_14:30:00"; \
-		exit 1; \
-	fi
-	@ansible-playbook playbooks/rollback.yml -e "backup_timestamp=$(BACKUP_TIMESTAMP)"
+restore: ## Restore from backup (NOT YET IMPLEMENTED)
+	@echo "$(RED)ERROR: playbooks/backup.yml and playbooks/rollback.yml do not exist$(NC)"
+	@echo "$(YELLOW)This target is a placeholder — implement the playbooks first$(NC)"
+	@exit 1
 
 status: ## Show project status
 	@echo "$(YELLOW)Project Status$(NC)"

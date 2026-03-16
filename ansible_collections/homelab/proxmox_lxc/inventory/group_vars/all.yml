@@ -4,16 +4,13 @@ ansible_connection: community.proxmox.proxmox
 
 # Proxmox API configuration - uses shared configuration from common collection
 # Override specific settings by defining proxmox_override in host_vars or group_vars
-proxmox_host: "{{ proxmox_override.host | default(proxmox_config.pve_mac.host) }}"
-proxmox_user: "{{ proxmox_override.user | default(proxmox_config.pve_mac.user) }}"
-proxmox_node: "{{ proxmox_override.node | default(proxmox_config.pve_mac.node) }}"
+proxmox_host: "{{ proxmox_override.host | default(proxmox_config['pve-mac'].host) }}"
+proxmox_user: "{{ proxmox_override.user | default(proxmox_config['pve-mac'].user) }}"
+proxmox_node: "{{ proxmox_override.node | default(proxmox_config['pve-mac'].node) }}"
 
 # API Token authentication (preferred)
-proxmox_api_token_id: "{{ proxmox_override.api_token_id | default(proxmox_config.pve_mac.api_token_id) }}"
-proxmox_api_token_secret: "{{ proxmox_override.api_token_secret | default(proxmox_config.pve_mac.api_token_secret) }}"
-
-# Fallback to password authentication
-proxmox_password: "{{ proxmox_override.password | default(proxmox_config.pve_mac.password) }}"
+proxmox_api_token_id: "{{ proxmox_override.api_token_id | default(proxmox_config['pve-mac'].api_token_id) }}"
+proxmox_api_token_secret: "{{ proxmox_override.api_token_secret | default(proxmox_config['pve-mac'].api_token_secret) }}"
 
 # Network settings
 gateway_ip: 192.168.0.1

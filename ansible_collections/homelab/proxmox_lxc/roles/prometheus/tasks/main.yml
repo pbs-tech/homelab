@@ -22,18 +22,22 @@
     - /etc/prometheus
     - /var/lib/prometheus
 
+- name: Set architecture for Prometheus download
+  ansible.builtin.set_fact:
+    _prometheus_arch: "{{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}"
+
 - name: Download and extract Prometheus
   ansible.builtin.unarchive:
     # yamllint disable-line rule:line-length
     src: https://github.com/prometheus/prometheus/releases/download/v{{ prometheus_version }}/prometheus-{{ prometheus_version
-      }}.linux-amd64.tar.gz
+      }}.linux-{{ _prometheus_arch }}.tar.gz
     dest: /opt
     remote_src: true
-    creates: /opt/prometheus-{{ prometheus_version }}.linux-amd64
+    creates: /opt/prometheus-{{ prometheus_version }}.linux-{{ _prometheus_arch }}
 
 - name: Copy Prometheus binaries
   ansible.builtin.copy:
-    src: /opt/prometheus-{{ prometheus_version }}.linux-amd64/{{ item }}
+    src: /opt/prometheus-{{ prometheus_version }}.linux-{{ _prometheus_arch }}/{{ item }}
     dest: /usr/local/bin/{{ item }}
     mode: "0755"
     owner: root

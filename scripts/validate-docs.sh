@@ -109,7 +109,7 @@ echo "Validating README links..."
 # Check for common broken link patterns in README.md
 if [[ -f "README.md" ]]; then
     # Extract markdown links and check if files exist
-    grep -o '\[.*\]([^)]*\.md)' README.md | while IFS= read -r link; do
+    while IFS= read -r link; do
         file=$(echo "$link" | sed 's/.*(\(.*\))/\1/')
         if [[ ! -f "$file" ]]; then
             echo "✗ Broken link in README.md: $file"
@@ -117,7 +117,7 @@ if [[ -f "README.md" ]]; then
         else
             echo "✓ Valid link: $file"
         fi
-    done
+    done < <(grep -o '\[.*\]([^)]*\.md)' README.md)
 fi
 
 echo

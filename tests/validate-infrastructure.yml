@@ -9,7 +9,7 @@
   gather_facts: false
   tasks:
     - name: Display validation banner
-      debug:
+      ansible.builtin.debug:
         msg: |
           ====================================
           Infrastructure Validation Test
@@ -34,17 +34,17 @@
       - { vmid: 208, name: homeassistant, ip: 192.168.0.208, port: 8123 }
       - { vmid: 209, name: openwrt, ip: 192.168.0.209, port: 80 }
       - { vmid: 210, name: loki, ip: 192.168.0.210, port: 3100 }
-    proxmox_host: "{{ proxmox_config.pve_mac.host }}"
-    proxmox_user: "{{ proxmox_config.pve_mac.user }}"
+    proxmox_host: "{{ proxmox_config['pve-mac'].host }}"
+    proxmox_user: "{{ proxmox_config['pve-mac'].user }}"
   tasks:
     - name: Check LXC container status
-      uri:
+      ansible.builtin.uri:
         # yamllint disable-line rule:line-length
-        url: https://{{ proxmox_host }}:8006/api2/json/nodes/{{ proxmox_config.pve_mac.node }}/lxc/{{ item.vmid }}/status/current
+        url: https://{{ proxmox_host }}:8006/api2/json/nodes/{{ proxmox_config['pve-mac'].node }}/lxc/{{ item.vmid }}/status/current
         method: GET
         headers:
           # yamllint disable-line rule:line-length
-          Authorization: PVEAPIToken={{ proxmox_config.pve_mac.api_token_id }}={{ proxmox_config.pve_mac.api_token_secret }}
+          Authorization: PVEAPIToken={{ proxmox_config['pve-mac'].api_token_id }}={{ proxmox_config['pve-mac'].api_token_secret }}
         validate_certs: false
         timeout: 10
       loop: "{{ pve_mac_containers }}"
@@ -52,7 +52,7 @@
       ignore_errors: true
 
     - name: Verify containers are running
-      assert:
+      ansible.builtin.assert:
         that:
           - item.json.data.status == "running"
         fail_msg: Container {{ item.item.name }} ({{ item.item.vmid }}) is not running
@@ -62,7 +62,7 @@
       failed_when: false  # Allow validation to continue if containers are not running
 
     - name: Check service ports are listening
-      wait_for:
+      ansible.builtin.wait_for:
         host: "{{ item.ip }}"
         port: "{{ item.port }}"
         timeout: 5
@@ -84,16 +84,16 @@
       - { vmid: 234, name: qbittorrent, ip: 192.168.0.234, port: 8080 }
       - { vmid: 235, name: jellyfin, ip: 192.168.0.235, port: 8096 }
       - { vmid: 240, name: pve-exporter-nas, ip: 192.168.0.240, port: 9221 }
-    proxmox_host: "{{ proxmox_config.pve_nas.host }}"
+    proxmox_host: "{{ proxmox_config['pve-nas'].host }}"
   tasks:
     - name: Check NAS container status
-      uri:
+      ansible.builtin.uri:
         # yamllint disable-line rule:line-length
-        url: https://{{ proxmox_host }}:8006/api2/json/nodes/{{ proxmox_config.pve_nas.node }}/lxc/{{ item.vmid }}/status/current
+        url: https://{{ proxmox_host }}:8006/api2/json/nodes/{{ proxmox_config['pve-nas'].node }}/lxc/{{ item.vmid }}/status/current
         method: GET
         headers:
           # yamllint disable-line rule:line-length
-          Authorization: PVEAPIToken={{ proxmox_config.pve_nas.api_token_id }}={{ proxmox_config.pve_nas.api_token_secret }}
+          Authorization: PVEAPIToken={{ proxmox_config['pve-nas'].api_token_id }}={{ proxmox_config['pve-nas'].api_token_secret }}
         validate_certs: false
         timeout: 10
       loop: "{{ pve_nas_containers }}"
@@ -101,7 +101,7 @@
       ignore_errors: true
 
     - name: Check NAS service ports
-      wait_for:
+      ansible.builtin.wait_for:
         host: "{{ item.ip }}"
         port: "{{ item.port }}"
         timeout: 5
@@ -116,25 +116,25 @@
   become: true
   tasks:
     - name: Check K3s service status
-      systemd:
-        name: "{{ 'k3s' if inventory_hostname in groups['server'] else 'k3s-agent' }}"
+      ansible.builtin.systemd:
+        name: "{{ 'k3s' if inventory_hostname in groups['k3s_server'] else 'k3s-agent' }}"
       register: k3s_service
       ignore_errors: true
 
     - name: Verify K3s service is running
-      assert:
+      ansible.builtin.assert:
         that:
           - k3s_service.status.ActiveState == "active"
         fail_msg: K3s service not running on {{ inventory_hostname }}
         success_msg: K3s service running on {{ inventory_hostname }}
 
 - name: Validate K3s cluster health
-  hosts: server[0]
+  hosts: k3s_server[0]
   gather_facts: false
   become: true
   tasks:
     - name: Get K3s nodes
-      command: kubectl get nodes -o json
+      ansible.builtin.command: kubectl get nodes -o json
       environment:
         KUBECONFIG: /etc/rancher/k3s/k3s.yaml
       register: k3s_nodes
@@ -142,7 +142,7 @@
       ignore_errors: true
 
     - name: Check all nodes are Ready
-      assert:
+      ansible.builtin.assert:
         that:
           - (k3s_nodes.stdout | from_json).items | length >= 4
         fail_msg: Expected at least 4 K3s nodes
@@ -155,7 +155,7 @@
   gather_facts: false
   tasks:
     - name: Display validation summary
-      debug:
+      ansible.builtin.debug:
         msg: |
           ====================================
           Infrastructure Validation Complete

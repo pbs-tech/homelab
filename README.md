@@ -323,12 +323,11 @@ molecule test
 cd ansible_collections/homelab/k3s/
 molecule test -s raspberry-pi
 
-# Proxmox LXC collection - Service integration tests (docker driver)
-cd ansible_collections/homelab/proxmox_lxc/
-molecule test -s service-stack
+# Fast smoke test for all roles across all collections
+molecule test -s smoke
 
-# Full stack integration test
-cd molecule/full-stack/
+# Proxmox LXC collection - default scenario
+cd ansible_collections/homelab/proxmox_lxc/
 molecule test
 ```
 

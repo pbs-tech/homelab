@@ -104,6 +104,10 @@
     - logging
     - rotation
 
+- name: Set architecture for node_exporter download
+  ansible.builtin.set_fact:
+    _node_exporter_arch: "{{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}"
+
 - name: Install node_exporter for metrics
   when: enclave_monitoring.metrics_enabled | default(true)
   tags:
@@ -112,7 +116,7 @@
   block:
     - name: Download node_exporter
       ansible.builtin.get_url:
-        url: "https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-amd64.tar.gz"
+        url: "https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-{{ _node_exporter_arch }}.tar.gz"
         dest: /tmp/node_exporter.tar.gz
         mode: '0644'
       delegate_to: "{{ enclave_bastion.hostname }}"
@@ -126,7 +130,7 @@
 
     - name: Install node_exporter binary
       ansible.builtin.copy:
-        src: /tmp/node_exporter-1.7.0.linux-amd64/node_exporter
+        src: /tmp/node_exporter-1.7.0.linux-{{ _node_exporter_arch }}/node_exporter
         dest: "{{ enclave_paths.bin }}/node_exporter"
         mode: '0755'
         remote_src: true

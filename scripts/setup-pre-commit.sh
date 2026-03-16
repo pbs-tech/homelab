@@ -1,6 +1,6 @@
 #!/bin/bash
 # Setup pre-commit hooks for homelab infrastructure
-set -e
+set -euo pipefail
 
 echo "🔧 Setting up pre-commit hooks..."
 

@@ -127,7 +127,7 @@ container_defaults:
   unprivileged: true
   onboot: true
   template: "ubuntu-22.04-standard_22.04-1_amd64.tar.zst"
-  ssh_key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+  ssh_key: "{{ lookup('file', '~/.ssh/homelab_ed25519.pub') }}"
 ```
 
 ## Usage
@@ -364,7 +364,7 @@ container_network:
 
 ```yaml
 container_defaults:
-  ssh_key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+  ssh_key: "{{ lookup('file', '~/.ssh/homelab_ed25519.pub') }}"
 ```
 
 ## Testing and Validation

@@ -25,16 +25,16 @@
     enclave_containers:
       - { vmid: 250, name: enclave-bastion, ip: 192.168.0.250, port: 22 }
       - { vmid: 251, name: enclave-router, ip: 192.168.0.251, port: 22 }
-    proxmox_host: "{{ proxmox_config.pve_mac.host }}"
+    proxmox_host: "{{ proxmox_config['pve-mac'].host }}"
   tasks:
     - name: Check enclave bastion container status
       ansible.builtin.uri:
         # yamllint disable-line rule:line-length
-        url: https://{{ proxmox_host }}:8006/api2/json/nodes/{{ proxmox_config.pve_mac.node }}/lxc/{{ item.vmid }}/status/current
+        url: https://{{ proxmox_host }}:8006/api2/json/nodes/{{ proxmox_config['pve-mac'].node }}/lxc/{{ item.vmid }}/status/current
         method: GET
         headers:
           # yamllint disable-line rule:line-length
-          Authorization: PVEAPIToken={{ proxmox_config.pve_mac.api_token_id }}={{ proxmox_config.pve_mac.api_token_secret }}
+          Authorization: PVEAPIToken={{ proxmox_config['pve-mac'].api_token_id }}={{ proxmox_config['pve-mac'].api_token_secret }}
         validate_certs: false
         timeout: 10
       loop: "{{ enclave_containers }}"

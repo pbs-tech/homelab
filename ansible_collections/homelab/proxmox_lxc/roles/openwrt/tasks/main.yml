@@ -2,7 +2,6 @@
 - name: Update system packages
   ansible.builtin.apt:
     update_cache: true
-    upgrade: true
 
 - name: Install required packages
   ansible.builtin.apt:

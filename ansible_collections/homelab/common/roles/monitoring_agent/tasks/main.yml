@@ -1,6 +1,10 @@
 ---
 # Comprehensive monitoring agent setup for infrastructure observability
 
+- name: Set architecture for binary downloads
+  ansible.builtin.set_fact:
+    _monitoring_arch: "{{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}"
+
 - name: Install monitoring dependencies
   ansible.builtin.package:
     name:
@@ -44,16 +48,16 @@
   ansible.builtin.unarchive:
     src: >-
       https://github.com/prometheus/node_exporter/releases/download/v{{
-      node_exporter_version }}/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz
+      node_exporter_version }}/node_exporter-{{ node_exporter_version }}.linux-{{ _monitoring_arch }}.tar.gz
     dest: /opt
     remote_src: true
-    creates: /opt/node_exporter-{{ node_exporter_version }}.linux-amd64
+    creates: /opt/node_exporter-{{ node_exporter_version }}.linux-{{ _monitoring_arch }}
     owner: "{{ monitoring_user }}"
     group: "{{ monitoring_user }}"
 
 - name: Link Node Exporter binary
   ansible.builtin.file:
-    src: /opt/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter
+    src: /opt/node_exporter-{{ node_exporter_version }}.linux-{{ _monitoring_arch }}/node_exporter
     dest: /usr/local/bin/node_exporter
     state: link
     owner: root
@@ -89,23 +93,25 @@
     owner: "{{ monitoring_user }}"
     group: "{{ monitoring_user }}"
     mode: "0644"
-  notify: Restart monitoring_agent
+  notify:
+    - Restart node_exporter
+    - Restart promtail
 
 - name: Install Promtail for log collection
   ansible.builtin.unarchive:
     src: >-
       https://github.com/grafana/loki/releases/download/v{{
-      promtail_version }}/promtail-linux-amd64.zip
+      promtail_version }}/promtail-linux-{{ _monitoring_arch }}.zip
     dest: /usr/local/bin
     remote_src: true
-    creates: /usr/local/bin/promtail-linux-amd64
+    creates: /usr/local/bin/promtail-linux-{{ _monitoring_arch }}
     mode: "0755"
     owner: root
     group: root
 
 - name: Create Promtail symlink
   ansible.builtin.file:
-    src: /usr/local/bin/promtail-linux-amd64
+    src: /usr/local/bin/promtail-linux-{{ _monitoring_arch }}
     dest: /usr/local/bin/promtail
     state: link
 

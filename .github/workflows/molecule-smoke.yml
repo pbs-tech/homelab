@@ -22,7 +22,7 @@ concurrency:
 
 env:
   PYTHON_VERSION: '3.12'
-  ANSIBLE_VERSION: '>=2.17'
+  ANSIBLE_VERSION: '>=2.17,<2.19'
 
 jobs:
   smoke-test:
@@ -44,8 +44,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.ansible/collections
-          key: ansible-collections-${{ hashFiles('**/requirements.yml') }}
-          restore-keys: ansible-collections-
+          key: ${{ runner.os }}-ansible-collections-${{ env.PYTHON_VERSION }}-${{ hashFiles('**/requirements.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-ansible-collections-${{ env.PYTHON_VERSION }}-
 
       - name: Install Molecule and dependencies
         run: |
