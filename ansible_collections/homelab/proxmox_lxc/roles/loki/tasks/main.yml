@@ -2,7 +2,6 @@
 - name: Update system packages
   ansible.builtin.apt:
     update_cache: true
-    upgrade: true
 
 - name: Install required packages
   ansible.builtin.apt:
@@ -42,9 +41,13 @@
     - "{{ loki_tsdb_active_dir }}"
     - "{{ loki_tsdb_cache_dir }}"
 
+- name: Set architecture for Loki download
+  ansible.builtin.set_fact:
+    _loki_arch: "{{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}"
+
 - name: Download Loki binary
   ansible.builtin.get_url:
-    url: https://github.com/grafana/loki/releases/download/v{{ loki_version }}/loki-linux-amd64.zip
+    url: https://github.com/grafana/loki/releases/download/v{{ loki_version }}/loki-linux-{{ _loki_arch }}.zip
     dest: /tmp/loki.zip
     mode: "0644"
   register: loki_download
@@ -58,7 +61,7 @@
 
 - name: Install Loki binary  # noqa: no-handler
   ansible.builtin.copy:
-    src: /tmp/loki-linux-amd64
+    src: /tmp/loki-linux-{{ _loki_arch }}
     dest: "{{ loki_bin_dir }}/loki"
     owner: root
     group: root

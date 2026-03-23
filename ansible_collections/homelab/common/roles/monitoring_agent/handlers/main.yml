@@ -15,8 +15,4 @@
     name: promtail
     state: restarted
 
-- name: Restart monitoring_agent
-  ansible.builtin.systemd:
-    name: monitoring_agent
-    state: restarted
-  when: monitoring_agent_enabled | default(false)
+# monitoring_agent is not a real systemd unit; node_exporter and promtail handlers above handle restarts

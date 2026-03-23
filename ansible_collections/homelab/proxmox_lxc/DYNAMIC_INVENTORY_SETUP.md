@@ -50,10 +50,14 @@ The following variables are automatically set:
 - Only running containers/VMs are included by default
 - This can be adjusted in the `filters` section of `inventory/proxmox.yml`
 
-## Migration from Static Inventory
+## Relationship to Static Inventory
 
-The old static inventory (`inventory/hosts.yml`) has been kept for reference but is no longer
-used. The dynamic inventory should automatically discover all your containers and VMs.
+The static inventory (`inventory/hosts.yml`) remains the primary authoritative inventory for
+all root playbooks under `playbooks/`. The dynamic inventory (`proxmox_lxc/inventory/proxmox.yml`)
+is used within the proxmox_lxc collection context for container-specific operations.
+
+Both inventories coexist. Use the static inventory for infrastructure-level orchestration and the
+dynamic inventory for Proxmox-specific container management tasks.
 
 If you need to add custom variables for specific hosts, create files in `inventory/host_vars/[hostname].yml`.
 

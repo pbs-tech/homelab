@@ -165,7 +165,7 @@
 
 - name: Save iptables rules
   ansible.builtin.shell: iptables-save > /etc/iptables/rules.v4
-  changed_when: true
+  changed_when: false
   when: unbound_enable_firewall | default(true)
   tags: firewall
 

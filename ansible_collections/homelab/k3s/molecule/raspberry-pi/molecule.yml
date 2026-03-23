@@ -25,6 +25,8 @@ platforms:
       - SYS_ADMIN
     groups:
       - k3s_servers
+      - k3s_agents
+      - raspberry_pi_test
       - molecule_test
 
 provisioner:

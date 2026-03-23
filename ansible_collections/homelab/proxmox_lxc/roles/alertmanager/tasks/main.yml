@@ -62,25 +62,29 @@
          alertmanager_version not in alertmanager_installed_version.stdout)
       }}
 
+- name: Set architecture for AlertManager download
+  ansible.builtin.set_fact:
+    _alertmanager_arch: "{{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}"
+
 - name: Download AlertManager
   ansible.builtin.get_url:
     # yamllint disable-line rule:line-length
-    url: "https://github.com/prometheus/alertmanager/releases/download/v{{ alertmanager_version }}/alertmanager-{{ alertmanager_version }}.linux-amd64.tar.gz"
-    dest: "/tmp/alertmanager-{{ alertmanager_version }}.linux-amd64.tar.gz"
+    url: "https://github.com/prometheus/alertmanager/releases/download/v{{ alertmanager_version }}/alertmanager-{{ alertmanager_version }}.linux-{{ _alertmanager_arch }}.tar.gz"
+    dest: "/tmp/alertmanager-{{ alertmanager_version }}.linux-{{ _alertmanager_arch }}.tar.gz"
     mode: "0644"
   when: alertmanager_needs_install
 
 - name: Extract AlertManager
   ansible.builtin.unarchive:
-    src: "/tmp/alertmanager-{{ alertmanager_version }}.linux-amd64.tar.gz"
+    src: "/tmp/alertmanager-{{ alertmanager_version }}.linux-{{ _alertmanager_arch }}.tar.gz"
     dest: /tmp
     remote_src: true
-    creates: "/tmp/alertmanager-{{ alertmanager_version }}.linux-amd64"
+    creates: "/tmp/alertmanager-{{ alertmanager_version }}.linux-{{ _alertmanager_arch }}"
   when: alertmanager_needs_install
 
 - name: Copy AlertManager binaries
   ansible.builtin.copy:
-    src: "/tmp/alertmanager-{{ alertmanager_version }}.linux-amd64/{{ item }}"
+    src: "/tmp/alertmanager-{{ alertmanager_version }}.linux-{{ _alertmanager_arch }}/{{ item }}"
     dest: "{{ alertmanager_bin_dir }}/{{ item }}"
     mode: "0755"
     owner: root
@@ -97,8 +101,8 @@
     path: "{{ item }}"
     state: absent
   loop:
-    - "/tmp/alertmanager-{{ alertmanager_version }}.linux-amd64.tar.gz"
-    - "/tmp/alertmanager-{{ alertmanager_version }}.linux-amd64"
+    - "/tmp/alertmanager-{{ alertmanager_version }}.linux-{{ _alertmanager_arch }}.tar.gz"
+    - "/tmp/alertmanager-{{ alertmanager_version }}.linux-{{ _alertmanager_arch }}"
   when: alertmanager_needs_install
 
 - name: Create AlertManager configuration

@@ -19,7 +19,6 @@
 - name: Update system packages
   ansible.builtin.apt:
     update_cache: true
-    upgrade: true
 
 - name: Install required packages
   ansible.builtin.apt:
@@ -49,10 +48,14 @@
     - /var/lib/traefik
     - /var/log/traefik
 
+- name: Set architecture for Traefik download
+  ansible.builtin.set_fact:
+    _traefik_arch: "{{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}"
+
 - name: Download Traefik binary
   ansible.builtin.get_url:
     # yamllint disable-line rule:line-length
-    url: https://github.com/traefik/traefik/releases/download/v{{ traefik_version }}/traefik_v{{ traefik_version }}_linux_amd64.tar.gz
+    url: https://github.com/traefik/traefik/releases/download/v{{ traefik_version }}/traefik_v{{ traefik_version }}_linux_{{ _traefik_arch }}.tar.gz
     dest: /tmp/traefik.tar.gz
     mode: "0644"
 
@@ -174,7 +177,7 @@
 
 - name: Save iptables rules
   ansible.builtin.shell: iptables-save > /etc/iptables/rules.v4
-  changed_when: true
+  changed_when: false
   tags: firewall
 
 - name: Create iptables restore service

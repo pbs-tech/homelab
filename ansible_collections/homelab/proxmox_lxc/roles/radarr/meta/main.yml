@@ -8,7 +8,3 @@ galaxy_info:
     - name: Ubuntu
       versions:
         - jammy
-
-dependencies:
-  - role: homelab.common.container_base
-    when: radarr_apply_container_base | default(false)

@@ -5,9 +5,8 @@ proxmox_override:
   user: root@pam
   node: pve-nas
   # Use NAS-specific API tokens
-  api_token_id: "{{ proxmox_config.pve_nas.api_token_id }}"
-  api_token_secret: "{{ proxmox_config.pve_nas.api_token_secret }}"
-  password: "{{ proxmox_config.pve_nas.password }}"
+  api_token_id: "{{ proxmox_config['pve-nas'].api_token_id }}"
+  api_token_secret: "{{ proxmox_config['pve-nas'].api_token_secret }}"
 
 # NAS-specific network settings
 nas_storage_network: 192.168.1.0/24

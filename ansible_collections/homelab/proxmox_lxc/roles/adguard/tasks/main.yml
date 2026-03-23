@@ -115,11 +115,17 @@
   when: not adguard_binary.stat.exists
   tags: install
 
+- name: Set architecture for AdGuard download
+  ansible.builtin.set_fact:
+    _adguard_arch: "{{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}"
+  when: not adguard_binary.stat.exists
+  tags: install
+
 - name: Download AdGuard Home
   ansible.builtin.get_url:
     url: >-
       https://github.com/AdguardTeam/AdGuardHome/releases/download/{{-
-      adguard_download_version }}/AdGuardHome_linux_amd64.tar.gz
+      adguard_download_version }}/AdGuardHome_linux_{{ _adguard_arch }}.tar.gz
     dest: /tmp/AdGuardHome.tar.gz
     mode: "0644"
   when: not adguard_binary.stat.exists
@@ -167,22 +173,6 @@
 - name: Debug - verify password hash was generated
   ansible.builtin.debug:
     msg: "Password hash length: {{ adguard_admin_password_hash | length }}"
-  tags: config
-
-- name: Stop AdGuard service before config update
-  ansible.builtin.systemd:
-    name: adguard
-    state: stopped
-  failed_when: false
-  tags: config
-
-- name: Remove old AdGuard configuration to prevent migration issues
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: absent
-  loop:
-    - "{{ adguard_config_dir }}/AdGuardHome.yaml"
-    - "{{ adguard_work_dir }}/AdGuardHome.yaml"
   tags: config
 
 - name: Deploy AdGuard Home configuration
@@ -326,7 +316,7 @@
 
 - name: Save iptables rules
   ansible.builtin.shell: iptables-save > /etc/iptables/rules.v4
-  changed_when: true
+  changed_when: false
   when: adguard_enable_firewall | default(true)
   tags: firewall
 

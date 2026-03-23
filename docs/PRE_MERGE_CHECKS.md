@@ -221,7 +221,7 @@ fi
 
 # 3. Ansible Syntax Check
 echo "✅ Running Ansible syntax checks..."
-for playbook in site.yml security-deploy.yml phase2-security.yml; do
+for playbook in site.yml playbooks/infrastructure.yml; do
     if ! ansible-playbook --syntax-check "$playbook" > /dev/null 2>&1; then
         echo "❌ Syntax check failed for $playbook"
         exit 1
@@ -307,8 +307,7 @@ security-scan: ## Scan for secrets and security issues
 validate-syntax: ## Validate Ansible playbook syntax
 	@echo "✅ Validating Ansible syntax..."
 	@ansible-playbook --syntax-check site.yml
-	@ansible-playbook --syntax-check security-deploy.yml
-	@ansible-playbook --syntax-check phase2-security.yml
+	@ansible-playbook --syntax-check playbooks/infrastructure.yml
 	@ansible-playbook --syntax-check ansible_collections/homelab/k3s/playbooks/site.yml
 	@ansible-playbook --syntax-check ansible_collections/homelab/proxmox_lxc/site.yml
 

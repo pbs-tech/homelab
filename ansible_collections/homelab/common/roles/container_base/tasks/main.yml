@@ -87,7 +87,7 @@
     cores: "{{ container_cores }}"
     memory: "{{ container_memory }}"
     swap: "{{ container_swap }}"
-    disk: "local-lvm:{{ container_disk_size }}"
+    disk: "{{ lxc_config.storage | default('local-lvm') }}:{{ container_disk_size }}"
 
     # Network configuration
     netif: "{{ container_netif }}"
@@ -253,7 +253,7 @@
   delay: 5
   register: ssh_fix_result
   until: ssh_fix_result.rc == 0
-  changed_when: true
+  changed_when: false
   tags:
     - proxmox
     - lxc

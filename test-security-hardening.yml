@@ -9,7 +9,7 @@
   gather_facts: false
   tasks:
     - name: Display test overview
-      debug:
+      ansible.builtin.debug:
         msg: |
           ============================================================
           SECURITY HARDENING VALIDATION TEST
@@ -51,17 +51,17 @@
     - name: Test UFW firewall configuration
       block:
         - name: Check UFW status
-          command: ufw status verbose
+          ansible.builtin.command: ufw status verbose
           register: ufw_check
           changed_when: false
 
         - name: Validate required UFW rules exist
-          command: ufw status numbered
+          ansible.builtin.command: ufw status numbered
           register: ufw_rules
           changed_when: false
 
         - name: Test required ports are allowed
-          shell: |
+          ansible.builtin.shell: |
             set -o pipefail && ufw status | grep -E "(22|6443|10250|8472|51820)" || echo "Missing required ports"
           args:
             executable: /bin/bash
@@ -71,12 +71,12 @@
     - name: Test SSH hardening
       block:
         - name: Validate SSH configuration
-          command: sshd -t
+          ansible.builtin.command: sshd -t
           register: ssh_config_validation
           changed_when: false
 
         - name: Check SSH security settings
-          shell: |
+          ansible.builtin.shell: |
             set -o pipefail && grep -E "(PermitRootLogin no|PasswordAuthentication no|Port 22)" /etc/ssh/sshd_config | wc -l
           args:
             executable: /bin/bash
@@ -86,12 +86,12 @@
     - name: Test .local domain resolution
       block:
         - name: Check avahi-daemon status
-          systemd:
+          ansible.builtin.systemd:
             name: avahi-daemon
           register: avahi_status
 
         - name: Test .local resolution
-          command: avahi-resolve -n {{ inventory_hostname }}.local
+          ansible.builtin.command: avahi-resolve -n {{ inventory_hostname }}.local
           register: local_resolution_test
           failed_when: false
           changed_when: false
@@ -99,12 +99,12 @@
     - name: Test fail2ban configuration
       block:
         - name: Check fail2ban status
-          command: fail2ban-client status
+          ansible.builtin.command: fail2ban-client status
           register: fail2ban_check
           changed_when: false
 
         - name: Verify SSH jail is active
-          command: fail2ban-client status sshd
+          ansible.builtin.command: fail2ban-client status sshd
           register: ssh_jail_check
           failed_when: false
           changed_when: false
@@ -112,41 +112,41 @@
     - name: Test unattended upgrades
       block:
         - name: Check unattended-upgrades configuration
-          stat:
+          ansible.builtin.stat:
             path: /etc/apt/apt.conf.d/50unattended-upgrades
           register: unattended_config_check
 
         - name: Verify service is enabled
-          systemd:
+          ansible.builtin.systemd:
             name: unattended-upgrades
           register: unattended_service_check
 
     - name: Test system hardening
       block:
         - name: Check sysctl security settings
-          command: sysctl net.ipv4.conf.all.send_redirects
+          ansible.builtin.command: sysctl net.ipv4.conf.all.send_redirects
           register: sysctl_check
           changed_when: false
 
         - name: Verify file permissions
-          stat:
+          ansible.builtin.stat:
             path: /etc/shadow
           register: shadow_perms
 
     - name: Pi-specific tests
       block:
         - name: Check if running on Pi
-          set_fact:
+          ansible.builtin.set_fact:
             is_raspberry_pi: "{{ raspberry_pi | default(false) }}"
 
         - name: Test Pi boot configuration
-          stat:
+          ansible.builtin.stat:
             path: /boot/config.txt
           register: boot_config_check
           when: is_raspberry_pi
 
         - name: Check log2ram installation
-          stat:
+          ansible.builtin.stat:
             path: /usr/local/bin/log2ram
           register: log2ram_check
           when: is_raspberry_pi
@@ -154,28 +154,28 @@
     - name: K3s-specific security tests
       block:
         - name: Test K3s audit policy (servers only)
-          stat:
+          ansible.builtin.stat:
             path: /etc/rancher/k3s/audit-policy.yaml
           register: audit_policy_check
-          when: inventory_hostname in groups['server']
+          when: inventory_hostname in groups['k3s_server']
 
         - name: Check K3s service configuration
-          systemd:
-            name: "{{ 'k3s' if inventory_hostname in groups['server'] else 'k3s-agent' }}"
+          ansible.builtin.systemd:
+            name: "{{ 'k3s' if inventory_hostname in groups['k3s_server'] else 'k3s-agent' }}"
           register: k3s_service_check
           when: >
             ansible_facts.services['k3s.service'] is defined or
             ansible_facts.services['k3s-agent.service'] is defined
 
     - name: Generate individual node test report
-      debug:
+      ansible.builtin.debug:
         msg: |
           ========================================
           SECURITY TEST REPORT: {{ inventory_hostname }}
           ========================================
 
           Node Type: {{ 'Pi' if is_raspberry_pi | default(false) else 'Standard' }}
-          K3s Role: {{ 'Server' if inventory_hostname in groups['server'] else 'Agent' }}
+          K3s Role: {{ 'Server' if inventory_hostname in groups['k3s_server'] else 'Agent' }}
 
           🔥 FIREWALL TESTS:
           - UFW Active: {{ 'PASS' if 'Status: active' in ufw_check.stdout else 'FAIL' }}
@@ -207,7 +207,7 @@
           - Log2ram: {{ 'PASS' if log2ram_check.stat.exists else 'OPTIONAL' }}
           {% endif %}
 
-          {% if inventory_hostname in groups['server'] %}
+          {% if inventory_hostname in groups['k3s_server'] %}
           ☸️ K3S SERVER:
           - Audit Policy: {{ 'PASS' if audit_policy_check.stat.exists else 'FAIL' }}
           - Service Running: {{ 'PASS' if k3s_service_check.status.ActiveState == 'active' else 'FAIL' }}
@@ -222,7 +222,7 @@
   gather_facts: false
   tasks:
     - name: Display validation complete message
-      debug:
+      ansible.builtin.debug:
         msg: |
 
           ============================================================

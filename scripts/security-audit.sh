@@ -246,7 +246,7 @@ echo ""
 print_section "Security Documentation"
 
 # Check for security documentation
-if [ -f "SECURITY.md" ]; then
+if [ -f ".github/SECURITY.md" ]; then
     check_pass "Security policy documentation exists"
 else
     check_warning "Security policy documentation not found"

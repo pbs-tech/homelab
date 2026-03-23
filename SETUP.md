@@ -315,7 +315,7 @@ telnet 192.168.0.200 9090
 - **Secure Enclave**: Deploy isolated pentesting environment
 
   ```bash
-  ansible-playbook playbooks/secure-enclave.yml
+  ansible-playbook playbooks/enclave.yml  # playbooks/secure-enclave.yml is legacy
   ```
 
 - **Additional Monitoring**: Add custom exporters and metrics

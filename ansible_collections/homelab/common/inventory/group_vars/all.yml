@@ -20,26 +20,22 @@ homelab_network:
 # SECURITY: Set validate_certs to true in production after installing valid SSL certs
 # See docs/security/proxmox-ssl-setup.md for certificate installation guide
 proxmox_config:
-  pve_mac:
+  pve-mac:
     host: 192.168.0.56
     user: root@pam
     node: pve-mac
-    # API Token Authentication (preferred - secure)
+    # API Token Authentication (token-scoped, preferred)
     api_token_id: "{{ vault_proxmox_api_tokens.pve_mac.token_id }}"
     api_token_secret: "{{ vault_proxmox_api_tokens.pve_mac.token_secret }}"
-    # Legacy password fallback (will be removed in future version)
-    password: "{{ vault_proxmox_passwords.pve_mac | default('') }}"
     # WARNING: Set to true in production with valid SSL certificates
     validate_certs: "{{ proxmox_validate_certs | default(false) }}"
-  pve_nas:
+  pve-nas:
     host: 192.168.0.57
     user: root@pam
     node: pve-nas
-    # API Token Authentication (preferred - secure)
+    # API Token Authentication (token-scoped, preferred)
     api_token_id: "{{ vault_proxmox_api_tokens.pve_nas.token_id }}"
     api_token_secret: "{{ vault_proxmox_api_tokens.pve_nas.token_secret }}"
-    # Legacy password fallback (will be removed in future version)
-    password: "{{ vault_proxmox_passwords.pve_nas | default('') }}"
     # WARNING: Set to true in production with valid SSL certificates
     validate_certs: "{{ proxmox_validate_certs | default(false) }}"
 
@@ -74,7 +70,7 @@ deployment_environment: development
 proxmox_ssl_validation_override: false
 
 # Default Proxmox node for operations (can be overridden per host/group)
-proxmox_default_node: pve_mac
+proxmox_default_node: "pve-mac"
 
 # Proxmox API helper - provides unified access to configuration
 proxmox_api: "{{ proxmox_config }}"
@@ -102,15 +98,8 @@ security_config:
   ssh_key_path: ~/.ssh/homelab_ed25519
   vault_password_file: ~/.ansible_vault_pass
 
-# Container defaults
-container_defaults:
-  template: ubuntu-22.04-standard_22.04-1_amd64.tar.zst
-  disk_size: 8
-  cores: 1
-  memory: 512
-  swap: 0
-  onboot: true
-  unprivileged: true
+# Container defaults are defined in inventory/group_vars/lxc_containers.yml
+# (with ssh_key) — do not duplicate here.
 
 # Service configuration
 services_config:

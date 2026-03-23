@@ -9,7 +9,7 @@
   gather_facts: false
   tasks:
     - name: Display security test banner
-      debug:
+      ansible.builtin.debug:
         msg: |
           ====================================
           Security Validation Test
@@ -23,13 +23,13 @@
   become: true
   tasks:
     - name: Check UFW is active
-      command: ufw status
+      ansible.builtin.command: ufw status
       register: ufw_status
       changed_when: false
       failed_when: false
 
     - name: Verify UFW is enabled
-      assert:
+      ansible.builtin.assert:
         that:
           - "'Status: active' in ufw_status.stdout"
         fail_msg: UFW is not active on {{ inventory_hostname }}
@@ -37,7 +37,7 @@
       when: ufw_status is succeeded
 
     - name: Check SSH hardening settings
-      shell: |
+      ansible.builtin.shell: |
         set -o pipefail
         grep -E "^(PermitRootLogin no|PasswordAuthentication no)" /etc/ssh/sshd_config | wc -l
       args:
@@ -46,7 +46,7 @@
       changed_when: false
 
     - name: Verify SSH is hardened
-      assert:
+      ansible.builtin.assert:
         that:
           - ssh_hardening.stdout | int >= 2
         fail_msg: SSH not properly hardened on {{ inventory_hostname }}
@@ -60,7 +60,7 @@
       failed_when: false
 
     - name: Verify fail2ban is running
-      assert:
+      ansible.builtin.assert:
         that:
           - fail2ban_status.status.ActiveState == "active"
         fail_msg: fail2ban not running on {{ inventory_hostname }}
@@ -68,13 +68,13 @@
       when: fail2ban_status.status is defined
 
     - name: Check SSH jail is active
-      command: fail2ban-client status sshd
+      ansible.builtin.command: fail2ban-client status sshd
       register: ssh_jail
       changed_when: false
       failed_when: false
 
     - name: Verify SSH jail protecting SSH
-      assert:
+      ansible.builtin.assert:
         that:
           - "'active' in ssh_jail.stdout.lower()"
         fail_msg: SSH jail not active on {{ inventory_hostname }}
@@ -89,7 +89,7 @@
       failed_when: false
 
     - name: Generate node security report
-      set_fact:
+      ansible.builtin.set_fact:
         security_status:
           ufw: "{{ 'PASS' if 'Status: active' in ufw_status.stdout else 'FAIL' }}"
           ssh_hardening: "{{ 'PASS' if ssh_hardening.stdout | int >= 2 else 'FAIL' }}"
@@ -98,7 +98,7 @@
           auto_updates: "{{ 'PASS' if (unattended_upgrades.status is defined and unattended_upgrades.status.UnitFileState == 'enabled') else 'WARN' }}"
 
     - name: Display node security status
-      debug:
+      ansible.builtin.debug:
         msg: |
           Security Status - {{ inventory_hostname }}:
           - UFW Firewall: {{ security_status.ufw }}
@@ -115,17 +115,17 @@
     - name: Check additional security on bastion
       block:
         - name: Verify UFW is active on bastion
-          command: ufw status verbose
+          ansible.builtin.command: ufw status verbose
           register: bastion_ufw
           changed_when: false
 
         - name: Check SSH port configuration
-          shell: grep -E "^Port " /etc/ssh/sshd_config || echo "Port 22"
+          ansible.builtin.shell: grep -E "^Port " /etc/ssh/sshd_config || echo "Port 22"
           register: ssh_port
           changed_when: false
 
         - name: Display bastion security info
-          debug:
+          ansible.builtin.debug:
             msg: |
               Bastion {{ inventory_hostname }} Security:
               - UFW Status: {{ 'Active' if 'Status: active' in bastion_ufw.stdout else 'Inactive' }}
@@ -138,7 +138,7 @@
   gather_facts: false
   tasks:
     - name: Check Traefik SSL certificate
-      uri:
+      ansible.builtin.uri:
         url: https://traefik.homelab.local
         method: GET
         validate_certs: false
@@ -148,7 +148,7 @@
       ignore_errors: true
 
     - name: Check Grafana SSL certificate
-      uri:
+      ansible.builtin.uri:
         url: https://grafana.homelab.local
         method: GET
         validate_certs: false
@@ -158,7 +158,7 @@
       ignore_errors: true
 
     - name: Check Prometheus SSL certificate
-      uri:
+      ansible.builtin.uri:
         url: https://prometheus.homelab.local
         method: GET
         validate_certs: false
@@ -168,7 +168,7 @@
       ignore_errors: true
 
     - name: Display SSL status
-      debug:
+      ansible.builtin.debug:
         msg: |
           SSL Certificate Status:
           - Traefik: {{ 'ACCESSIBLE' if traefik_ssl is succeeded else 'CHECK FAILED' }}
@@ -183,7 +183,7 @@
   gather_facts: false
   tasks:
     - name: Display security summary
-      debug:
+      ansible.builtin.debug:
         msg: |
           ====================================
           Security Validation Complete

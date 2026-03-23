@@ -1,6 +1,11 @@
 ---
 # Infrastructure deployment playbook with improved orchestration
 # This playbook provides fine-grained control over deployment phases
+#
+# NOTE: Selective execution uses --tags (e.g., --tags networking,phase2)
+# The skip_* variables (skip_networking, skip_monitoring, etc.) do NOT work
+# with import_playbook — Ansible silently ignores 'when:' on import_playbook
+# directives. Use --tags for phase selection instead.
 
 - name: Validate infrastructure prerequisites
   hosts: localhost
@@ -34,21 +39,18 @@
   tags:
     - networking
     - phase2
-  when: not skip_networking | default(false)
 
 - name: Deploy monitoring infrastructure
   import_playbook: monitoring.yml
   tags:
     - monitoring
     - phase3
-  when: not skip_monitoring | default(false)
 
 - name: Deploy application services
   import_playbook: applications.yml
   tags:
     - applications
     - phase4
-  when: not skip_applications | default(false)
 
 - name: Deploy K3s cluster
   import_playbook: ../ansible_collections/homelab/k3s/playbooks/site.yml
@@ -56,7 +58,6 @@
     - k3s
     - cluster
     - phase5
-  when: not skip_k3s | default(false)
 
 # Phase 6: Secure enclave is deliberately excluded from static imports.
 # It deploys intentionally vulnerable systems and requires explicit invocation:
