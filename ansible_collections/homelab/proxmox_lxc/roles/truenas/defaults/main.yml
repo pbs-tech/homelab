@@ -16,7 +16,7 @@ vm_resources:
   sockets: 1
 
 vm_config:
-  bios: ovmf
+  bios: seabios  # TrueNAS SCALE ISO will not boot on OVMF/UEFI in Proxmox
   machine: q35
   ostype: l26
   scsihw: virtio-scsi-single
@@ -24,7 +24,19 @@ vm_config:
   onboot: true
   storage: local-lvm
 
+# Boot from ISO first so the TrueNAS installer runs on first power-on
+vm_boot_order: "order=ide2;scsi0"
+
 vm_firewall_groups:
   - basic-network
   - allow-ssh
   - allow-web     # TrueNAS WebUI on port 80/443
+
+# Network configuration applied via TrueNAS API after first boot.
+# vault_truenas_api_key must be set in vault.yml.
+# Generate via shell: midclt call api_key.create '{"name": "ansible", "allowlist": []}'
+truenas_network:
+  netmask: 24
+  gateway: "192.168.0.1"
+  nameserver1: "192.168.0.204"   # AdGuard
+  nameserver2: "8.8.8.8"        # Fallback

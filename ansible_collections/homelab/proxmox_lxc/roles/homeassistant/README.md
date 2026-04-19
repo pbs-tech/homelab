@@ -299,8 +299,8 @@ automation:
       disk_size: "40"
 
     homeassistant_traefik_enabled: true
-    homeassistant_domain: "homeassistant.homelab.local"
-    homeassistant_external_url: "https://homeassistant.homelab.local"
+    homeassistant_domain: "homeassistant.homelab.lan"
+    homeassistant_external_url: "https://homeassistant.homelab.lan"
 
     homeassistant_mqtt_enabled: true
     homeassistant_mqtt_broker: "192.168.0.215"

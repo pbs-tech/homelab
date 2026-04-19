@@ -63,7 +63,7 @@ cluster_context: k3s-ansible
 server_config_yaml: |
   write-kubeconfig-mode: "0644"
   tls-san:
-    - "k3s.homelab.local"
+    - "k3s.homelab.lan"
     - "192.168.0.111"
   disable:
     - traefik  # Disable if using external Traefik
@@ -142,7 +142,7 @@ user_kubectl: true
   become: yes
   vars:
     use_external_database: true
-    extra_server_args: "--datastore-endpoint=mysql://k3s:password@tcp(mysql.homelab.local:3306)/k3s"
+    extra_server_args: "--datastore-endpoint=mysql://k3s:password@tcp(mysql.homelab.lan:3306)/k3s"
   roles:
     - homelab.k3s.prereq
     - homelab.k3s.k3s_server
@@ -158,7 +158,7 @@ user_kubectl: true
     server_config_yaml: |
       write-kubeconfig-mode: "0640"
       tls-san:
-        - "k3s.homelab.local"
+        - "k3s.homelab.lan"
       secrets-encryption: true
       protect-kernel-defaults: true
       kube-apiserver-arg:

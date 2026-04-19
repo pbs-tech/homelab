@@ -194,10 +194,10 @@ metadata:
 spec:
   tls:
     - hosts:
-        - app.homelab.local
+        - app.homelab.lan
       secretName: homelab-tls
   rules:
-    - host: app.homelab.local
+    - host: app.homelab.lan
       http:
         paths:
           - path: /

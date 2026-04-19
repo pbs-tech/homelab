@@ -16,7 +16,7 @@ echo "=== Homelab Health Check ==="
 echo "Checking Proxmox hosts..."
 for host in pve-mac pve-nas; do
   echo -n "$host: "
-  ping -c1 -W2 $host.homelab.local >/dev/null 2>&1 && echo "OK" || echo "FAILED"
+  ping -c1 -W2 $host.homelab.lan >/dev/null 2>&1 && echo "OK" || echo "FAILED"
 done
 
 # Check K3s nodes
@@ -170,7 +170,7 @@ pct exec 205 -- journalctl -u traefik -f
 pct exec 205 -- traefik validate --configfile=/etc/traefik/traefik.yml
 
 # Check service discovery
-curl -s "https://traefik.homelab.local:8080/api/http/routers" | jq '.'
+curl -s "https://traefik.homelab.lan:8080/api/http/routers" | jq '.'
 
 # Test backend connectivity
 curl -v http://192.168.0.200:9090/metrics
@@ -186,7 +186,7 @@ pct exec 205 -- systemctl restart traefik
 pct exec 205 -- chmod 600 /etc/traefik/acme.json
 
 # Update DNS resolution
-echo "192.168.0.205 prometheus.homelab.local" >> /etc/hosts
+echo "192.168.0.205 prometheus.homelab.lan" >> /etc/hosts
 
 # Regenerate certificates
 pct exec 205 -- rm /etc/traefik/acme.json
@@ -246,7 +246,7 @@ pct reboot 200
 
 ```bash
 # Test DNS resolution
-nslookup prometheus.homelab.local 192.168.0.204
+nslookup prometheus.homelab.lan 192.168.0.204
 dig @192.168.0.202 google.com
 
 # Check AdGuard Home logs

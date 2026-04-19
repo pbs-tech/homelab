@@ -461,7 +461,7 @@ traefik_acme:
 
 | Domain Pattern | Certificate Type | Notes |
 |----------------|------------------|-------|
-| *.homelab.local | Internal CA | For internal services |
+| *.homelab.lan | Internal CA | For internal services |
 | service.domain.com | Let's Encrypt | For external access |
 
 ### Internal TLS

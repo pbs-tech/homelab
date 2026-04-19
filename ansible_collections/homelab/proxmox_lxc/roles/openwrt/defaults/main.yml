@@ -26,6 +26,16 @@ openwrt_ssh_port: 22
 openwrt_luci_port: 80
 openwrt_enable_vpn_passthrough: true
 
+# Port forwards — reflection: true enables NAT hairpinning so internal clients
+# can reach the same public IP:port and get looped back to the LAN destination.
+openwrt_port_forwards:
+  - name: WireGuard-VPN
+    proto: udp
+    src_dport: 51820
+    dest_ip: 192.168.0.203
+    dest_port: 51820
+    reflection: true
+
 # Package management
 openwrt_packages:
   - luci

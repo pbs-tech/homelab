@@ -13,7 +13,7 @@
           Applying security hardening to: {{ inventory_hostname }}
           IP Address: {{ ansible_default_ipv4.address }}
           Distribution: {{ ansible_distribution }} {{ ansible_distribution_version }}
-          Architecture: {{ ansible_architecture }}
+          Architecture: {{ ansible_facts['architecture'] }}
           Raspberry Pi: {{ raspberry_pi | default('Unknown') }}
 
     - name: Check current security services status

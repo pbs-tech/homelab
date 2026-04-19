@@ -35,8 +35,8 @@
     - name: Determine system architecture for Docker
       ansible.builtin.set_fact:
         docker_arch: >-
-          {{ 'arm64' if ansible_architecture == 'aarch64' else
-             'armhf' if ansible_architecture == 'armv7l' else
+          {{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else
+             'armhf' if ansible_facts['architecture'] == 'armv7l' else
              'amd64' }}
 
     - name: Add Docker repository

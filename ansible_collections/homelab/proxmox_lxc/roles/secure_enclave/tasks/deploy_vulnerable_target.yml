@@ -3,7 +3,7 @@
 # Handles both Docker-based and VM-based deployments
 
 - name: Create LXC container for vulnerable target
-  community.general.proxmox:
+  community.proxmox.proxmox:
     api_host: "{{ proxmox_config[enclave_proxmox_node].host }}"
     api_token_id: "{{ proxmox_config[enclave_proxmox_node].api_token_id }}"
     api_token_secret: "{{ proxmox_config[enclave_proxmox_node].api_token_secret }}"
@@ -39,7 +39,7 @@
     - lxc
 
 - name: Start vulnerable target container  # noqa: no-handler
-  community.general.proxmox:
+  community.proxmox.proxmox:
     api_host: "{{ proxmox_config[enclave_proxmox_node].host }}"
     api_token_id: "{{ proxmox_config[enclave_proxmox_node].api_token_id }}"
     api_token_secret: "{{ proxmox_config[enclave_proxmox_node].api_token_secret }}"

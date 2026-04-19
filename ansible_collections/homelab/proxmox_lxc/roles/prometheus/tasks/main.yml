@@ -24,7 +24,7 @@
 
 - name: Set architecture for Prometheus download
   ansible.builtin.set_fact:
-    _prometheus_arch: "{{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}"
+    _prometheus_arch: "{{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'amd64' }}"
 
 - name: Download and extract Prometheus
   ansible.builtin.unarchive:

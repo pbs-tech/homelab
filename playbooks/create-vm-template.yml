@@ -27,7 +27,7 @@
     # Override per-clone: -e ci_ip_config="ip=192.168.0.X/24,gw=192.168.0.1"
     ci_ip_config: "ip=192.168.0.90/24,gw=192.168.0.1"
     ci_dns_servers: "1.1.1.1 1.0.0.1"
-    ci_search_domain: homelab.local
+    ci_search_domain: homelab.lan
 
     # Per-VM firewall — same security groups as container_base
     # basic-network: DHCP, DNS (UDP+TCP), ICMP (required for internet access)

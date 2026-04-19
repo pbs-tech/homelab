@@ -29,7 +29,7 @@ container_unprivileged: true
 
 # SSL/TLS settings for Traefik
 ssl_email: "{{ vault_ssl_email }}"
-homelab_domain: homelab.local
+homelab_domain: homelab.lan
 
 # K3s cluster settings (integrated with k3s-ansible)
 k3s_cluster_endpoint: https://192.168.0.111:6443

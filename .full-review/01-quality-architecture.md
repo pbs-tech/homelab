@@ -104,10 +104,10 @@ The `password` field in common's version references `vault_proxmox_passwords` wh
 #### CQ-H5: `homelab_domain` defined 4+ times; `homelab_network` defined 3 times with different DNS
 **Severity:** High
 
-`homelab_domain: homelab.local` appears in 4+ files. `homelab_network` DNS servers differ:
+`homelab_domain: homelab.lan` appears in 4+ files. `homelab_network` DNS servers differ:
 - common all.yml: `[Unbound, AdGuard, 1.1.1.1]`
 - lxc_containers.yml: `[AdGuard, Unbound]` (no fallback)
-- nas_vm.yml: `[1.1.1.1, 1.0.0.1]` (no internal DNS — NAS VMs cannot resolve `*.homelab.local`)
+- nas_vm.yml: `[1.1.1.1, 1.0.0.1]` (no internal DNS — NAS VMs cannot resolve `*.homelab.lan`)
 
 **Fix:** Define once in `inventory/group_vars/all/`. Override only where needed, with comments explaining why.
 
@@ -311,7 +311,7 @@ Root playbooks: `foundation`, `networking`, `phase1`-`phase5`. Collection site.y
 
 ---
 
-#### AR-L2: NAS VM DNS uses only public resolvers — cannot resolve `*.homelab.local`
+#### AR-L2: NAS VM DNS uses only public resolvers — cannot resolve `*.homelab.lan`
 `inventory/group_vars/nas_vm.yml` DNS: `[1.1.1.1, 1.0.0.1]`. May be intentional for ISO-based VMs.
 **Fix:** Document rationale explicitly in the group_vars file.
 

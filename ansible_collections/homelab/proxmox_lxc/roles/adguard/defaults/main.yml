@@ -80,9 +80,9 @@ adguard_filters:
 # Blocked services
 adguard_blocked_services: []
 
-# DNS rewrites — wildcard routes all homelab.local names through Traefik
+# DNS rewrites — wildcard routes all homelab.lan names through Traefik
 adguard_rewrites:
-  - domain: "*.homelab.local"
+  - domain: "*.homelab.lan"
     answer: "192.168.0.205"  # Traefik reverse proxy
 
 # Custom user rules
@@ -91,7 +91,7 @@ adguard_user_rules:
   - "||ml^$important"  # Block .ml TLD
   - "||ga^$important"  # Block .ga TLD
   - "||cf^$important"  # Block .cf TLD
-  - "@@||homelab.local^$important"  # Allow homelab domain
+  - "@@||homelab.lan^$important"  # Allow homelab domain
 
 # DHCP server (disabled by default)
 adguard_dhcp_enabled: false

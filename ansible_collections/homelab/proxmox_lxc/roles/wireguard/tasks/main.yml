@@ -44,7 +44,7 @@
   tags: [proxmox, wireguard]
 
 - name: Restart container if LXC config was updated
-  community.general.proxmox:
+  community.proxmox.proxmox:
     api_host: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
     api_user: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].user }}"
     api_token_id: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id.split('!')[-1] }}"
@@ -353,7 +353,7 @@
     Address = {{ item.allowed_ips }}
     DNS = {{ wireguard_dns_servers | default(['192.168.0.202']) | join(', ') }}
     {% if wireguard_client_dns_method | default('systemd-resolved') == 'systemd-resolved' %}
-    PostUp = resolvectl dns %i {{ wireguard_dns_servers | default(['192.168.0.202']) | join(' ') }}; resolvectl domain %i ~homelab.local
+    PostUp = resolvectl dns %i {{ wireguard_dns_servers | default(['192.168.0.202']) | join(' ') }}; resolvectl domain %i ~homelab.lan
     PostDown = resolvectl revert %i
     {% elif wireguard_client_dns_method | default('systemd-resolved') == 'resolvconf' %}
     PostUp = resolvconf -a %i -m 0 -x

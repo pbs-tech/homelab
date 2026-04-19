@@ -88,14 +88,14 @@ alertmanager_repeat_interval: 4h
 ```yaml
 # SMTP settings
 alertmanager_smtp_smarthost: "smtp.gmail.com:587"
-alertmanager_smtp_from: "alertmanager@homelab.local"
+alertmanager_smtp_from: "alertmanager@homelab.lan"
 alertmanager_smtp_auth_username: "{{ vault_smtp_username }}"
 alertmanager_smtp_auth_password: "{{ vault_smtp_password }}"
 alertmanager_smtp_require_tls: true
 
 # Email receiver
 alertmanager_email_configs:
-  - to: "admin@homelab.local"
+  - to: "admin@homelab.lan"
     send_resolved: true
     headers:
       Subject: "[ALERT] {{ .GroupLabels.alertname }}"
@@ -120,7 +120,7 @@ alertmanager_slack_configs:
 ```yaml
 # Generic webhook receivers
 alertmanager_webhook_configs:
-  - url: "http://webhook.homelab.local/alerts"
+  - url: "http://webhook.homelab.lan/alerts"
     send_resolved: true
     max_alerts: 10
 ```
@@ -318,7 +318,7 @@ Create custom templates in `/etc/alertmanager/templates/`:
   hosts: proxmox_hosts
   vars:
     alertmanager_smtp_smarthost: "smtp.gmail.com:587"
-    alertmanager_smtp_from: "alerts@homelab.local"
+    alertmanager_smtp_from: "alerts@homelab.lan"
     alertmanager_smtp_auth_username: "{{ vault_smtp_username }}"
     alertmanager_smtp_auth_password: "{{ vault_smtp_password }}"
 
@@ -327,12 +327,12 @@ Create custom templates in `/etc/alertmanager/templates/`:
     alertmanager_receivers:
       - name: "default"
         email_configs:
-          - to: "admin@homelab.local"
+          - to: "admin@homelab.lan"
             send_resolved: true
 
       - name: "critical"
         email_configs:
-          - to: "oncall@homelab.local"
+          - to: "oncall@homelab.lan"
             send_resolved: true
         slack_configs:
           - channel: "#critical"
@@ -341,7 +341,7 @@ Create custom templates in `/etc/alertmanager/templates/`:
 
       - name: "database"
         email_configs:
-          - to: "dba@homelab.local"
+          - to: "dba@homelab.lan"
         slack_configs:
           - channel: "#database-alerts"
 
@@ -505,8 +505,8 @@ pct exec 206 -- telnet smtp.gmail.com 587
 
 # Test email sending
 pct exec 206 -- swaks \
-  --to admin@homelab.local \
-  --from alerts@homelab.local \
+  --to admin@homelab.lan \
+  --from alerts@homelab.lan \
   --server smtp.gmail.com:587 \
   --auth-user username \
   --auth-password password \
@@ -585,7 +585,7 @@ Expose AlertManager UI through Traefik:
 # Traefik labels for AlertManager
 traefik_labels:
   - "traefik.enable=true"
-  - "traefik.http.routers.alertmanager.rule=Host(`alertmanager.homelab.local`)"
+  - "traefik.http.routers.alertmanager.rule=Host(`alertmanager.homelab.lan`)"
   - "traefik.http.routers.alertmanager.tls=true"
   - "traefik.http.services.alertmanager.loadbalancer.server.port=9093"
 ```

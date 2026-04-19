@@ -573,7 +573,7 @@ Expose Loki through Traefik for external access:
 # Traefik labels for Loki
 traefik_labels:
   - "traefik.enable=true"
-  - "traefik.http.routers.loki.rule=Host(`loki.homelab.local`)"
+  - "traefik.http.routers.loki.rule=Host(`loki.homelab.lan`)"
   - "traefik.http.routers.loki.tls=true"
   - "traefik.http.services.loki.loadbalancer.server.port=3100"
 ```

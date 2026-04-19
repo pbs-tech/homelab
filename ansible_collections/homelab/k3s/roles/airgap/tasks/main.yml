@@ -35,7 +35,7 @@
 
     - name: Determine architecture and set k3s_arch
       ansible.builtin.set_fact:
-        k3s_arch: "{{ 'arm64' if ansible_architecture == 'aarch64' else 'arm' if ansible_architecture == 'armv7l' else 'amd64'
+        k3s_arch: "{{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'arm' if ansible_facts['architecture'] == 'armv7l' else 'amd64'
           }}"
 
     - name: Find K3s binary for architecture {{ k3s_arch }}

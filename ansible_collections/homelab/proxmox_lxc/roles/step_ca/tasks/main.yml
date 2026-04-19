@@ -43,7 +43,7 @@
     - "{{ step_ca_config_dir }}"
     - "{{ step_ca_data_dir }}"
 
-- name: Configure DNS resolver to use Unbound (resolves homelab.local)
+- name: Configure DNS resolver to use Unbound (resolves homelab.lan)
   ansible.builtin.copy:
     content: |
       # Managed by Ansible - step-ca needs local DNS to validate TLS-ALPN-01 challenges

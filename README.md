@@ -256,7 +256,7 @@ Edit `inventory/group_vars/all.yml` to customize:
 
 ```yaml
 # Domain configuration
-homelab_domain: "homelab.local"
+homelab_domain: "homelab.lan"
 external_domain: "yourdomain.com"
 
 # Network settings
@@ -473,7 +473,7 @@ For comprehensive troubleshooting guidance, see [TROUBLESHOOTING.md](TROUBLESHOO
 # Run system health check
 for service in traefik prometheus grafana; do
   echo -n "Testing $service: "
-  curl -s -o /dev/null -w "%{http_code}" "https://$service.homelab.local" |
+  curl -s -o /dev/null -w "%{http_code}" "https://$service.homelab.lan" |
     grep -q "200\|401\|302" && echo "OK" || echo "FAILED"
 done
 ```
@@ -496,7 +496,7 @@ pct exec 205 -- journalctl -u traefik -f
 
 ```bash
 # Test DNS resolution
-nslookup prometheus.homelab.local 192.168.0.204
+nslookup prometheus.homelab.lan 192.168.0.204
 # Check service connectivity
 telnet 192.168.0.200 9090
 ```

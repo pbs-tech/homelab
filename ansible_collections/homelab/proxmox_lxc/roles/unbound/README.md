@@ -64,12 +64,12 @@ unbound_access_control:
 ```yaml
 # Local DNS records for homelab services
 unbound_local_zones:
-  - name: "homelab.local"
+  - name: "homelab.lan"
     type: "static"
     records:
-      - "prometheus.homelab.local. IN A 192.168.0.200"
-      - "grafana.homelab.local. IN A 192.168.0.201"
-      - "traefik.homelab.local. IN A 192.168.0.205"
+      - "prometheus.homelab.lan. IN A 192.168.0.200"
+      - "grafana.homelab.lan. IN A 192.168.0.201"
+      - "traefik.homelab.lan. IN A 192.168.0.205"
 ```
 
 ### Forwarding Configuration
@@ -101,11 +101,11 @@ unbound_forward_zones:
   become: true
   vars:
     unbound_local_zones:
-      - name: "homelab.local"
+      - name: "homelab.lan"
         type: "static"
         records:
-          - "nas.homelab.local. IN A 192.168.0.100"
-          - "pve.homelab.local. IN A 192.168.0.56"
+          - "nas.homelab.lan. IN A 192.168.0.100"
+          - "pve.homelab.lan. IN A 192.168.0.56"
   roles:
     - homelab.proxmox_lxc.unbound
 ```

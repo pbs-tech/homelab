@@ -165,7 +165,7 @@ Lines 130 and 367 show `~/.ssh/id_rsa.pub`. Actual key is `~/.ssh/homelab_ed2551
 ---
 
 #### DOC-M5: NAS VM DNS using public resolvers — undocumented intentional design
-`inventory/group_vars/nas_vm.yml` uses `1.1.1.1`/`1.0.0.1`. NAS VMs cannot resolve `*.homelab.local`. No comment or doc explains whether this is intentional (ISO-install bootstrap) or an oversight.
+`inventory/group_vars/nas_vm.yml` uses `1.1.1.1`/`1.0.0.1`. NAS VMs cannot resolve `*.homelab.lan`. No comment or doc explains whether this is intentional (ISO-install bootstrap) or an oversight.
 
 ---
 

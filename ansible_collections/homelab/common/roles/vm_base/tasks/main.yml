@@ -127,8 +127,8 @@
     net:
       net0: "{{ _vm_net0 }}"
 
-    # Boot order: disk first, then cdrom
-    boot: "order=scsi0;ide2"
+    # Boot order: configurable via vm_boot_order (default: disk first, then cdrom)
+    boot: "{{ vm_boot_order | default('order=scsi0;ide2') }}"
 
     state: present
 

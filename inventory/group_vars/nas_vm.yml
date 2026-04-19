@@ -50,4 +50,4 @@ homelab_network:
     - 1.1.1.1
     - 1.0.0.1
 
-homelab_domain: homelab.local
+homelab_domain: homelab.lan

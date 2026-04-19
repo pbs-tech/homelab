@@ -9,25 +9,25 @@ Complete reference for accessing all services in the homelab infrastructure, inc
 | **Security & Networking** |
 | Bastion (K3s) | 192.168.0.110 | 22 | `ssh pbs@192.168.0.110` | SSH Key |
 | Bastion (NAS) | 192.168.0.109 | 22 | `ssh pbs@192.168.0.109` | SSH Key |
-| Traefik | 192.168.0.205 | 80/443/8080 | `https://traefik.homelab.local` | Basic Auth |
+| Traefik | 192.168.0.205 | 80/443/8080 | `https://traefik.homelab.lan` | Basic Auth |
 | WireGuard VPN | 192.168.0.203 | 51820/UDP | N/A | WireGuard Key |
-| AdGuard Home | 192.168.0.204 | 53/3000 | `http://adguard.homelab.local` | Username/Password |
+| AdGuard Home | 192.168.0.204 | 53/3000 | `http://adguard.homelab.lan` | Username/Password |
 | Unbound DNS | 192.168.0.202 | 53 | N/A (DNS only) | None |
 | **Monitoring** |
-| Prometheus | 192.168.0.200 | 9090 | `http://prometheus.homelab.local` | None (internal) |
-| Grafana | 192.168.0.201 | 3000 | `http://grafana.homelab.local` | Username/Password |
-| AlertManager | 192.168.0.206 | 9093 | `http://alertmanager.homelab.local` | None (internal) |
-| Loki | 192.168.0.210 | 3100 | `http://loki.homelab.local` | None (internal) |
+| Prometheus | 192.168.0.200 | 9090 | `http://prometheus.homelab.lan` | None (internal) |
+| Grafana | 192.168.0.201 | 3000 | `http://grafana.homelab.lan` | Username/Password |
+| AlertManager | 192.168.0.206 | 9093 | `http://alertmanager.homelab.lan` | None (internal) |
+| Loki | 192.168.0.210 | 3100 | `http://loki.homelab.lan` | None (internal) |
 | **Applications** |
-| Home Assistant | 192.168.0.208 | 8123 | `http://homeassistant.homelab.local` | Username/Password |
-| OpenWrt | 192.168.0.209 | 80 | `http://openwrt.homelab.local` | Username/Password |
+| Home Assistant | 192.168.0.208 | 8123 | `http://homeassistant.homelab.lan` | Username/Password |
+| OpenWrt | 192.168.0.209 | 80 | `http://openwrt.homelab.lan` | Username/Password |
 | **Media Services** |
-| Sonarr | 192.168.0.230 | 8989 | `http://sonarr.homelab.local` | API Key |
-| Radarr | 192.168.0.231 | 7878 | `http://radarr.homelab.local` | API Key |
-| Bazarr | 192.168.0.232 | 6767 | `http://bazarr.homelab.local` | API Key |
-| Prowlarr | 192.168.0.233 | 9696 | `http://prowlarr.homelab.local` | API Key |
-| qBittorrent | 192.168.0.234 | 8080 | `http://qbittorrent.homelab.local` | Username/Password |
-| Jellyfin | 192.168.0.235 | 8096 | `http://jellyfin.homelab.local` | Username/Password |
+| Sonarr | 192.168.0.230 | 8989 | `http://sonarr.homelab.lan` | API Key |
+| Radarr | 192.168.0.231 | 7878 | `http://radarr.homelab.lan` | API Key |
+| Bazarr | 192.168.0.232 | 6767 | `http://bazarr.homelab.lan` | API Key |
+| Prowlarr | 192.168.0.233 | 9696 | `http://prowlarr.homelab.lan` | API Key |
+| qBittorrent | 192.168.0.234 | 8080 | `http://qbittorrent.homelab.lan` | Username/Password |
+| Jellyfin | 192.168.0.235 | 8096 | `http://jellyfin.homelab.lan` | Username/Password |
 | **Infrastructure** |
 | Proxmox (pve-mac) | 192.168.0.56 | 8006 | `https://192.168.0.56:8006` | Username/Password or API Token |
 | Proxmox (pve-nas) | 192.168.0.57 | 8006 | `https://192.168.0.57:8006` | Username/Password or API Token |
@@ -54,10 +54,10 @@ Complete reference for accessing all services in the homelab infrastructure, inc
 All web services are accessible through Traefik reverse proxy:
 
 ```bash
-# Format: https://service-name.homelab.local
-https://grafana.homelab.local
-https://prometheus.homelab.local
-https://homeassistant.homelab.local
+# Format: https://service-name.homelab.lan
+https://grafana.homelab.lan
+https://prometheus.homelab.lan
+https://homeassistant.homelab.lan
 ```
 
 #### Direct IP Access
@@ -138,7 +138,7 @@ ssh pbs@192.168.0.110 "uptime && df -h && free -m"
 Central reverse proxy and TLS termination for all web services.
 
 **Access:**
-- Dashboard: `http://192.168.0.205:8080/dashboard/` or `https://traefik.homelab.local`
+- Dashboard: `http://192.168.0.205:8080/dashboard/` or `https://traefik.homelab.lan`
 - API: `http://192.168.0.205:8080/api/`
 
 **Health Check:**
@@ -157,7 +157,7 @@ curl -s http://192.168.0.205:8080/api/http/routers | jq '.[].name'
 Encrypted remote access to homelab network.
 
 **Server Details:**
-- Endpoint: `vpn.homelab.local:51820` or your public IP
+- Endpoint: `vpn.homelab.lan:51820` or your public IP
 - VPN Network: `10.200.0.0/24`
 - Server IP: `10.200.0.1`
 
@@ -175,7 +175,7 @@ pct exec 203 -- systemctl status wg-quick@wg0
 DNS filtering and ad blocking.
 
 **Access:**
-- Web UI: `http://192.168.0.204` or `https://adguard.homelab.local`
+- Web UI: `http://192.168.0.204` or `https://adguard.homelab.lan`
 - DNS: `192.168.0.204:53`
 - Setup (first time): `http://192.168.0.204:3000`
 
@@ -224,7 +224,7 @@ pct exec 202 -- systemctl status unbound
 Metrics collection and storage.
 
 **Access:**
-- Web UI: `http://192.168.0.200:9090` or `https://prometheus.homelab.local`
+- Web UI: `http://192.168.0.200:9090` or `https://prometheus.homelab.lan`
 - API: `http://192.168.0.200:9090/api/v1/`
 
 **Health Check:**
@@ -253,7 +253,7 @@ curl -s 'http://192.168.0.200:9090/api/v1/query?query=node_memory_MemAvailable_b
 Visualization and dashboards.
 
 **Access:**
-- Web UI: `http://192.168.0.201:3000` or `https://grafana.homelab.local`
+- Web UI: `http://192.168.0.201:3000` or `https://grafana.homelab.lan`
 - API: `http://192.168.0.201:3000/api/`
 
 **Default Credentials:**
@@ -283,7 +283,7 @@ pct exec 201 -- systemctl status grafana-server
 Alert routing and notification.
 
 **Access:**
-- Web UI: `http://192.168.0.206:9093` or `https://alertmanager.homelab.local`
+- Web UI: `http://192.168.0.206:9093` or `https://alertmanager.homelab.lan`
 - API: `http://192.168.0.206:9093/api/v2/`
 
 **Health Check:**
@@ -331,7 +331,7 @@ pct exec 210 -- systemctl status loki
 Home automation platform.
 
 **Access:**
-- Web UI: `http://192.168.0.208:8123` or `https://homeassistant.homelab.local`
+- Web UI: `http://192.168.0.208:8123` or `https://homeassistant.homelab.lan`
 - API: `http://192.168.0.208:8123/api/`
 
 **Authentication:**
@@ -356,7 +356,7 @@ pct exec 208 -- systemctl status homeassistant
 TV show management and automation.
 
 **Access:**
-- Web UI: `http://192.168.0.230:8989` or `https://sonarr.homelab.local`
+- Web UI: `http://192.168.0.230:8989` or `https://sonarr.homelab.lan`
 - API: `http://192.168.0.230:8989/api/v3/`
 
 **API Key:** Found in Settings → General → API Key
@@ -376,7 +376,7 @@ pct exec 230 -- systemctl status sonarr
 Movie management and automation.
 
 **Access:**
-- Web UI: `http://192.168.0.231:7878` or `https://radarr.homelab.local`
+- Web UI: `http://192.168.0.231:7878` or `https://radarr.homelab.lan`
 - API: `http://192.168.0.231:7878/api/v3/`
 
 **API Key:** Found in Settings → General → API Key
@@ -396,7 +396,7 @@ pct exec 231 -- systemctl status radarr
 Indexer management for *arr stack.
 
 **Access:**
-- Web UI: `http://192.168.0.233:9696` or `https://prowlarr.homelab.local`
+- Web UI: `http://192.168.0.233:9696` or `https://prowlarr.homelab.lan`
 - API: `http://192.168.0.233:9696/api/v1/`
 
 **Health Check:**
@@ -414,7 +414,7 @@ pct exec 233 -- systemctl status prowlarr
 Media streaming server.
 
 **Access:**
-- Web UI: `http://192.168.0.235:8096` or `https://jellyfin.homelab.local`
+- Web UI: `http://192.168.0.235:8096` or `https://jellyfin.homelab.lan`
 - API: `http://192.168.0.235:8096/`
 
 **Health Check:**
@@ -431,7 +431,7 @@ pct exec 235 -- systemctl status jellyfin
 BitTorrent client.
 
 **Access:**
-- Web UI: `http://192.168.0.234:8080` or `https://qbittorrent.homelab.local`
+- Web UI: `http://192.168.0.234:8080` or `https://qbittorrent.homelab.lan`
 - API: `http://192.168.0.234:8080/api/v2/`
 
 **Default Credentials:**
@@ -619,8 +619,8 @@ ansible-playbook tests/validate-services.yml
 
 2. **Check DNS servers:**
    ```bash
-   dig @192.168.0.202 grafana.homelab.local
-   dig @192.168.0.204 grafana.homelab.local
+   dig @192.168.0.202 grafana.homelab.lan
+   dig @192.168.0.204 grafana.homelab.lan
    ```
 
 3. **Verify DNS configuration:**

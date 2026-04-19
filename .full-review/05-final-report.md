@@ -53,7 +53,7 @@ The infrastructure codebase shows strong foundational practices — vault usage 
 | CQ-H2 | Legacy `lxc_container` role duplicates `container_base` — only referenced by deleted legacy playbooks |
 | CQ-H3 | Root-level legacy playbooks reference stale hostnames (`unbound-lxc`, `adguard-lxc`) and deprecated roles |
 | CQ-H4 | `proxmox_config` defined in 3 separate places with divergent key formats and legacy password fields |
-| CQ-H5 | `homelab_domain` defined 4+ times; `homelab_network` DNS differs across 3 files — NAS VMs cannot resolve `*.homelab.local` |
+| CQ-H5 | `homelab_domain` defined 4+ times; `homelab_network` DNS differs across 3 files — NAS VMs cannot resolve `*.homelab.lan` |
 | CQ-H6 | Makefile references non-existent playbooks (`backup.yml`, `performance/local_performance_test.yml`) |
 | CQ-H7 | Duplicate enclave playbooks: `secure-enclave.yml` and `enclave.yml` |
 | AR-H1 | 6 K3s roles in `proxmox_lxc` use `-lxc` hostnames not in inventory — dead code that misleads |

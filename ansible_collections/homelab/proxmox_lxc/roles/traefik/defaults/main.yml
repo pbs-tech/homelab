@@ -10,7 +10,7 @@ traefik_metrics_port: 8082
 # Uses step-ca (192.168.0.212) as a local ACME CA via TLS-ALPN-01 challenge.
 # Certs are signed by the homelab root CA — install it on clients once.
 traefik_tls_enabled: true
-traefik_ssl_email: admin@homelab.local
+traefik_ssl_email: admin@homelab.lan
 traefik_ssl_resolver: step-ca
 
 # step-ca ACME endpoint and root cert (fetched from step-ca host during deploy)
@@ -19,7 +19,7 @@ step_ca_root_cert_path: "/etc/traefik/step-ca-root.crt"
 step_ca_config_dir: /etc/step-ca
 
 # Domain for homelab services
-homelab_domain: homelab.local
+homelab_domain: homelab.lan
 
 # Service endpoints
 services:
@@ -77,6 +77,13 @@ services:
     ip: 192.168.0.235
     port: 8096
     domain: jellyfin.{{ homelab_domain }}
+
+  truenas:
+    ip: 192.168.0.220
+    port: 443
+    scheme: https
+    insecure_tls: true
+    domain: truenas.{{ homelab_domain }}
 
 
 # K3s cluster integration (disabled by default - requires proper kubeconfig)

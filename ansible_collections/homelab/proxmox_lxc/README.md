@@ -135,11 +135,11 @@ The collection integrates with your existing K3s cluster by:
 
 After deployment, services will be available at:
 
-- `https://prometheus.homelab.local` - Prometheus monitoring
-- `https://grafana.homelab.local` - Grafana dashboards
-- `https://ha.homelab.local` - Home Assistant
-- `https://adguard.homelab.local` - AdGuard Home
-- `https://k3s.homelab.local` - K3s cluster services
+- `https://prometheus.homelab.lan` - Prometheus monitoring
+- `https://grafana.homelab.lan` - Grafana dashboards
+- `https://ha.homelab.lan` - Home Assistant
+- `https://adguard.homelab.lan` - AdGuard Home
+- `https://k3s.homelab.lan` - K3s cluster services
 
 ## Configuration
 

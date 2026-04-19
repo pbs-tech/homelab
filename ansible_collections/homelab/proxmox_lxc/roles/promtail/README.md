@@ -148,7 +148,7 @@ promtail_scrape_configs:
 ```yaml
 - hosts: all_servers
   vars:
-    loki_endpoint: http://loki.homelab.local:3100
+    loki_endpoint: http://loki.homelab.lan:3100
   roles:
     - homelab.proxmox_lxc.promtail
 ```

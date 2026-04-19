@@ -116,13 +116,13 @@
       when: traefik_api is succeeded
 
     - name: Test DNS resolution (Unbound)
-      ansible.builtin.command: dig @192.168.0.202 homelab.local +short
+      ansible.builtin.command: dig @192.168.0.202 homelab.lan +short
       register: dns_unbound
       changed_when: false
       failed_when: false
 
     - name: Test DNS resolution (AdGuard)
-      ansible.builtin.command: dig @192.168.0.204 homelab.local +short
+      ansible.builtin.command: dig @192.168.0.204 homelab.lan +short
       register: dns_adguard
       changed_when: false
       failed_when: false
