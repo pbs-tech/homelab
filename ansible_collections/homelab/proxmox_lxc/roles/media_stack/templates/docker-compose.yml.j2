@@ -1,0 +1,134 @@
+# Managed by Ansible - {{ ansible_managed }}
+# Media stack: Sonarr, Radarr, Bazarr, Prowlarr, qBittorrent (+ Gluetun VPN), Jellyfin
+# All services run as PUID={{ media_stack_puid }}/PGID={{ media_stack_pgid }} with NFS at {{ media_stack_nfs_mount }}
+
+services:
+
+  sonarr:
+    image: {{ sonarr_image }}
+    container_name: sonarr
+    environment:
+      - PUID={{ media_stack_puid }}
+      - PGID={{ media_stack_pgid }}
+      - TZ={{ media_stack_timezone }}
+    volumes:
+      - {{ media_stack_data_dir }}/sonarr/config:/config
+      - {{ media_stack_nfs_mount }}:{{ media_stack_nfs_mount }}
+    ports:
+      - "{{ sonarr_port }}:{{ sonarr_port }}"
+    restart: {{ media_stack_restart_policy }}
+    mem_limit: {{ sonarr_memory }}
+
+  radarr:
+    image: {{ radarr_image }}
+    container_name: radarr
+    environment:
+      - PUID={{ media_stack_puid }}
+      - PGID={{ media_stack_pgid }}
+      - TZ={{ media_stack_timezone }}
+    volumes:
+      - {{ media_stack_data_dir }}/radarr/config:/config
+      - {{ media_stack_nfs_mount }}:{{ media_stack_nfs_mount }}
+    ports:
+      - "{{ radarr_port }}:{{ radarr_port }}"
+    restart: {{ media_stack_restart_policy }}
+    mem_limit: {{ radarr_memory }}
+
+  bazarr:
+    image: {{ bazarr_image }}
+    container_name: bazarr
+    environment:
+      - PUID={{ media_stack_puid }}
+      - PGID={{ media_stack_pgid }}
+      - TZ={{ media_stack_timezone }}
+    volumes:
+      - {{ media_stack_data_dir }}/bazarr/config:/config
+      - {{ media_stack_nfs_mount }}:{{ media_stack_nfs_mount }}
+    ports:
+      - "{{ bazarr_port }}:{{ bazarr_port }}"
+    restart: {{ media_stack_restart_policy }}
+    mem_limit: {{ bazarr_memory }}
+
+  prowlarr:
+    image: {{ prowlarr_image }}
+    container_name: prowlarr
+    environment:
+      - PUID={{ media_stack_puid }}
+      - PGID={{ media_stack_pgid }}
+      - TZ={{ media_stack_timezone }}
+    volumes:
+      - {{ media_stack_data_dir }}/prowlarr/config:/config
+    ports:
+      - "{{ prowlarr_port }}:{{ prowlarr_port }}"
+    restart: {{ media_stack_restart_policy }}
+    mem_limit: {{ prowlarr_memory }}
+
+{% if qbittorrent_vpn_enabled | bool %}
+  # Gluetun VPN sidecar — qBittorrent runs inside its network namespace.
+  # All torrent traffic exits via NordVPN; if VPN drops, qBittorrent loses network (kill-switch).
+  gluetun:
+    image: {{ gluetun_image }}
+    container_name: gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      - VPN_SERVICE_PROVIDER={{ qbittorrent_vpn_service_provider }}
+      - VPN_TYPE={{ qbittorrent_vpn_type }}
+{% if qbittorrent_vpn_type == 'openvpn' %}
+      - OPENVPN_USER={{ qbittorrent_vpn_openvpn_username }}
+      - OPENVPN_PASSWORD={{ qbittorrent_vpn_openvpn_password }}
+{% elif qbittorrent_vpn_type == 'wireguard' %}
+      - WIREGUARD_PRIVATE_KEY={{ qbittorrent_vpn_wireguard_private_key | default('') }}
+{% endif %}
+      - SERVER_COUNTRIES={{ qbittorrent_vpn_server_countries }}
+    ports:
+      - "{{ qbittorrent_webui_port }}:{{ qbittorrent_webui_port }}"
+    restart: {{ media_stack_restart_policy }}
+    mem_limit: 256m
+
+{% endif %}
+  qbittorrent:
+    image: {{ qbittorrent_image }}
+    container_name: qbittorrent
+{% if qbittorrent_vpn_enabled | bool %}
+    network_mode: "service:gluetun"
+    depends_on:
+      - gluetun
+{% else %}
+    ports:
+      - "{{ qbittorrent_webui_port }}:{{ qbittorrent_webui_port }}"
+      - "{{ qbittorrent_torrent_port }}:{{ qbittorrent_torrent_port }}"
+      - "{{ qbittorrent_torrent_port }}:{{ qbittorrent_torrent_port }}/udp"
+{% endif %}
+    environment:
+      - PUID={{ media_stack_puid }}
+      - PGID={{ media_stack_pgid }}
+      - TZ={{ media_stack_timezone }}
+      - WEBUI_PORT={{ qbittorrent_webui_port }}
+    volumes:
+      - {{ media_stack_data_dir }}/qbittorrent/config:/config
+      - {{ media_stack_nfs_mount }}:{{ media_stack_nfs_mount }}
+    restart: {{ media_stack_restart_policy }}
+    mem_limit: {{ qbittorrent_memory }}
+
+  jellyfin:
+    image: {{ jellyfin_image }}
+    container_name: jellyfin
+    user: "{{ media_stack_puid }}:{{ media_stack_pgid }}"
+    environment:
+      - TZ={{ media_stack_timezone }}
+    volumes:
+      - {{ media_stack_data_dir }}/jellyfin/config:/config
+      - {{ media_stack_data_dir }}/jellyfin/cache:/cache
+      - {{ media_stack_nfs_mount }}:{{ media_stack_nfs_mount }}:ro
+    ports:
+      - "{{ jellyfin_port }}:{{ jellyfin_port }}"
+      - "{{ jellyfin_https_port }}:{{ jellyfin_https_port }}"
+{% if jellyfin_hardware_accel | bool %}
+    devices:
+      - {{ jellyfin_gpu_device }}:{{ jellyfin_gpu_device }}
+{% endif %}
+    restart: {{ media_stack_restart_policy }}
+    mem_limit: {{ jellyfin_memory }}

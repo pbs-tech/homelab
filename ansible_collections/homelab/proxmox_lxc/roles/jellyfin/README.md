@@ -1,5 +1,9 @@
 # Jellyfin Role
 
+> **Deprecated**: This role has been superseded by `homelab.proxmox_lxc.media_stack`,
+> which deploys all arr services as a unified Docker Compose stack on a single Ubuntu VM.
+> This role is retained for reference only and is no longer deployed.
+
 Deploys Jellyfin media streaming server in an LXC container using Docker, providing a self-hosted media solution for movies, TV shows, music, and more.
 
 ## Features

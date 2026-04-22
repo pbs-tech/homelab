@@ -14,8 +14,7 @@ services:
       - TZ={{ radarr_timezone }}
     volumes:
       - {{ radarr_config_dir }}:/config
-      - {{ radarr_media_dir }}:/movies
-      - {{ radarr_download_dir }}:/downloads
+      - /mnt/nas:/mnt/nas
 {% for volume in radarr_extra_volumes %}
       - {{ volume }}
 {% endfor %}

@@ -1,5 +1,9 @@
 # Radarr Role
 
+> **Deprecated**: This role has been superseded by `homelab.proxmox_lxc.media_stack`,
+> which deploys all arr services as a unified Docker Compose stack on a single Ubuntu VM.
+> This role is retained for reference only and is no longer deployed.
+
 Deploys Radarr movie management in an LXC container using Docker, providing automated movie downloading, organization, and library management.
 
 ## Features

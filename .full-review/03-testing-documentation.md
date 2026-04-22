@@ -51,6 +51,7 @@ No test exercises or validates the behaviour of `skip_networking`, `skip_monitor
 ### Medium
 
 #### TEST-M1: Only 1 of 8 molecule scenarios has the idempotence step enabled
+
 | Scenario | Idempotence | Notes |
 |---|---|---|
 | `common/default` | ✅ Yes | Only one |

@@ -170,19 +170,25 @@ warms up within hours of normal use. This is expected behaviour.
 
 ## 4. Dataset Structure
 
-All datasets live under `tank`. This is required for hard-links to work between downloads and
-media — they must share the same ZFS pool.
+Hard-links require that both paths share the **same ZFS dataset** (filesystem), not just the
+same pool. Each ZFS dataset has its own inode namespace — `ln` across dataset boundaries fails
+with `Invalid cross-device link` even when both datasets are on `tank`.
+
+The correct layout uses a **single `tank/data` dataset** for all arr stack storage, with
+`media/` and `downloads/` as plain subdirectories inside it. `documents` and `backups` are
+separate datasets because they have no hard-link relationship with the media stack.
 
 ```
 tank/
-├── media/              ← Shared media library (NFS to LXC containers)
-│   ├── tv/             ← Sonarr-managed TV shows
-│   └── movies/         ← Radarr-managed movies
-├── downloads/          ← qBittorrent active + completed downloads
-│   ├── complete/
-│   │   ├── tv/         ← tv-sonarr category landing zone
-│   │   └── movies/     ← radarr category landing zone
-│   └── incomplete/     ← In-progress torrent data
+├── data/               ← Single ZFS dataset — media and downloads share one inode namespace
+│   ├── media/          ← Shared media library (NFS to LXC containers)
+│   │   ├── tv/         ← Sonarr-managed TV shows
+│   │   └── movies/     ← Radarr-managed movies
+│   └── downloads/      ← qBittorrent active + completed downloads
+│       ├── complete/
+│       │   ├── tv/     ← tv-sonarr category landing zone
+│       │   └── movies/ ← radarr category landing zone
+│       └── incomplete/ ← In-progress torrent data
 ├── documents/          ← General file storage (SMB)
 │   ├── shared/         ← Shared between all users
 │   └── private/        ← Per-user subdirectories
@@ -193,8 +199,7 @@ tank/
 
 | Dataset | Quota | Notes |
 |---------|-------|-------|
-| `tank/media` | 1.2 TB | Primary storage, grows continuously |
-| `tank/downloads` | 400 GB | Transient — removed after import |
+| `tank/data` | 1600 GB | Covers both media and downloads |
 | `tank/documents` | 100 GB | General files |
 | `tank/backups` | 50 GB | LXC configs are small |
 
@@ -204,7 +209,7 @@ Set via **Storage → [dataset] → Edit → Quota for this dataset**.
 
 **Storage → tank → Add Dataset** for each entry.
 
-Settings for `media/` and `downloads/`:
+Settings for `data/` (arr stack — media and downloads):
 
 | Setting | Value |
 |---------|-------|
@@ -213,6 +218,21 @@ Settings for `media/` and `downloads/`:
 | Case Sensitivity | `Insensitive` |
 | ACL Mode | `Passthrough` |
 | ACL Type | `POSIX` |
+
+After creating `tank/data`, create the subdirectories inside it via **System → Shell** — do not
+create them as child datasets or hard-links will break:
+
+```bash
+mkdir -p /mnt/tank/data/media/tv
+mkdir -p /mnt/tank/data/media/movies
+mkdir -p /mnt/tank/data/downloads/complete/tv
+mkdir -p /mnt/tank/data/downloads/complete/movies
+mkdir -p /mnt/tank/data/downloads/incomplete
+chown -R 1000:1000 /mnt/tank/data
+```
+
+> Ansible creates these automatically during deployment — the `mkdir` above is only needed if
+> you want the directories to exist before running the playbooks.
 
 Settings for `documents/` (SMB):
 
@@ -261,7 +281,7 @@ ownership aligns.
 
 ### Set Dataset Permissions
 
-For each dataset under `tank/media/` and `tank/downloads/`:
+For the `tank/data` dataset:
 
 **Storage → [dataset] → Edit Permissions:**
 
@@ -289,22 +309,16 @@ Linux-to-Linux mounts.
 
 **Shares → NFS → Add** for each export:
 
-#### Media Library
+#### Arr Stack (media + downloads)
+
+Export the entire `tank/data` dataset as a **single share**. Exporting `media` and `downloads`
+as separate shares would create two mount points on the client — hard links would fail across
+them even though the underlying ZFS dataset is the same.
 
 | Field | Value |
 |-------|-------|
-| Path | `/mnt/tank/media` |
-| Description | `Arr stack media library` |
-| Maproot User | `root` |
-| Maproot Group | `root` |
-| Authorized Networks | `192.168.0.0/24` |
-
-#### Downloads
-
-| Field | Value |
-|-------|-------|
-| Path | `/mnt/tank/downloads` |
-| Description | `qBittorrent downloads` |
+| Path | `/mnt/tank/data` |
+| Description | `Arr stack data (media + downloads)` |
 | Maproot User | `root` |
 | Maproot Group | `root` |
 | Authorized Networks | `192.168.0.0/24` |
@@ -328,9 +342,8 @@ showmount -e 192.168.0.220
 Expected:
 ```
 Export list for 192.168.0.220:
-/mnt/tank/backups   192.168.0.0/24
-/mnt/tank/downloads 192.168.0.0/24
-/mnt/tank/media     192.168.0.0/24
+/mnt/tank/backups  192.168.0.0/24
+/mnt/tank/data     192.168.0.0/24
 ```
 
 ---
@@ -371,65 +384,53 @@ Export list for 192.168.0.220:
 
 ## 8. Mounting NFS on LXC Containers
 
+### How Mounting Works
+
+Unprivileged LXC containers cannot call `mount(2)` — the kernel strips `CAP_SYS_ADMIN`.
+Attempting NFS mounts inside the container produces `mount.nfs: Operation not permitted`.
+
+The correct approach (implemented in `homelab.common.nas_mounts`):
+
+1. `nfs-common` is installed and NFS shares are mounted on the **Proxmox host** (`pve-nas`)
+2. LXC bind-mount entries are written to `/etc/pve/lxc/<vmid>.conf` via `pct set`
+3. The container reboots to apply the bind mounts — Ansible reconnects automatically
+
+The container sees `/mnt/nas/media` and `/mnt/nas/downloads` as local paths. No NFS
+client is needed inside the container.
+
 ### Ansible Variable Overrides
 
-Add to `inventory/group_vars/nas_services.yml`:
+Already configured in `inventory/group_vars/nas_services.yml`:
 
 ```yaml
-# Sonarr
+nas_nfs_server: "192.168.0.220"
+
 sonarr_media_dir: /mnt/nas/media/tv
 sonarr_download_dir: /mnt/nas/downloads
 
-# Radarr
 radarr_media_dir: /mnt/nas/media/movies
 radarr_download_dir: /mnt/nas/downloads
 
-# Bazarr
 bazarr_media_dir: /mnt/nas/media
-
-# qBittorrent
 qbittorrent_download_dir: /mnt/nas/downloads
-
-# Jellyfin
 jellyfin_media_dir: /mnt/nas/media
 ```
 
-### NFS Mount Tasks (per container)
+### What the `homelab.common.nas_mounts` Role Does
 
-```yaml
-- name: Install NFS client
-  ansible.builtin.apt:
-    name: nfs-common
-    state: present
+All roles use a single NFS mount: `192.168.0.220:/mnt/tank/data` → `/mnt/nas` on the
+Proxmox host, bind-mounted into the container at `/mnt/nas`. `media/` and `downloads/`
+are subdirectories of that one mount — same filesystem, hard links work.
 
-- name: Create NAS mount points
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: directory
-    mode: "0755"
-  loop:
-    - /mnt/nas
-    - /mnt/nas/media
-    - /mnt/nas/downloads
+| Role | Subdirs created on share |
+|------|--------------------------|
+| sonarr | `media/tv` |
+| radarr | `media/movies` |
+| bazarr | — |
+| qbittorrent | `downloads/complete/tv`, `downloads/complete/movies`, `downloads/incomplete` |
+| jellyfin | — |
 
-- name: Mount NAS media (persistent via fstab)
-  ansible.posix.mount:
-    path: /mnt/nas/media
-    src: 192.168.0.220:/mnt/tank/media
-    fstype: nfs
-    opts: "rw,nfsvers=4,hard,intr,timeo=600,retrans=5,rsize=131072,wsize=131072,_netdev"
-    state: mounted
-
-- name: Mount NAS downloads (persistent via fstab)
-  ansible.posix.mount:
-    path: /mnt/nas/downloads
-    src: 192.168.0.220:/mnt/tank/downloads
-    fstype: nfs
-    opts: "rw,nfsvers=4,hard,intr,timeo=600,retrans=5,rsize=131072,wsize=131072,_netdev"
-    state: mounted
-```
-
-### NFS Mount Options
+### NFS Mount Options (applied on Proxmox host)
 
 | Option | Purpose |
 |--------|---------|
@@ -452,8 +453,7 @@ protects against drive failure.
 
 | Dataset | Schedule | Lifetime | Notes |
 |---------|----------|----------|-------|
-| `tank/media` | Daily 03:00 | 14 days | Short — media is large, space is limited |
-| `tank/downloads` | Daily 04:00 | 2 days | Transient data |
+| `tank/data` | Daily 03:00 | 14 days | Short — media is large, space is limited |
 | `tank/documents` | Daily 03:30 | 60 days | Worth longer retention |
 | `tank/backups` | Daily 02:30 | 30 days | Small files, keep more history |
 
@@ -463,12 +463,12 @@ Enable **Recursive** on all tasks.
 
 **Data Protection → Replication Tasks → Add:**
 
-Replicate at minimum `tank/media` and `tank/documents` to a second machine with ZFS (another
+Replicate at minimum `tank/data` and `tank/documents` to a second machine with ZFS (another
 TrueNAS instance, or any Linux host with OpenZFS):
 
 | Setting | Value |
 |---------|-------|
-| Source | `tank/media`, `tank/documents` |
+| Source | `tank/data`, `tank/documents` |
 | Transport | SSH |
 | Schedule | Weekly |
 | Recursive | ✓ |
@@ -482,17 +482,19 @@ path point to the same inode. Essential on HDD where a 20GB file copy is slow an
 
 ```bash
 # In TrueNAS System → Shell
-touch /mnt/tank/downloads/complete/tv/test.mkv
-ln /mnt/tank/downloads/complete/tv/test.mkv /mnt/tank/media/tv/test.mkv
+touch /mnt/tank/data/downloads/complete/tv/test.mkv
+ln /mnt/tank/data/downloads/complete/tv/test.mkv /mnt/tank/data/media/tv/test.mkv
 
 # Verify same inode (column 1 must match)
-ls -li /mnt/tank/downloads/complete/tv/test.mkv /mnt/tank/media/tv/test.mkv
+ls -li /mnt/tank/data/downloads/complete/tv/test.mkv /mnt/tank/data/media/tv/test.mkv
 
-rm /mnt/tank/downloads/complete/tv/test.mkv /mnt/tank/media/tv/test.mkv
+rm /mnt/tank/data/downloads/complete/tv/test.mkv /mnt/tank/data/media/tv/test.mkv
 ```
 
-`Invalid cross-device link` means the two datasets are on different pools — both must be
-under `tank`.
+`Invalid cross-device link` means the two paths are in different ZFS datasets. Hard-links
+require the **same dataset** (filesystem), not just the same pool. Both paths must be inside
+`tank/data` — they cannot be in separate child datasets such as `tank/media` and
+`tank/downloads`.
 
 ---
 

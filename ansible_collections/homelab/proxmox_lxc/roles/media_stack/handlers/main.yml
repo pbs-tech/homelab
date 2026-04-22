@@ -1,0 +1,6 @@
+---
+- name: Restart media-stack
+  ansible.builtin.systemd:
+    name: media-stack
+    state: restarted
+    daemon_reload: true

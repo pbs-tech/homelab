@@ -1,13 +1,4 @@
 ---
-# NAS media services container configuration
-# Applied to: sonarr, radarr, bazarr, prowlarr, qbittorrent, jellyfin
-
-# Default container resources for NAS services
-lxc_cores: 1
-lxc_memory: 512
-lxc_swap: 0
-lxc_disk_size: 8
-
-# Service-specific overrides
-# jellyfin: cores=2, memory=2048, disk=16 (transcoding)
-# qbittorrent: memory=1024, disk=8
+# The nas_services group is now empty — all media services run on the media-stack VM.
+# This file is retained to avoid "undefined group_vars" warnings.
+# See: ansible_collections/homelab/proxmox_lxc/roles/media_stack/
