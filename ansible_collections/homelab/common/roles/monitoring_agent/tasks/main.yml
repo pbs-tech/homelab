@@ -11,16 +11,10 @@
       - curl
       - wget
       - jq
-      - python3-pip
       - unzip
-    state: present
-
-- name: Install Python monitoring libraries
-  ansible.builtin.pip:
-    name:
-      - psutil
-      - requests
-      - prometheus_client
+      - python3-psutil
+      - python3-requests
+      - python3-prometheus-client
     state: present
 
 - name: Create monitoring user

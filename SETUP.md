@@ -303,7 +303,9 @@ telnet 192.168.0.200 9090
 
 3. **Customize Services**
    - Configure Home Assistant for your smart home devices
-   - Set up media management with Sonarr/Radarr
+   - Set up media management: see the [media_stack role README](ansible_collections/homelab/proxmox_lxc/roles/media_stack/README.md)
+     for step-by-step Prowlarr/Radarr/Sonarr wiring. All services run on a single Ubuntu VM
+     (192.168.0.230) and communicate using Docker container names — not the VM IP.
 
 4. **Security Hardening Review**
    - Review firewall rules: `make test-security`

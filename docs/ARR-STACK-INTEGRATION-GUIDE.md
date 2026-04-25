@@ -5,33 +5,40 @@ Complete wiring guide for all media stack components. For qBittorrent setup see
 
 ## Service Map
 
-| Service     | IP              | Port | Purpose                        |
-|-------------|-----------------|------|--------------------------------|
-| Prowlarr    | 192.168.0.233   | 9696 | Indexer management             |
-| Sonarr      | 192.168.0.230   | 8989 | TV show automation             |
-| Radarr      | 192.168.0.231   | 7878 | Movie automation               |
-| Bazarr      | 192.168.0.232   | 6767 | Subtitle management            |
-| qBittorrent | 192.168.0.234   | 8080 | Download client (VPN-wrapped)  |
-| Jellyfin    | 192.168.0.235   | 8096 | Media streaming                |
+All services run as Docker containers on a single Ubuntu VM at **192.168.0.230**.
+Access via browser uses the VM IP. Service-to-service communication uses Docker container names.
+
+| Service     | Browser URL                   | Container name | Port |
+|-------------|-------------------------------|----------------|------|
+| Prowlarr    | http://192.168.0.230:9696     | `prowlarr`     | 9696 |
+| Sonarr      | http://192.168.0.230:8989     | `sonarr`       | 8989 |
+| Radarr      | http://192.168.0.230:7878     | `radarr`       | 7878 |
+| Bazarr      | http://192.168.0.230:6767     | `bazarr`       | 6767 |
+| qBittorrent | http://192.168.0.230:8080     | `gluetun`      | 8080 |
+| Jellyfin    | http://192.168.0.230:8096     | `jellyfin`     | 8096 |
+
+> **qBittorrent container name is `gluetun`** — qBittorrent shares gluetun's network namespace,
+> so its port is exposed on the `gluetun` container. Use `gluetun:8080` anywhere you configure
+> a qBittorrent download client.
 
 ## Shared Filesystem Convention
 
-All containers mount the same underlying paths so hard-linking works:
+All services mount the same NAS path so hard-linking works:
 
 ```
-/downloads/          ← qBittorrent writes here
+/mnt/nas/downloads/      ← qBittorrent writes here
   complete/
-    tv/              ← tv-sonarr category
-    movies/          ← radarr category
+    tv/                  ← tv-sonarr category
+    movies/              ← radarr category
   incomplete/
 
-/media/              ← Sonarr/Radarr/Jellyfin/Bazarr all read from here
+/mnt/nas/media/          ← Sonarr/Radarr/Jellyfin/Bazarr all read from here
   tv/
   movies/
 ```
 
 > Hard-linking requires `/downloads` and `/media` to be on the **same filesystem**.
-> If using a NAS mount, both must be under the same mount point.
+> Both are under `/mnt/nas` (single TrueNAS NFS mount), so hard-linking works correctly.
 
 ---
 
@@ -40,17 +47,19 @@ All containers mount the same underlying paths so hard-linking works:
 **Settings → Apps → Add Application** (add one for each):
 
 ```
-Name:       Sonarr
-URL:        http://192.168.0.230:8989
-API Key:    <Sonarr → Settings → General → API Key>
-Sync Level: Full Sync
+Name:             Sonarr
+Prowlarr Server:  http://prowlarr:9696
+Radarr Server:    http://sonarr:8989
+API Key:          <Sonarr → Settings → General → API Key>
+Sync Level:       Full Sync
 ```
 
 ```
-Name:       Radarr
-URL:        http://192.168.0.231:7878
-API Key:    <Radarr → Settings → General → API Key>
-Sync Level: Full Sync
+Name:             Radarr
+Prowlarr Server:  http://prowlarr:9696
+Radarr Server:    http://radarr:7878
+API Key:          <Radarr → Settings → General → API Key>
+Sync Level:       Full Sync
 ```
 
 Click **Sync App Indexers** after saving. All indexers now appear in Sonarr/Radarr automatically.
@@ -64,16 +73,17 @@ Repeat in **both** Sonarr and Radarr:
 **Settings → Download Clients → Add → qBittorrent:**
 
 ```
-Host:      192.168.0.234
+Host:      gluetun        ← NOT the VM IP or "qbittorrent"
 Port:      8080
 Username:  admin
-Password:  <your password>
+Password:  <vault_qbittorrent_admin_password>
 Category:  tv-sonarr      ← Sonarr only
 Category:  radarr         ← Radarr only
 ```
 
-> Note: qBittorrent runs behind Gluetun (NordVPN). The WebUI is still accessible on the
-> LAN at port 8080 — only torrent traffic is tunnelled through the VPN.
+> qBittorrent shares gluetun's network namespace. The port is exposed on the `gluetun`
+> container — using `qbittorrent` or `192.168.0.230` as the host will fail.
+> Only torrent traffic is tunnelled through NordVPN; the WebUI is accessible on the LAN.
 
 ---
 
@@ -84,7 +94,7 @@ Bazarr downloads subtitles after Sonarr/Radarr import files.
 **Settings → Sonarr:**
 ```
 Enable:   ✓
-Host:     192.168.0.230
+Host:     sonarr
 Port:     8989
 API Key:  <Sonarr API Key>
 ```
@@ -92,7 +102,7 @@ API Key:  <Sonarr API Key>
 **Settings → Radarr:**
 ```
 Enable:   ✓
-Host:     192.168.0.231
+Host:     radarr
 Port:     7878
 API Key:  <Radarr API Key>
 ```
@@ -108,14 +118,14 @@ Bazarr will automatically download subtitles for any media Sonarr/Radarr imports
 
 ## 4. Jellyfin Library Setup
 
-Jellyfin reads from `/media` — point each library at the correct subfolder.
+Jellyfin reads from `/mnt/nas/media` — point each library at the correct subfolder.
 
 **Dashboard → Libraries → Add Media Library:**
 
-| Library Name | Type   | Folder          |
-|--------------|--------|-----------------|
-| TV Shows     | Shows  | `/media/tv`     |
-| Movies       | Movies | `/media/movies` |
+| Library Name | Type   | Folder                |
+|--------------|--------|-----------------------|
+| TV Shows     | Shows  | `/mnt/nas/media/tv`   |
+| Movies       | Movies | `/mnt/nas/media/movies` |
 
 **Recommended metadata agents (Plugins → Catalog):**
 - TMDb (movies)
@@ -138,7 +148,7 @@ In **both** Sonarr and Radarr:
 **Settings → Connect → Add → Emby/Jellyfin:**
 ```
 Name:    Jellyfin
-Host:    192.168.0.235
+Host:    jellyfin
 Port:    8096
 API Key: <Jellyfin API Key from step 4>
 ```

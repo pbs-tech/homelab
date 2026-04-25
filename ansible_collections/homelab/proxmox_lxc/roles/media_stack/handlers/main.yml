@@ -1,4 +1,9 @@
 ---
+- name: Restart Docker
+  ansible.builtin.systemd:
+    name: docker
+    state: restarted
+
 - name: Restart media-stack
   ansible.builtin.systemd:
     name: media-stack

@@ -29,3 +29,6 @@ grafana_ip: "192.168.0.201"
 adguard_ip: "192.168.0.204"
 traefik_ip: "192.168.0.205"
 homeassistant_ip: "192.168.0.208"
+
+# Media stack VM (consolidated arr services)
+media_stack_ip: "192.168.0.230"

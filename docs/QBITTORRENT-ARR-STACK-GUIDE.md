@@ -1,21 +1,29 @@
 # qBittorrent + Arr Stack Guide
 
-This guide covers configuring qBittorrent (192.168.0.234) to work with your arr stack (Sonarr/Radarr/Prowlarr) for automated media management.
+This guide covers configuring qBittorrent to work with your arr stack (Sonarr/Radarr/Prowlarr)
+for automated media management.
+
+qBittorrent runs as a Docker container on the media-stack VM (192.168.0.230:8080), with all
+torrent traffic routed through NordVPN via a Gluetun sidecar.
+
+> **Important**: When configuring qBittorrent as a download client in Sonarr/Radarr/Prowlarr,
+> use host `gluetun` (not `qbittorrent` or `192.168.0.230`). qBittorrent shares gluetun's
+> network namespace, so its port is exposed on the `gluetun` container.
 
 ---
 
 ## 1. qBittorrent Setup
 
 ### Access the Web UI
-Navigate to `http://192.168.0.234` (or via Traefik if configured).
+Navigate to `http://192.168.0.230:8080` or `https://qbittorrent.homelab.lan`.
 
-Default credentials are typically `admin` / `adminadmin` — change immediately.
+Credentials are set via `vault_qbittorrent_admin_password` in your vault.
 
 ### Configure Downloads
 
 **Tools → Options → Downloads:**
-- **Default Save Path**: `/downloads/complete` (or your NAS-mounted path)
-- **Keep incomplete torrents in**: `/downloads/incomplete`
+- **Default Save Path**: `/mnt/nas/downloads/complete`
+- **Keep incomplete torrents in**: `/mnt/nas/downloads/incomplete`
 - **Automatically create subdirectories**: ✓
 - **Delete .torrent files after adding**: ✓
 
@@ -35,8 +43,8 @@ Create categories that the arr apps will use to route downloads:
 
 | Category | Save Path |
 |----------|-----------|
-| `tv-sonarr` | `/downloads/complete/tv` |
-| `radarr` | `/downloads/complete/movies` |
+| `tv-sonarr` | `/mnt/nas/downloads/complete/tv` |
+| `radarr` | `/mnt/nas/downloads/complete/movies` |
 
 ---
 
@@ -57,17 +65,19 @@ Prowlarr manages torrent indexers centrally and syncs them to Sonarr/Radarr auto
 
 Add both Sonarr and Radarr:
 ```
-Application:  Sonarr
-Server:       http://192.168.0.230
-API Key:      <from Sonarr → Settings → General>
-Sync Level:   Full Sync
+Application:      Sonarr
+Prowlarr Server:  http://prowlarr:9696
+App Server:       http://sonarr:8989
+API Key:          <from Sonarr → Settings → General>
+Sync Level:       Full Sync
 ```
 
 ```
-Application:  Radarr
-Server:       http://192.168.0.231
-API Key:      <from Radarr → Settings → General>
-Sync Level:   Full Sync
+Application:      Radarr
+Prowlarr Server:  http://prowlarr:9696
+App Server:       http://radarr:7878
+API Key:          <from Radarr → Settings → General>
+Sync Level:       Full Sync
 ```
 
 After saving, click **Sync App Indexers** — all your indexers will push to Sonarr and Radarr automatically.
@@ -81,10 +91,10 @@ After saving, click **Sync App Indexers** — all your indexers will push to Son
 **Settings → Download Clients → Add:**
 ```
 Name:       qBittorrent
-Host:       192.168.0.234
+Host:       gluetun
 Port:       8080
 Username:   admin
-Password:   <your password>
+Password:   <vault_qbittorrent_admin_password>
 Category:   tv-sonarr
 ```
 
@@ -93,7 +103,7 @@ Click **Test** — should return a green checkmark.
 ### Configure Media Management
 
 **Settings → Media Management:**
-- Root Folders: Add your TV library path (e.g., `/media/tv`)
+- Root Folders: `/mnt/nas/media/tv`
 - Rename Episodes: ✓ (recommended for Jellyfin compatibility)
 - Standard Episode Format: `{Series Title} - S{season:00}E{episode:00} - {Episode Title}`
 
@@ -117,17 +127,17 @@ Identical process to Sonarr.
 **Settings → Download Clients → Add:**
 ```
 Name:       qBittorrent
-Host:       192.168.0.234
+Host:       gluetun
 Port:       8080
 Username:   admin
-Password:   <your password>
+Password:   <vault_qbittorrent_admin_password>
 Category:   radarr
 ```
 
 ### Configure Media Management
 
 **Settings → Media Management:**
-- Root Folders: `/media/movies`
+- Root Folders: `/mnt/nas/media/movies`
 - Rename Movies: ✓
 - Standard Movie Format: `{Movie Title} ({Release Year})`
 
@@ -186,6 +196,6 @@ Jellyfin (scans library, available for streaming)
 
 ## Tips for Your Setup
 
-- **Hard links vs copies**: If `/downloads` and `/media` are on the **same filesystem** (same NAS mount), Sonarr/Radarr will hard-link — zero extra disk space used. If they're on different mounts, it will copy, using 2x space temporarily.
-- **Bazarr** (192.168.0.232) handles subtitle downloading — connect it to both Sonarr and Radarr via their API keys after the above is working.
+- **Hard links vs copies**: `/mnt/nas/downloads` and `/mnt/nas/media` are on the same NFS mount, so Sonarr/Radarr will hard-link — zero extra disk space used.
+- **Bazarr** (192.168.0.230:6767) handles subtitle downloading — connect it to Sonarr (`http://sonarr:8989`) and Radarr (`http://radarr:7878`) via their API keys after the above is working.
 - **Seeding**: qBittorrent will keep seeding after arr apps import the file. Set a seed ratio limit under **Tools → Options → BitTorrent → Seeding Goals** to avoid indefinite seeding.

@@ -141,18 +141,89 @@ ansible-playbook playbooks/infrastructure.yml --tags traefik --ask-vault-pass
 ```
 
 The role destroys and recreates the VM on each run. This is intentional — it ensures the VM is
-always in a known-clean state. Configuration data lives on NFS, so redeploying is safe.
+always in a known-clean state. All service configuration is stored on NFS under
+`{{ media_stack_nfs_mount }}/config/`, so redeploying the VM does not lose any settings.
+
+The only local data is Jellyfin's thumbnail/metadata cache (`/opt/media-stack/jellyfin/cache`),
+which is regenerated automatically on first library scan after a redeploy.
 
 ## Post-Install Configuration
 
-After the stack is running, configure each service via its web UI:
+All services share a Docker network (`arr_network`) and communicate using container names — not
+the VM IP. Using `192.168.0.230` for service-to-service URLs will not work.
 
-1. **Prowlarr** (`prowlarr.homelab.lan`) — Add indexers, then sync to Sonarr/Radarr
-2. **Radarr** (`radarr.homelab.lan`) — Settings → Media Management → Add root folder: `/mnt/nas/media/movies`
-3. **Sonarr** (`sonarr.homelab.lan`) — Settings → Media Management → Add root folder: `/mnt/nas/media/tv`
-4. **Bazarr** (`bazarr.homelab.lan`) — Add Sonarr/Radarr under Settings → Sonarr/Radarr
-5. **qBittorrent** (`qbittorrent.homelab.lan`) — Set default save path to `/mnt/nas/downloads`
-6. **Jellyfin** (`jellyfin.homelab.lan`) — Add library pointing to `/mnt/nas/media`
+| Connecting from | Reaching Radarr         | Reaching Sonarr         | Reaching qBittorrent     |
+|-----------------|-------------------------|-------------------------|--------------------------|
+| Prowlarr        | `http://radarr:7878`    | `http://sonarr:8989`    | `http://gluetun:8080`    |
+| Bazarr          | `http://radarr:7878`    | `http://sonarr:8989`    | —                        |
+| Radarr/Sonarr   | —                       | —                       | `http://gluetun:8080`    |
+
+> qBittorrent shares gluetun's network namespace. Reach its WebUI from other containers via
+> `http://gluetun:8080`, not `http://qbittorrent:8080`.
+
+### Step 1 — Prowlarr: configure VPN proxy (required if ISP blocks indexer sites)
+
+If Prowlarr shows "SSL connection could not be established" when adding indexers, your ISP is
+blocking direct connections to torrent sites via TCP RST injection. Route Prowlarr's outbound
+traffic through the VPN:
+
+**Settings → General → Proxy:**
+```
+Enable Proxy:  ✓
+Type:          HTTP(S)
+Hostname:      gluetun
+Port:          8888
+```
+
+Gluetun exposes an HTTP proxy on port 8888. Prowlarr stays on `arr_network` for
+container-to-container communication but all external requests exit via NordVPN.
+
+### Step 2 — Prowlarr: add indexers
+
+Open `prowlarr.homelab.lan` → **Indexers** → **Add Indexer**. Search for your preferred
+indexers (e.g. 1337x, YIFY, NZBgeek), enter credentials, test and save each one.
+
+### Step 3 — Prowlarr: connect to Radarr and Sonarr
+
+1. **Settings → Apps → Add Application → Radarr**
+   - Prowlarr Server: `http://prowlarr:9696`
+   - Radarr Server: `http://radarr:7878`
+   - API Key: Radarr → Settings → General → Security → API Key
+   - Click **Test** then **Save**
+2. Repeat for **Sonarr**: server `http://sonarr:8989`, API key from Sonarr → Settings → General
+3. Click **Sync App Indexers** — Prowlarr pushes all indexers into both apps automatically
+
+### Step 4 — Radarr: root folder and download client
+
+1. **Settings → Media Management → Root Folders → Add**: `/mnt/nas/media/movies`
+2. **Settings → Download Clients → Add → qBittorrent**
+   - Host: `gluetun`
+   - Port: `8080`
+   - Password: value of `vault_qbittorrent_admin_password` in your vault
+
+### Step 5 — Sonarr: root folder and download client
+
+1. **Settings → Media Management → Root Folders → Add**: `/mnt/nas/media/tv`
+2. **Settings → Download Clients → Add → qBittorrent** (same settings as Radarr above)
+
+### Step 6 — Bazarr: connect to Sonarr and Radarr
+
+1. **Settings → Sonarr**: URL `http://sonarr:8989`, API key from Sonarr
+2. **Settings → Radarr**: URL `http://radarr:7878`, API key from Radarr
+3. Enable subtitle providers under **Settings → Providers**
+
+### Step 7 — qBittorrent: download paths and categories
+
+1. **Tools → Options → Downloads → Default Save Path**: `/mnt/nas/downloads/complete`
+2. Add category `radarr` with save path `/mnt/nas/downloads/complete/movies`
+3. Add category `sonarr` with save path `/mnt/nas/downloads/complete/tv`
+
+### Step 8 — Jellyfin: add media libraries
+
+**Dashboard → Libraries → Add Media Library** for each type:
+
+- Movies: `/mnt/nas/media/movies`
+- TV shows: `/mnt/nas/media/tv`
 
 ## Troubleshooting
 

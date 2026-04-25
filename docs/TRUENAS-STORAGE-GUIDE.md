@@ -180,8 +180,15 @@ separate datasets because they have no hard-link relationship with the media sta
 
 ```
 tank/
-├── data/               ← Single ZFS dataset — media and downloads share one inode namespace
-│   ├── media/          ← Shared media library (NFS to LXC containers)
+├── data/               ← Single ZFS dataset — media, downloads, and config share one inode namespace
+│   ├── config/         ← Persistent service config (survives VM redeploy)
+│   │   ├── sonarr/
+│   │   ├── radarr/
+│   │   ├── bazarr/
+│   │   ├── prowlarr/
+│   │   ├── qbittorrent/
+│   │   └── jellyfin/
+│   ├── media/          ← Shared media library
 │   │   ├── tv/         ← Sonarr-managed TV shows
 │   │   └── movies/     ← Radarr-managed movies
 │   └── downloads/      ← qBittorrent active + completed downloads
@@ -223,6 +230,12 @@ After creating `tank/data`, create the subdirectories inside it via **System →
 create them as child datasets or hard-links will break:
 
 ```bash
+mkdir -p /mnt/tank/data/config/sonarr
+mkdir -p /mnt/tank/data/config/radarr
+mkdir -p /mnt/tank/data/config/bazarr
+mkdir -p /mnt/tank/data/config/prowlarr
+mkdir -p /mnt/tank/data/config/qbittorrent
+mkdir -p /mnt/tank/data/config/jellyfin
 mkdir -p /mnt/tank/data/media/tv
 mkdir -p /mnt/tank/data/media/movies
 mkdir -p /mnt/tank/data/downloads/complete/tv
@@ -231,8 +244,8 @@ mkdir -p /mnt/tank/data/downloads/incomplete
 chown -R 1000:1000 /mnt/tank/data
 ```
 
-> Ansible creates these automatically during deployment — the `mkdir` above is only needed if
-> you want the directories to exist before running the playbooks.
+> Ansible creates these automatically during deployment via the media_stack role — the `mkdir`
+> above is only needed if you want directories to exist before running the playbooks.
 
 Settings for `documents/` (SMB):
 
@@ -500,7 +513,7 @@ require the **same dataset** (filesystem), not just the same pool. Both paths mu
 
 ## 11. Service-Specific Configuration
 
-### qBittorrent (192.168.0.234)
+### qBittorrent (192.168.0.230:8080)
 
 **Tools → Options → Downloads:**
 - Default Save Path: `/mnt/nas/downloads/complete`
@@ -516,23 +529,29 @@ Categories:
 **Tools → Options → BitTorrent → Seeding Limits:** set a ratio limit (e.g. 1.0) before removal
 so Sonarr/Radarr have time to hard-link the file before qBittorrent deletes it.
 
-### Sonarr (192.168.0.230)
+### Sonarr (192.168.0.230:8989)
 
 **Settings → Media Management:**
 - Use Hardlinks instead of Copy: ✓
 - Root Folders: `/mnt/nas/media/tv`
 
-**Settings → Download Clients → qBittorrent:** Category: `tv-sonarr`
+**Settings → Download Clients → qBittorrent:**
+- Host: `gluetun` (not the VM IP — qBittorrent shares gluetun's network namespace)
+- Port: `8080`
+- Category: `tv-sonarr`
 
-### Radarr (192.168.0.231)
+### Radarr (192.168.0.230:7878)
 
 **Settings → Media Management:**
 - Use Hardlinks instead of Copy: ✓
 - Root Folders: `/mnt/nas/media/movies`
 
-**Settings → Download Clients → qBittorrent:** Category: `radarr`
+**Settings → Download Clients → qBittorrent:**
+- Host: `gluetun`
+- Port: `8080`
+- Category: `radarr`
 
-### Jellyfin (192.168.0.235)
+### Jellyfin (192.168.0.230:8096)
 
 **Dashboard → Libraries → Add Media Library:**
 
@@ -547,9 +566,10 @@ The L2ARC SSD will cache Jellyfin's image/thumbnail database and metadata reads,
 improving library browse speed. Large video file streaming reads directly from the HDD and is
 unaffected by L2ARC — prefer direct play in clients to avoid transcoding load.
 
-### Bazarr (192.168.0.232)
+### Bazarr (192.168.0.230:6767)
 
-Ensure the container mounts `/mnt/nas/media` — subtitles are written alongside video files.
+Subtitles are written alongside video files in `/mnt/nas/media`. Connect to Sonarr and Radarr
+using their Docker service names: `http://sonarr:8989` and `http://radarr:7878`.
 See [ARR-STACK-INTEGRATION-GUIDE.md](./ARR-STACK-INTEGRATION-GUIDE.md) for API key wiring.
 
 ---

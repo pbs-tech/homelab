@@ -2,6 +2,10 @@
 # Media stack: Sonarr, Radarr, Bazarr, Prowlarr, qBittorrent (+ Gluetun VPN), Jellyfin
 # All services run as PUID={{ media_stack_puid }}/PGID={{ media_stack_pgid }} with NFS at {{ media_stack_nfs_mount }}
 
+networks:
+  arr_network:
+    driver: bridge
+
 services:
 
   sonarr:
@@ -12,10 +16,12 @@ services:
       - PGID={{ media_stack_pgid }}
       - TZ={{ media_stack_timezone }}
     volumes:
-      - {{ media_stack_data_dir }}/sonarr/config:/config
+      - {{ media_stack_nfs_mount }}/config/sonarr:/config
       - {{ media_stack_nfs_mount }}:{{ media_stack_nfs_mount }}
     ports:
       - "{{ sonarr_port }}:{{ sonarr_port }}"
+    networks:
+      - arr_network
     restart: {{ media_stack_restart_policy }}
     mem_limit: {{ sonarr_memory }}
 
@@ -27,10 +33,12 @@ services:
       - PGID={{ media_stack_pgid }}
       - TZ={{ media_stack_timezone }}
     volumes:
-      - {{ media_stack_data_dir }}/radarr/config:/config
+      - {{ media_stack_nfs_mount }}/config/radarr:/config
       - {{ media_stack_nfs_mount }}:{{ media_stack_nfs_mount }}
     ports:
       - "{{ radarr_port }}:{{ radarr_port }}"
+    networks:
+      - arr_network
     restart: {{ media_stack_restart_policy }}
     mem_limit: {{ radarr_memory }}
 
@@ -42,10 +50,12 @@ services:
       - PGID={{ media_stack_pgid }}
       - TZ={{ media_stack_timezone }}
     volumes:
-      - {{ media_stack_data_dir }}/bazarr/config:/config
+      - {{ media_stack_nfs_mount }}/config/bazarr:/config
       - {{ media_stack_nfs_mount }}:{{ media_stack_nfs_mount }}
     ports:
       - "{{ bazarr_port }}:{{ bazarr_port }}"
+    networks:
+      - arr_network
     restart: {{ media_stack_restart_policy }}
     mem_limit: {{ bazarr_memory }}
 
@@ -57,15 +67,18 @@ services:
       - PGID={{ media_stack_pgid }}
       - TZ={{ media_stack_timezone }}
     volumes:
-      - {{ media_stack_data_dir }}/prowlarr/config:/config
+      - {{ media_stack_nfs_mount }}/config/prowlarr:/config
     ports:
       - "{{ prowlarr_port }}:{{ prowlarr_port }}"
+    networks:
+      - arr_network
     restart: {{ media_stack_restart_policy }}
     mem_limit: {{ prowlarr_memory }}
 
 {% if qbittorrent_vpn_enabled | bool %}
   # Gluetun VPN sidecar — qBittorrent runs inside its network namespace.
-  # All torrent traffic exits via NordVPN; if VPN drops, qBittorrent loses network (kill-switch).
+  # HTTP proxy on port 8888 lets other arr containers (Prowlarr, Sonarr, Radarr) route their
+  # outbound traffic through the VPN without sharing the network namespace.
   gluetun:
     image: {{ gluetun_image }}
     container_name: gluetun
@@ -83,16 +96,39 @@ services:
       - WIREGUARD_PRIVATE_KEY={{ qbittorrent_vpn_wireguard_private_key | default('') }}
 {% endif %}
       - SERVER_COUNTRIES={{ qbittorrent_vpn_server_countries }}
+      - HTTPPROXY=on
+      - HTTPPROXY_LOG=off
     ports:
       - "{{ qbittorrent_webui_port }}:{{ qbittorrent_webui_port }}"
+    networks:
+      - arr_network
     restart: {{ media_stack_restart_policy }}
     mem_limit: 256m
 
+{% if flaresolverr_enabled | bool %}
+  # FlareSolverr — solves Cloudflare bot challenges for Prowlarr indexers.
+  # Shares gluetun's namespace so all requests exit via VPN.
+  # Reach from Prowlarr at http://gluetun:{{ flaresolverr_port }} (no host port mapping needed).
+  flaresolverr:
+    image: {{ flaresolverr_image }}
+    container_name: flaresolverr
+    network_mode: "service:gluetun"
+    depends_on:
+      - gluetun
+    environment:
+      - LOG_LEVEL=info
+      - TZ={{ media_stack_timezone }}
+    restart: {{ media_stack_restart_policy }}
+    mem_limit: 512m
+
+{% endif %}
 {% endif %}
   qbittorrent:
     image: {{ qbittorrent_image }}
     container_name: qbittorrent
 {% if qbittorrent_vpn_enabled | bool %}
+    # Shares gluetun's network namespace — no separate networks: key allowed here.
+    # Reach the WebUI from other containers via http://gluetun:8080 (not http://qbittorrent:8080).
     network_mode: "service:gluetun"
     depends_on:
       - gluetun
@@ -101,6 +137,8 @@ services:
       - "{{ qbittorrent_webui_port }}:{{ qbittorrent_webui_port }}"
       - "{{ qbittorrent_torrent_port }}:{{ qbittorrent_torrent_port }}"
       - "{{ qbittorrent_torrent_port }}:{{ qbittorrent_torrent_port }}/udp"
+    networks:
+      - arr_network
 {% endif %}
     environment:
       - PUID={{ media_stack_puid }}
@@ -108,7 +146,7 @@ services:
       - TZ={{ media_stack_timezone }}
       - WEBUI_PORT={{ qbittorrent_webui_port }}
     volumes:
-      - {{ media_stack_data_dir }}/qbittorrent/config:/config
+      - {{ media_stack_nfs_mount }}/config/qbittorrent:/config
       - {{ media_stack_nfs_mount }}:{{ media_stack_nfs_mount }}
     restart: {{ media_stack_restart_policy }}
     mem_limit: {{ qbittorrent_memory }}
@@ -120,12 +158,14 @@ services:
     environment:
       - TZ={{ media_stack_timezone }}
     volumes:
-      - {{ media_stack_data_dir }}/jellyfin/config:/config
+      - {{ media_stack_nfs_mount }}/config/jellyfin:/config
       - {{ media_stack_data_dir }}/jellyfin/cache:/cache
       - {{ media_stack_nfs_mount }}:{{ media_stack_nfs_mount }}:ro
     ports:
       - "{{ jellyfin_port }}:{{ jellyfin_port }}"
       - "{{ jellyfin_https_port }}:{{ jellyfin_https_port }}"
+    networks:
+      - arr_network
 {% if jellyfin_hardware_accel | bool %}
     devices:
       - {{ jellyfin_gpu_device }}:{{ jellyfin_gpu_device }}

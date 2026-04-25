@@ -216,9 +216,13 @@ ansible-playbook playbooks/site.yml
 | Loki | 192.168.0.210 | Log aggregation | proxmox_lxc |
 | **Applications** | | |
 | Home Assistant | 192.168.0.208 | Home automation | proxmox_lxc |
-| Sonarr | 192.168.0.230 | TV management | proxmox_lxc |
-| Radarr | 192.168.0.231 | Movie management | proxmox_lxc |
-| Jellyfin | 192.168.0.235 | Media streaming | proxmox_lxc |
+| **Media Stack VM** | **192.168.0.230** | **Ubuntu VM hosting all arr services via Docker Compose** | proxmox_lxc |
+| Sonarr | 192.168.0.230:8989 | TV management | media_stack |
+| Radarr | 192.168.0.230:7878 | Movie management | media_stack |
+| Bazarr | 192.168.0.230:6767 | Subtitle management | media_stack |
+| Prowlarr | 192.168.0.230:9696 | Indexer management | media_stack |
+| qBittorrent | 192.168.0.230:8080 | BitTorrent client (NordVPN via Gluetun) | media_stack |
+| Jellyfin | 192.168.0.230:8096 | Media streaming | media_stack |
 | **NAS VMs** | | |
 | TrueNAS | 192.168.0.220 | NAS storage (ISO) | proxmox_lxc |
 | **Cluster** | | |

@@ -57,9 +57,25 @@ qbittorrent_vpn_server_countries: "Switzerland"
 qbittorrent_vpn_openvpn_username: "{{ vault_nordvpn_openvpn_username | default('') }}"
 qbittorrent_vpn_openvpn_password: "{{ vault_nordvpn_openvpn_password | default('') }}"
 
+# FlareSolverr — headless browser proxy for Cloudflare-protected indexers.
+# Shares gluetun's network namespace so Cloudflare requests exit via VPN.
+# Reachable from Prowlarr at http://gluetun:8191 (no host port mapping needed).
+flaresolverr_enabled: true
+flaresolverr_image: "ghcr.io/flaresolverr/flaresolverr:latest"
+flaresolverr_port: 8191
+
 # Jellyfin hardware acceleration (Intel VAAPI / QSV)
 jellyfin_hardware_accel: false
 jellyfin_gpu_device: "/dev/dri/renderD128"
+
+# Docker daemon DNS — containers use these servers for all name resolution.
+# Ubuntu 24.04 uses systemd-resolved (127.0.0.53) which containers cannot reach,
+# so we override with the homelab DNS chain plus a public fallback.
+media_stack_dns_servers:
+  - "192.168.0.202"  # Unbound — non-filtering recursive resolver, no blocklists
+  - "1.1.1.1"        # fallback if Unbound is unreachable
+# AdGuard (192.168.0.204) is intentionally excluded: it runs blocklists that return
+# NXDOMAIN for torrent indexer sites, which Prowlarr reports as an SSL error.
 
 # Firewall — allow arr service ports only from Traefik and localhost
 media_stack_traefik_ip: "192.168.0.205"

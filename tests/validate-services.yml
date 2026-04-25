@@ -162,7 +162,7 @@
 
     - name: Test Radarr API
       ansible.builtin.uri:
-        url: http://192.168.0.231:7878/api/v3/health
+        url: http://192.168.0.230:7878/api/v3/health
         method: GET
         timeout: 10
         status_code: [200, 401]
@@ -171,7 +171,7 @@
 
     - name: Test Jellyfin web interface
       ansible.builtin.uri:
-        url: http://192.168.0.235:8096/health
+        url: http://192.168.0.230:8096/health
         method: GET
         timeout: 10
         status_code: 200
@@ -180,7 +180,7 @@
 
     - name: Test qBittorrent web UI
       ansible.builtin.uri:
-        url: http://192.168.0.234:8080
+        url: http://192.168.0.230:8080
         method: GET
         timeout: 10
         status_code: [200, 401]

@@ -46,3 +46,12 @@
     - role: homelab.proxmox_lxc.media_stack
       tags: [media-stack, media]
   tags: [media-stack, media, applications]
+
+- name: Install monitoring agent on media-stack VM
+  hosts: media-stack
+  become: true
+  gather_facts: true
+  roles:
+    - role: homelab.common.monitoring_agent
+      tags: [monitoring_agent, node_exporter]
+  tags: [monitoring_agent, media-stack, applications]

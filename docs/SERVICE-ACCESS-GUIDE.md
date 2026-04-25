@@ -21,13 +21,13 @@ Complete reference for accessing all services in the homelab infrastructure, inc
 | **Applications** |
 | Home Assistant | 192.168.0.208 | 8123 | `http://homeassistant.homelab.lan` | Username/Password |
 | OpenWrt | 192.168.0.209 | 80 | `http://openwrt.homelab.lan` | Username/Password |
-| **Media Services** |
+| **Media Services** (all on VM 192.168.0.230 via Docker Compose) |
 | Sonarr | 192.168.0.230 | 8989 | `http://sonarr.homelab.lan` | API Key |
-| Radarr | 192.168.0.231 | 7878 | `http://radarr.homelab.lan` | API Key |
-| Bazarr | 192.168.0.232 | 6767 | `http://bazarr.homelab.lan` | API Key |
-| Prowlarr | 192.168.0.233 | 9696 | `http://prowlarr.homelab.lan` | API Key |
-| qBittorrent | 192.168.0.234 | 8080 | `http://qbittorrent.homelab.lan` | Username/Password |
-| Jellyfin | 192.168.0.235 | 8096 | `http://jellyfin.homelab.lan` | Username/Password |
+| Radarr | 192.168.0.230 | 7878 | `http://radarr.homelab.lan` | API Key |
+| Bazarr | 192.168.0.230 | 6767 | `http://bazarr.homelab.lan` | API Key |
+| Prowlarr | 192.168.0.230 | 9696 | `http://prowlarr.homelab.lan` | API Key |
+| qBittorrent | 192.168.0.230 | 8080 | `http://qbittorrent.homelab.lan` | Username/Password |
+| Jellyfin | 192.168.0.230 | 8096 | `http://jellyfin.homelab.lan` | Username/Password |
 | **Infrastructure** |
 | Proxmox (pve-mac) | 192.168.0.56 | 8006 | `https://192.168.0.56:8006` | Username/Password or API Token |
 | Proxmox (pve-nas) | 192.168.0.57 | 8006 | `https://192.168.0.57:8006` | Username/Password or API Token |
@@ -351,6 +351,19 @@ pct exec 208 -- systemctl status homeassistant
 
 ### Media Services
 
+All media services run as Docker containers on a single Ubuntu VM at **192.168.0.230**
+(`media-stack` in inventory). Managed via `systemctl start/stop media-stack` on the VM.
+
+> **Service-to-service URLs**: containers communicate by Docker service name, not by VM IP.
+> Use `http://radarr:7878`, `http://sonarr:8989`, `http://gluetun:8080` (for qBittorrent), etc.
+> when wiring apps together inside Prowlarr, Bazarr, or download client settings.
+
+**Check all containers at once:**
+```bash
+ssh ansible@192.168.0.230 "sudo docker ps --format 'table {{.Names}}\t{{.Status}}'"
+ssh ansible@192.168.0.230 "sudo systemctl status media-stack"
+```
+
 #### Sonarr
 
 TV show management and automation.
@@ -363,12 +376,10 @@ TV show management and automation.
 
 **Health Check:**
 ```bash
-# System status
 curl -H "X-Api-Key: YOUR_API_KEY" \
   http://192.168.0.230:8989/api/v3/system/status | jq .
 
-# Check service
-pct exec 230 -- systemctl status sonarr
+ssh ansible@192.168.0.230 "sudo docker logs sonarr --tail 20"
 ```
 
 #### Radarr
@@ -376,19 +387,17 @@ pct exec 230 -- systemctl status sonarr
 Movie management and automation.
 
 **Access:**
-- Web UI: `http://192.168.0.231:7878` or `https://radarr.homelab.lan`
-- API: `http://192.168.0.231:7878/api/v3/`
+- Web UI: `http://192.168.0.230:7878` or `https://radarr.homelab.lan`
+- API: `http://192.168.0.230:7878/api/v3/`
 
 **API Key:** Found in Settings → General → API Key
 
 **Health Check:**
 ```bash
-# System status
 curl -H "X-Api-Key: YOUR_API_KEY" \
-  http://192.168.0.231:7878/api/v3/system/status | jq .
+  http://192.168.0.230:7878/api/v3/system/status | jq .
 
-# Check service
-pct exec 231 -- systemctl status radarr
+ssh ansible@192.168.0.230 "sudo docker logs radarr --tail 20"
 ```
 
 #### Prowlarr
@@ -396,17 +405,15 @@ pct exec 231 -- systemctl status radarr
 Indexer management for *arr stack.
 
 **Access:**
-- Web UI: `http://192.168.0.233:9696` or `https://prowlarr.homelab.lan`
-- API: `http://192.168.0.233:9696/api/v1/`
+- Web UI: `http://192.168.0.230:9696` or `https://prowlarr.homelab.lan`
+- API: `http://192.168.0.230:9696/api/v1/`
 
 **Health Check:**
 ```bash
-# System status
 curl -H "X-Api-Key: YOUR_API_KEY" \
-  http://192.168.0.233:9696/api/v1/system/status | jq .
+  http://192.168.0.230:9696/api/v1/system/status | jq .
 
-# Check service
-pct exec 233 -- systemctl status prowlarr
+ssh ansible@192.168.0.230 "sudo docker logs prowlarr --tail 20"
 ```
 
 #### Jellyfin
@@ -414,37 +421,35 @@ pct exec 233 -- systemctl status prowlarr
 Media streaming server.
 
 **Access:**
-- Web UI: `http://192.168.0.235:8096` or `https://jellyfin.homelab.lan`
-- API: `http://192.168.0.235:8096/`
+- Web UI: `http://192.168.0.230:8096` or `https://jellyfin.homelab.lan`
+- API: `http://192.168.0.230:8096/`
 
 **Health Check:**
 ```bash
-# System info
-curl http://192.168.0.235:8096/System/Info/Public | jq .
+curl http://192.168.0.230:8096/System/Info/Public | jq .
 
-# Check service
-pct exec 235 -- systemctl status jellyfin
+ssh ansible@192.168.0.230 "sudo docker logs jellyfin --tail 20"
 ```
 
 #### qBittorrent
 
-BitTorrent client.
+BitTorrent client. All torrent traffic is routed through NordVPN via a Gluetun sidecar.
 
 **Access:**
-- Web UI: `http://192.168.0.234:8080` or `https://qbittorrent.homelab.lan`
-- API: `http://192.168.0.234:8080/api/v2/`
+- Web UI: `http://192.168.0.230:8080` or `https://qbittorrent.homelab.lan`
+- API: `http://192.168.0.230:8080/api/v2/`
 
-**Default Credentials:**
-- Username: `admin`
-- Password: `adminadmin` (change immediately!)
+**Credentials:** Set via `vault_qbittorrent_admin_password` in vault.
+
+> **From other containers** (Sonarr/Radarr download client settings): use host `gluetun`,
+> port `8080` — not `qbittorrent` or the VM IP. qBittorrent shares gluetun's network namespace.
 
 **Health Check:**
 ```bash
-# Check version
-curl http://192.168.0.234:8080/api/v2/app/version
+curl http://192.168.0.230:8080/api/v2/app/version
 
-# Check service
-pct exec 234 -- systemctl status qbittorrent-nox
+# VPN status
+ssh ansible@192.168.0.230 "sudo docker logs gluetun --tail 20"
 ```
 
 ---
