@@ -14,7 +14,7 @@ services:
       - TZ={{ bazarr_timezone }}
     volumes:
       - {{ bazarr_config_dir }}:/config
-      - {{ bazarr_media_dir }}:/media
+      - /mnt/nas:/mnt/nas
 {% for volume in bazarr_extra_volumes %}
       - {{ volume }}
 {% endfor %}

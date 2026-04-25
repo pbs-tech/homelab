@@ -360,7 +360,7 @@ Traefik reverse proxy provides a dashboard and API for monitoring and configurat
 
 - **Container ID**: 205
 - **IP Address**: 192.168.0.205
-- **Dashboard URL**: `http://192.168.0.205:8080` or `https://traefik.homelab.local`
+- **Dashboard URL**: `http://192.168.0.205:8080` or `https://traefik.homelab.lan`
 - **API Port**: 8080
 - **HTTP Port**: 80
 - **HTTPS Port**: 443
@@ -540,7 +540,7 @@ Prometheus provides a powerful HTTP API for querying metrics and managing the mo
 - **Container ID**: 200
 - **IP Address**: 192.168.0.200
 - **Base URL**: `http://192.168.0.200:9090`
-- **Web UI**: `http://192.168.0.200:9090` or `https://prometheus.homelab.local`
+- **Web UI**: `http://192.168.0.200:9090` or `https://prometheus.homelab.lan`
 - **Default Port**: 9090
 
 ### Authentication
@@ -551,7 +551,7 @@ Prometheus by default has no authentication. For production use, access through 
 
 ```bash
 # If basic auth is enabled on Traefik
-curl -u admin:password https://prometheus.homelab.local/api/v1/query?query=up
+curl -u admin:password https://prometheus.homelab.lan/api/v1/query?query=up
 ```
 
 ### Common Endpoints
@@ -745,7 +745,7 @@ Grafana provides a comprehensive REST API for managing dashboards, datasources, 
 - **Container ID**: 201
 - **IP Address**: 192.168.0.201
 - **Base URL**: `http://192.168.0.201:3000/api`
-- **Web UI**: `http://192.168.0.201:3000` or `https://grafana.homelab.local`
+- **Web UI**: `http://192.168.0.201:3000` or `https://grafana.homelab.lan`
 - **Default Port**: 3000
 
 ### Authentication
@@ -1065,7 +1065,7 @@ Home Assistant provides a comprehensive REST API and WebSocket API for home auto
 - **Container ID**: 208
 - **IP Address**: 192.168.0.208
 - **Base URL**: `http://192.168.0.208:8123/api`
-- **Web UI**: `http://192.168.0.208:8123` or `https://homeassistant.homelab.local`
+- **Web UI**: `http://192.168.0.208:8123` or `https://homeassistant.homelab.lan`
 - **WebSocket**: `ws://192.168.0.208:8123/api/websocket`
 - **Default Port**: 8123
 
@@ -1352,7 +1352,7 @@ AdGuard Home provides a REST API for DNS filtering management, statistics, and c
 - **Container ID**: 204
 - **IP Address**: 192.168.0.204
 - **Base URL**: `http://192.168.0.204/control`
-- **Web UI**: `http://192.168.0.204` or `https://adguard.homelab.local`
+- **Web UI**: `http://192.168.0.204` or `https://adguard.homelab.lan`
 - **DNS Port**: 53
 - **Web Port**: 80/443
 - **Initial Setup Port**: 3000
@@ -1496,7 +1496,7 @@ curl -u admin:password http://192.168.0.204/control/rewrite/list | jq .
 curl -X POST -u admin:password \
   -H "Content-Type: application/json" \
   -d '{
-    "domain": "*.homelab.local",
+    "domain": "*.homelab.lan",
     "answer": "192.168.0.205"
   }' \
   http://192.168.0.204/control/rewrite/add
@@ -1505,7 +1505,7 @@ curl -X POST -u admin:password \
 curl -X POST -u admin:password \
   -H "Content-Type: application/json" \
   -d '{
-    "domain": "*.homelab.local",
+    "domain": "*.homelab.lan",
     "answer": "192.168.0.205"
   }' \
   http://192.168.0.204/control/rewrite/delete
@@ -1647,7 +1647,7 @@ Prometheus AlertManager provides an API for managing alerts, silences, and notif
 - **IP Address**: 192.168.0.206
 - **Base URL**: `http://192.168.0.206:9093/api`
 - **API Version**: v2
-- **Web UI**: `http://192.168.0.206:9093` or `https://alertmanager.homelab.local`
+- **Web UI**: `http://192.168.0.206:9093` or `https://alertmanager.homelab.lan`
 - **Default Port**: 9093
 
 ### Authentication
@@ -1819,7 +1819,7 @@ curl -X POST -H "Content-Type: application/json" \
         "summary": "System test alert",
         "description": "This is a critical test alert for notification testing"
       },
-      "generatorURL": "http://prometheus.homelab.local"
+      "generatorURL": "http://prometheus.homelab.lan"
     }
   ]' \
   http://192.168.0.206:9093/api/v1/alerts
@@ -2310,7 +2310,7 @@ telnet 192.168.0.200 9090
 nc -zv 192.168.0.200 9090
 
 # Check DNS resolution
-nslookup prometheus.homelab.local
+nslookup prometheus.homelab.lan
 
 # Trace route
 traceroute 192.168.0.200

@@ -4,7 +4,7 @@
     that:
       - traefik_version is defined
       - traefik_ssl_email is defined
-      - traefik_ssl_email != 'admin@homelab.local' or not traefik_tls_enabled | default(false) or traefik_ssl_resolver != 'letsencrypt'
+      - traefik_ssl_email != 'admin@homelab.lan' or not traefik_tls_enabled | default(false) or traefik_ssl_resolver != 'letsencrypt'
       - homelab_domain is defined
     fail_msg: |
       Required Traefik configuration variables are missing or using defaults.
@@ -50,7 +50,7 @@
 
 - name: Set architecture for Traefik download
   ansible.builtin.set_fact:
-    _traefik_arch: "{{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}"
+    _traefik_arch: "{{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'amd64' }}"
 
 - name: Download Traefik binary
   ansible.builtin.get_url:

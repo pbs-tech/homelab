@@ -3,7 +3,7 @@
 
 - name: Set architecture for binary downloads
   ansible.builtin.set_fact:
-    _monitoring_arch: "{{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}"
+    _monitoring_arch: "{{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'amd64' }}"
 
 - name: Install monitoring dependencies
   ansible.builtin.package:
@@ -11,16 +11,10 @@
       - curl
       - wget
       - jq
-      - python3-pip
       - unzip
-    state: present
-
-- name: Install Python monitoring libraries
-  ansible.builtin.pip:
-    name:
-      - psutil
-      - requests
-      - prometheus_client
+      - python3-psutil
+      - python3-requests
+      - python3-prometheus-client
     state: present
 
 - name: Create monitoring user

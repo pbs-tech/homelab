@@ -40,7 +40,7 @@ provisioner:
           gateway_ip: 192.168.0.1
           dns_servers:
             - 192.168.0.202
-        homelab_domain: homelab.local
+        homelab_domain: homelab.lan
 
 verifier:
   name: ansible

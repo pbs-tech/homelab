@@ -14,7 +14,7 @@ services:
     volumes:
       - {{ jellyfin_config_dir }}:/config
       - {{ jellyfin_cache_dir }}:/cache
-      - {{ jellyfin_media_dir }}:/media:ro
+      - /mnt/nas:/mnt/nas:ro
 {% for volume in jellyfin_extra_volumes %}
       - {{ volume }}
 {% endfor %}

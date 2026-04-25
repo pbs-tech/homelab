@@ -41,7 +41,7 @@ homeassistant_country: "US"
 
 # Traefik integration
 homeassistant_traefik_enabled: true
-homeassistant_domain: "homeassistant.homelab.local"
+homeassistant_domain: "homeassistant.homelab.lan"
 homeassistant_external_url: ""
 homeassistant_internal_url: ""
 

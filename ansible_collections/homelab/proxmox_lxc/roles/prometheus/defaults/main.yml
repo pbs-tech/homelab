@@ -1,7 +1,8 @@
 ---
 prometheus_version: 2.48.0
 prometheus_port: 9090
-prometheus_data_retention: 15d
+prometheus_retention_time: 15d
+prometheus_retention_size: 4GB
 prometheus_scrape_interval: 15s
 prometheus_evaluation_interval: 15s
 
@@ -28,3 +29,6 @@ grafana_ip: "192.168.0.201"
 adguard_ip: "192.168.0.204"
 traefik_ip: "192.168.0.205"
 homeassistant_ip: "192.168.0.208"
+
+# Media stack VM (consolidated arr services)
+media_stack_ip: "192.168.0.230"

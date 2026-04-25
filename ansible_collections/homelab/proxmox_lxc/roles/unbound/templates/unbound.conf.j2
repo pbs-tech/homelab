@@ -32,9 +32,9 @@ server:
     private-address: 192.168.0.0/24
     private-address: 10.0.0.0/8
     private-address: 172.16.0.0/12
-    private-domain: "homelab.local"
+    private-domain: "homelab.lan"
 
-    # Local DNS records — redirect all *.homelab.local to Traefik
+    # Local DNS records — redirect all *.homelab.lan to Traefik
     local-zone: "{{ unbound_local_zone }}" {{ unbound_local_zone_type }}
     local-data: "{{ unbound_local_zone }}. IN A {{ unbound_traefik_ip }}"
 {% for entry in unbound_local_data_overrides %}

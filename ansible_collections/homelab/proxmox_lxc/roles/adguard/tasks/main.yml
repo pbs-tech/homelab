@@ -117,7 +117,7 @@
 
 - name: Set architecture for AdGuard download
   ansible.builtin.set_fact:
-    _adguard_arch: "{{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}"
+    _adguard_arch: "{{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'amd64' }}"
   when: not adguard_binary.stat.exists
   tags: install
 

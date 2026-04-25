@@ -113,7 +113,7 @@
     - name: Install kubectl
       ansible.builtin.shell: |
         set -e
-        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/{{ ansible_architecture | regex_replace('x86_64', 'amd64') | regex_replace('aarch64', 'arm64') }}/kubectl"
+        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/{{ ansible_facts['architecture'] | regex_replace('x86_64', 'amd64') | regex_replace('aarch64', 'arm64') }}/kubectl"
         install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
         rm -f kubectl
       args:

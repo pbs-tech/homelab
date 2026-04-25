@@ -91,13 +91,21 @@ run_yamllint() {
 run_ansible_lint() {
     log_info "Running ansible-lint..."
 
-    # Check if Ansible collections are installed
-    if [ ! -d "${HOME}/.ansible/collections" ] && [ ! -d "collections" ]; then
-        log_warning "Ansible collections not found. Installing..."
-        ansible-galaxy collection install -r requirements.yml
+    # Prefer the project venv over a bare PATH entry (project venv is the canonical install)
+    local ansible_lint_bin="${HOME}/.venv/homelab/bin/ansible-lint"
+    if ! command -v "${ansible_lint_bin}" >/dev/null 2>&1; then
+        ansible_lint_bin="ansible-lint"
     fi
 
-    if ansible-lint; then
+    if ! command -v "${ansible_lint_bin}" >/dev/null 2>&1; then
+        log_error "ansible-lint not found. Activate the homelab venv or run: pip install ansible-lint"
+        return 1
+    fi
+
+    # Scope to homelab collections and playbooks only — same as pre-commit config.
+    # Running without scope causes ansible-lint to walk all 500+ files including
+    # third-party collections, adding ~90 seconds with no benefit.
+    if "${ansible_lint_bin}" ansible_collections/homelab/ playbooks/; then
         log_success "ansible-lint passed"
         return 0
     else

@@ -552,7 +552,7 @@ Expose Prometheus UI through Traefik reverse proxy with authentication:
 # Traefik labels for Prometheus
 traefik_labels:
   - "traefik.enable=true"
-  - "traefik.http.routers.prometheus.rule=Host(`prometheus.homelab.local`)"
+  - "traefik.http.routers.prometheus.rule=Host(`prometheus.homelab.lan`)"
   - "traefik.http.routers.prometheus.tls=true"
   - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
 ```

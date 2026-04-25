@@ -1,0 +1,82 @@
+---
+# VM provisioning
+media_stack_cores: 2
+media_stack_memory: 4096
+media_stack_disk_size: 32
+# Template ID on pve-nas — must differ from pve-mac's template (9000) since IDs are cluster-wide
+media_stack_vm_template_id: 9001
+
+# Shared settings
+media_stack_puid: 1000
+media_stack_pgid: 1000
+media_stack_timezone: "Europe/London"
+media_stack_data_dir: /opt/media-stack
+media_stack_restart_policy: unless-stopped
+
+# NFS
+media_stack_nfs_server: "192.168.0.220"
+media_stack_nfs_src: "{{ media_stack_nfs_server }}:/mnt/tank/data"
+media_stack_nfs_mount: /mnt/nas
+media_stack_nfs_opts: "rw,nfsvers=3,hard,intr,timeo=600,retrans=5,rsize=131072,wsize=131072,_netdev"
+
+# Per-service ports
+sonarr_port: 8989
+radarr_port: 7878
+bazarr_port: 6767
+prowlarr_port: 9696
+qbittorrent_webui_port: 8080
+qbittorrent_torrent_port: 6881
+jellyfin_port: 8096
+jellyfin_https_port: 8920
+
+# Per-service images
+sonarr_image: "lscr.io/linuxserver/sonarr:latest"
+radarr_image: "lscr.io/linuxserver/radarr:latest"
+bazarr_image: "lscr.io/linuxserver/bazarr:latest"
+prowlarr_image: "lscr.io/linuxserver/prowlarr:latest"
+qbittorrent_image: "lscr.io/linuxserver/qbittorrent:latest"
+gluetun_image: "qmcgaw/gluetun:latest"
+jellyfin_image: "jellyfin/jellyfin:latest"
+
+# Per-service memory limits
+sonarr_memory: "1g"
+radarr_memory: "1g"
+bazarr_memory: "512m"
+prowlarr_memory: "512m"
+qbittorrent_memory: "1g"
+jellyfin_memory: "2g"
+
+# qBittorrent VPN (Gluetun / NordVPN)
+qbittorrent_vpn_enabled: true
+qbittorrent_vpn_service_provider: nordvpn
+qbittorrent_vpn_type: openvpn
+qbittorrent_vpn_server_countries: "Switzerland"
+# Credentials must be set in vault:
+#   vault_nordvpn_openvpn_username
+#   vault_nordvpn_openvpn_password
+qbittorrent_vpn_openvpn_username: "{{ vault_nordvpn_openvpn_username | default('') }}"
+qbittorrent_vpn_openvpn_password: "{{ vault_nordvpn_openvpn_password | default('') }}"
+
+# FlareSolverr — headless browser proxy for Cloudflare-protected indexers.
+# Shares gluetun's network namespace so Cloudflare requests exit via VPN.
+# Reachable from Prowlarr at http://gluetun:8191 (no host port mapping needed).
+flaresolverr_enabled: true
+flaresolverr_image: "ghcr.io/flaresolverr/flaresolverr:latest"
+flaresolverr_port: 8191
+
+# Jellyfin hardware acceleration (Intel VAAPI / QSV)
+jellyfin_hardware_accel: false
+jellyfin_gpu_device: "/dev/dri/renderD128"
+
+# Docker daemon DNS — containers use these servers for all name resolution.
+# Ubuntu 24.04 uses systemd-resolved (127.0.0.53) which containers cannot reach,
+# so we override with the homelab DNS chain plus a public fallback.
+media_stack_dns_servers:
+  - "192.168.0.202"  # Unbound — non-filtering recursive resolver, no blocklists
+  - "1.1.1.1"        # fallback if Unbound is unreachable
+# AdGuard (192.168.0.204) is intentionally excluded: it runs blocklists that return
+# NXDOMAIN for torrent indexer sites, which Prowlarr reports as an SSL error.
+
+# Firewall — allow arr service ports only from Traefik and localhost
+media_stack_traefik_ip: "192.168.0.205"
+media_stack_configure_firewall: true

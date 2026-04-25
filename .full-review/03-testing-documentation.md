@@ -51,6 +51,7 @@ No test exercises or validates the behaviour of `skip_networking`, `skip_monitor
 ### Medium
 
 #### TEST-M1: Only 1 of 8 molecule scenarios has the idempotence step enabled
+
 | Scenario | Idempotence | Notes |
 |---|---|---|
 | `common/default` | ✅ Yes | Only one |
@@ -165,7 +166,7 @@ Lines 130 and 367 show `~/.ssh/id_rsa.pub`. Actual key is `~/.ssh/homelab_ed2551
 ---
 
 #### DOC-M5: NAS VM DNS using public resolvers — undocumented intentional design
-`inventory/group_vars/nas_vm.yml` uses `1.1.1.1`/`1.0.0.1`. NAS VMs cannot resolve `*.homelab.local`. No comment or doc explains whether this is intentional (ISO-install bootstrap) or an oversight.
+`inventory/group_vars/nas_vm.yml` uses `1.1.1.1`/`1.0.0.1`. NAS VMs cannot resolve `*.homelab.lan`. No comment or doc explains whether this is intentional (ISO-install bootstrap) or an oversight.
 
 ---
 

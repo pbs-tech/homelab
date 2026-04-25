@@ -248,7 +248,7 @@ Check:
 
 ```bash
 sudo nmcli connection import type wireguard file /etc/wireguard/wg0.conf
-nmcli connection modify wg0 ipv4.dns "192.168.0.202" ipv4.dns-search "homelab.local"
+nmcli connection modify wg0 ipv4.dns "192.168.0.202" ipv4.dns-search "homelab.lan"
 ```
 
 **Step 5: Connect**
@@ -328,7 +328,7 @@ ping -c 3 192.168.0.56     # pve-mac Proxmox
 **Step 4: Verify DNS resolution**
 
 ```bash
-resolvectl query grafana.homelab.local
+resolvectl query grafana.homelab.lan
 ```
 
 Expected: returns `192.168.0.201`

@@ -23,12 +23,19 @@ http:
       middlewares:
         - default-headers
 
+  serversTransports:
+    insecure-skip-verify:
+      insecureSkipVerify: true
+
   services:
 {% for service_name, service_config in services.items() %}
     {{ service_name }}-service:
       loadBalancer:
         servers:
-          - url: "http://{{ service_config.ip }}:{{ service_config.port }}"
+          - url: "{{ service_config.scheme | default('http') }}://{{ service_config.ip }}:{{ service_config.port }}"
+{% if service_config.insecure_tls | default(false) %}
+        serversTransport: insecure-skip-verify
+{% endif %}
 {% endfor %}
 
     # K3s cluster service (load balanced across nodes)

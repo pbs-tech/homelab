@@ -482,11 +482,11 @@ Configure SSL certificates for all services:
 sleep 300
 
 # Check certificate status
-curl -s https://traefik.homelab.local:8080/api/http/routers | jq '.[] | select(.tls != null)'
+curl -s https://traefik.homelab.lan:8080/api/http/routers | jq '.[] | select(.tls != null)'
 
 # Test HTTPS access
-curl -I https://prometheus.homelab.local
-curl -I https://grafana.homelab.local
+curl -I https://prometheus.homelab.lan
+curl -I https://grafana.homelab.lan
 ```
 
 ### 6.2 Service Configuration
@@ -495,13 +495,13 @@ Configure individual services:
 
 ```bash
 # Configure Grafana data sources and dashboards
-curl -X POST "https://admin:${vault_grafana_admin_password}@grafana.homelab.local/api/datasources" \
+curl -X POST "https://admin:${vault_grafana_admin_password}@grafana.homelab.lan/api/datasources" \
   -H "Content-Type: application/json" \
   -d '{"name":"Prometheus","type":"prometheus","url":"http://192.168.0.200:9090","access":"proxy"}'
 
 # Import pre-built dashboards
 for dashboard in node-exporter k3s-cluster traefik; do
-  curl -X POST "https://admin:${vault_grafana_admin_password}@grafana.homelab.local/api/dashboards/import" \
+  curl -X POST "https://admin:${vault_grafana_admin_password}@grafana.homelab.lan/api/dashboards/import" \
     -H "Content-Type: application/json" \
     -d @"dashboards/${dashboard}.json"
 done
@@ -547,14 +547,14 @@ Test all service endpoints:
 # test-services.sh
 
 services=(
-  "traefik.homelab.local:8080"
-  "prometheus.homelab.local"
-  "grafana.homelab.local"
-  "adguard.homelab.local"
-  "ha.homelab.local"
-  "sonarr.homelab.local"
-  "radarr.homelab.local"
-  "jellyfin.homelab.local"
+  "traefik.homelab.lan:8080"
+  "prometheus.homelab.lan"
+  "grafana.homelab.lan"
+  "adguard.homelab.lan"
+  "ha.homelab.lan"
+  "sonarr.homelab.lan"
+  "radarr.homelab.lan"
+  "jellyfin.homelab.lan"
 )
 
 for service in "${services[@]}"; do
@@ -625,7 +625,7 @@ ip route show > network-routes.txt
 cat /etc/resolv.conf > dns-config.txt
 
 # Export service configurations
-curl -s https://traefik.homelab.local:8080/api/rawdata | jq '.' > traefik-config.json
+curl -s https://traefik.homelab.lan:8080/api/rawdata | jq '.' > traefik-config.json
 ```
 
 ## Troubleshooting Installation Issues

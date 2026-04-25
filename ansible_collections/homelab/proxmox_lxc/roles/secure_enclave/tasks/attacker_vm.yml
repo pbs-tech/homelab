@@ -81,7 +81,7 @@
 
 # Alternative: Deploy Kali in LXC container (faster, less resource intensive)
 - name: Create Kali LXC container (alternative to VM)
-  community.general.proxmox:
+  community.proxmox.proxmox:
     api_host: "{{ proxmox_config[enclave_proxmox_node].host }}"
     api_token_id: "{{ proxmox_config[enclave_proxmox_node].api_token_id }}"
     api_token_secret: "{{ proxmox_config[enclave_proxmox_node].api_token_secret }}"
@@ -121,7 +121,7 @@
     - lxc
 
 - name: Start attacker container  # noqa: no-handler
-  community.general.proxmox:
+  community.proxmox.proxmox:
     api_host: "{{ proxmox_config[enclave_proxmox_node].host }}"
     api_token_id: "{{ proxmox_config[enclave_proxmox_node].api_token_id }}"
     api_token_secret: "{{ proxmox_config[enclave_proxmox_node].api_token_secret }}"

@@ -14,8 +14,7 @@ services:
       - TZ={{ sonarr_timezone }}
     volumes:
       - {{ sonarr_config_dir }}:/config
-      - {{ sonarr_media_dir }}:/tv
-      - {{ sonarr_download_dir }}:/downloads
+      - /mnt/nas:/mnt/nas
 {% for volume in sonarr_extra_volumes %}
       - {{ volume }}
 {% endfor %}

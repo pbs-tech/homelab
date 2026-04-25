@@ -1,7 +1,7 @@
 ---
 # Arr-stack services configuration
 arr_stack_config:
-  base_url: https://{{ inventory_hostname }}.homelab.local
+  base_url: https://{{ inventory_hostname }}.homelab.lan
   timezone: Europe/London
   puid: 1000
   pgid: 1000

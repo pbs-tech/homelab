@@ -15,7 +15,7 @@ step_ca_data_dir: /var/lib/step-ca
 step_ca_port: 8443
 step_ca_name: "Homelab CA"
 step_ca_dns_names:
-  - "step-ca.homelab.local"
+  - "step-ca.homelab.lan"
   - "192.168.0.212"
 
 # Admin provisioner (JWK, used for CA management only)
@@ -28,7 +28,7 @@ step_ca_acme_provisioner: "acme"
 step_ca_acme_max_tls_duration: "2160h"
 step_ca_acme_default_tls_duration: "2160h"
 
-# DNS resolver for this container (must resolve homelab.local)
+# DNS resolver for this container (must resolve homelab.lan)
 step_ca_dns_resolver: "192.168.0.202"  # Unbound
 
 # Firewall

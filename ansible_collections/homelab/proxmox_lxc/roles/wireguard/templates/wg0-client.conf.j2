@@ -7,7 +7,7 @@
 PrivateKey = {{ item.private_key | default('REPLACE_WITH_YOUR_CLIENT_PRIVATE_KEY') }}
 Address = {{ item.allowed_ips }}
 {% if wireguard_client_dns_method | default('systemd-resolved') == 'systemd-resolved' %}
-PostUp = resolvectl dns %i {{ wireguard_dns_servers | join(' ') }}; resolvectl domain %i ~homelab.local
+PostUp = resolvectl dns %i {{ wireguard_dns_servers | join(' ') }}; resolvectl domain %i ~homelab.lan
 PostDown = resolvectl revert %i
 {% elif wireguard_client_dns_method | default('systemd-resolved') == 'resolvconf' %}
 PostUp = resolvconf -a %i -m 0 -x

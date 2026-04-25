@@ -139,7 +139,7 @@
   tasks:
     - name: Check Traefik SSL certificate
       ansible.builtin.uri:
-        url: https://traefik.homelab.local
+        url: https://traefik.homelab.lan
         method: GET
         validate_certs: false
         return_content: false
@@ -149,7 +149,7 @@
 
     - name: Check Grafana SSL certificate
       ansible.builtin.uri:
-        url: https://grafana.homelab.local
+        url: https://grafana.homelab.lan
         method: GET
         validate_certs: false
         return_content: false
@@ -159,7 +159,7 @@
 
     - name: Check Prometheus SSL certificate
       ansible.builtin.uri:
-        url: https://prometheus.homelab.local
+        url: https://prometheus.homelab.lan
         method: GET
         validate_certs: false
         return_content: false

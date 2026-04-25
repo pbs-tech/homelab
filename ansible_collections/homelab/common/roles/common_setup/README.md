@@ -286,7 +286,7 @@ The role automatically detects the distribution and applies appropriate package 
       password_authentication: false
     rsyslog_config:
       remote_logging: true
-      remote_host: "syslog.homelab.local"
+      remote_host: "syslog.homelab.lan"
     security_config:
       log_retention_days: 90
     common_users:

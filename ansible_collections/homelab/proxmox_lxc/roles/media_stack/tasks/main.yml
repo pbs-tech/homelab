@@ -1,0 +1,343 @@
+---
+# =============================================================================
+# VM Provisioning — direct qm commands on pve-nas
+# Bypasses ubuntu_vm/vm_base to avoid nested include_role tag-filtering issues.
+# Mirrors the same qm approach used in playbooks/create-vm-template.yml.
+# =============================================================================
+
+- name: Check if VM already exists - {{ vm_id }}
+  ansible.builtin.command:
+    cmd: qm status {{ vm_id }}
+  delegate_to: "{{ proxmox_config[proxmox_node].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  register: _vm_exists
+  changed_when: false
+  failed_when: false
+
+- name: Stop existing VM {{ vm_id }}
+  ansible.builtin.command:
+    cmd: qm stop {{ vm_id }} --timeout 30
+  delegate_to: "{{ proxmox_config[proxmox_node].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  when: _vm_exists.rc == 0
+  changed_when: true
+  failed_when: false
+
+- name: Destroy existing VM {{ vm_id }}
+  ansible.builtin.command:
+    cmd: qm destroy {{ vm_id }} --purge
+  delegate_to: "{{ proxmox_config[proxmox_node].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  when: _vm_exists.rc == 0
+  changed_when: true
+
+- name: Clone template to VM {{ vm_id }}
+  ansible.builtin.command:
+    cmd: >-
+      qm clone {{ media_stack_vm_template_id }} {{ vm_id }}
+      --name {{ inventory_hostname }}
+      --full 1
+  delegate_to: "{{ proxmox_config[proxmox_node].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  changed_when: true
+
+- name: Write SSH public key to temp file on Proxmox host
+  ansible.builtin.copy:
+    content: "{{ lookup('file', '~/.ssh/homelab_ed25519.pub') }}\n"
+    dest: /tmp/vm-{{ vm_id }}-sshkey.pub
+    mode: "0600"
+  delegate_to: "{{ proxmox_config[proxmox_node].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+
+- name: Apply cloud-init settings to VM {{ vm_id }}
+  ansible.builtin.command:
+    cmd: >-
+      qm set {{ vm_id }}
+      --ciuser ansible
+      --ipconfig0 ip={{ ansible_host }}/24,gw={{ homelab_network.gateway_ip }}
+      --nameserver "{{ homelab_network.dns_servers | join(' ') }}"
+      --searchdomain {{ homelab_domain }}
+      --sshkeys /tmp/vm-{{ vm_id }}-sshkey.pub
+      --cores {{ media_stack_cores }}
+      --memory {{ media_stack_memory }}
+      --onboot 1
+  delegate_to: "{{ proxmox_config[proxmox_node].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  changed_when: true
+
+- name: Regenerate cloud-init ISO
+  ansible.builtin.command:
+    cmd: qm cloudinit update {{ vm_id }}
+  delegate_to: "{{ proxmox_config[proxmox_node].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  changed_when: true
+
+- name: Remove temp SSH key file
+  ansible.builtin.file:
+    path: /tmp/vm-{{ vm_id }}-sshkey.pub
+    state: absent
+  delegate_to: "{{ proxmox_config[proxmox_node].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+
+- name: Resize VM disk to {{ media_stack_disk_size ~ 'G' }}
+  ansible.builtin.command:
+    cmd: qm resize {{ vm_id }} scsi0 {{ media_stack_disk_size }}G
+  delegate_to: "{{ proxmox_config[proxmox_node].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  changed_when: true
+
+- name: Start VM {{ vm_id }}
+  ansible.builtin.command:
+    cmd: qm start {{ vm_id }}
+  delegate_to: "{{ proxmox_config[proxmox_node].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  changed_when: true
+
+- name: Wait for SSH to respond at {{ ansible_host }}
+  ansible.builtin.wait_for:
+    host: "{{ ansible_host }}"
+    port: 22
+    delay: 20
+    timeout: 300
+    search_regex: OpenSSH
+  delegate_to: localhost
+  become: false
+
+- name: Wait for cloud-init to complete
+  ansible.builtin.wait_for_connection:
+    delay: 5
+    timeout: 120
+
+- name: Gather facts
+  ansible.builtin.setup:
+
+# =============================================================================
+# System configuration
+# =============================================================================
+
+- name: Install required packages
+  ansible.builtin.apt:
+    name:
+      - nfs-common
+      - curl
+      - ca-certificates
+      - gnupg
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Create media group (GID 1000)
+  ansible.builtin.group:
+    name: media
+    gid: "{{ media_stack_pgid }}"
+    state: present
+  register: _group_result
+  failed_when:
+    - _group_result is failed
+    - "'already exists' not in (_group_result.msg | default(''))"
+
+- name: Create media user (UID 1000)
+  ansible.builtin.user:
+    name: media
+    uid: "{{ media_stack_puid }}"
+    group: "{{ media_stack_pgid }}"
+    shell: /usr/sbin/nologin
+    create_home: false
+    state: present
+  register: _user_result
+  failed_when:
+    - _user_result is failed
+    - "'already exists' not in (_user_result.msg | default(''))"
+    - "'not unique' not in (_user_result.msg | default(''))"
+
+- name: Create NFS mount point
+  ansible.builtin.file:
+    path: "{{ media_stack_nfs_mount }}"
+    state: directory
+    mode: "0755"
+
+- name: Mount NFS share
+  ansible.posix.mount:
+    path: "{{ media_stack_nfs_mount }}"
+    src: "{{ media_stack_nfs_src }}"
+    fstype: nfs
+    opts: "{{ media_stack_nfs_opts }}"
+    state: mounted
+
+- name: Create local data directory and jellyfin cache
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ media_stack_puid }}"
+    group: "{{ media_stack_pgid }}"
+    mode: "0755"
+  loop:
+    - "{{ media_stack_data_dir }}"
+    - "{{ media_stack_data_dir }}/jellyfin/cache"
+
+- name: Create service config directories on NFS
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ media_stack_puid }}"
+    group: "{{ media_stack_pgid }}"
+    mode: "0755"
+  loop:
+    - "{{ media_stack_nfs_mount }}/config"
+    - "{{ media_stack_nfs_mount }}/config/sonarr"
+    - "{{ media_stack_nfs_mount }}/config/radarr"
+    - "{{ media_stack_nfs_mount }}/config/bazarr"
+    - "{{ media_stack_nfs_mount }}/config/prowlarr"
+    - "{{ media_stack_nfs_mount }}/config/qbittorrent"
+    - "{{ media_stack_nfs_mount }}/config/jellyfin"
+
+- name: Install Docker
+  ansible.builtin.include_role:
+    name: homelab.common.docker
+    apply:
+      tags: [always]
+  vars:
+    docker_ensure_group: true
+
+- name: Configure Docker daemon DNS and disable IPv6
+  ansible.builtin.copy:
+    dest: /etc/docker/daemon.json
+    content: "{{ {'dns': media_stack_dns_servers, 'ipv6': false} | to_nice_json }}\n"
+    mode: "0644"
+  notify:
+    - Restart Docker
+    - Restart media-stack
+
+- name: Deploy docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ media_stack_data_dir }}/docker-compose.yml"
+    owner: root
+    group: docker
+    mode: "0640"
+  notify: Restart media-stack
+
+- name: Deploy media-stack systemd service
+  ansible.builtin.template:
+    src: media-stack.service.j2
+    dest: /etc/systemd/system/media-stack.service
+    mode: "0644"
+  notify: Restart media-stack
+
+- name: Configure UFW — allow service ports from Traefik
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+    src: "{{ media_stack_traefik_ip }}"
+    comment: "media-stack (traefik)"
+  loop:
+    - "{{ sonarr_port }}"
+    - "{{ radarr_port }}"
+    - "{{ bazarr_port }}"
+    - "{{ prowlarr_port }}"
+    - "{{ qbittorrent_webui_port }}"
+    - "{{ jellyfin_port }}"
+    - "{{ jellyfin_https_port }}"
+  when: media_stack_configure_firewall
+
+- name: Configure UFW — allow service ports from localhost
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+    src: "127.0.0.1"
+    comment: "media-stack (localhost)"
+  loop:
+    - "{{ sonarr_port }}"
+    - "{{ radarr_port }}"
+    - "{{ bazarr_port }}"
+    - "{{ prowlarr_port }}"
+    - "{{ qbittorrent_webui_port }}"
+    - "{{ jellyfin_port }}"
+    - "{{ jellyfin_https_port }}"
+  when: media_stack_configure_firewall
+
+- name: Configure UFW — allow torrent port (only when VPN disabled)
+  community.general.ufw:
+    rule: allow
+    port: "{{ qbittorrent_torrent_port }}"
+    proto: "{{ item }}"
+    comment: "qBittorrent torrent port"
+  loop:
+    - tcp
+    - udp
+  when:
+    - media_stack_configure_firewall
+    - not (qbittorrent_vpn_enabled | bool)
+
+- name: Pull all Docker images
+  community.docker.docker_image:
+    name: "{{ item }}"
+    source: pull
+  loop:
+    - "{{ sonarr_image }}"
+    - "{{ radarr_image }}"
+    - "{{ bazarr_image }}"
+    - "{{ prowlarr_image }}"
+    - "{{ qbittorrent_image }}"
+    - "{{ gluetun_image }}"
+    - "{{ jellyfin_image }}"
+  retries: 3
+  delay: 10
+  register: _image_pull
+  until: _image_pull is succeeded
+
+- name: Enable and start media-stack
+  ansible.builtin.systemd:
+    name: media-stack
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Wait for services to become ready
+  ansible.builtin.uri:
+    url: "http://localhost:{{ item.port }}{{ item.path }}"
+    method: GET
+    status_code: [200, 302, 404]
+  loop:
+    - {name: sonarr, port: "{{ sonarr_port }}", path: /ping}
+    - {name: radarr, port: "{{ radarr_port }}", path: /ping}
+    - {name: prowlarr, port: "{{ prowlarr_port }}", path: /ping}
+    - {name: jellyfin, port: "{{ jellyfin_port }}", path: /health}
+  register: _health
+  until: _health.status in [200, 302, 404]
+  retries: 30
+  delay: 10
+  failed_when: false
+
+- name: Display media stack access information
+  ansible.builtin.debug:
+    msg: |
+      Media stack is ready at {{ ansible_host }}
+        Sonarr:      http://{{ ansible_host }}:{{ sonarr_port }}
+        Radarr:      http://{{ ansible_host }}:{{ radarr_port }}
+        Bazarr:      http://{{ ansible_host }}:{{ bazarr_port }}
+        Prowlarr:    http://{{ ansible_host }}:{{ prowlarr_port }}
+        qBittorrent: http://{{ ansible_host }}:{{ qbittorrent_webui_port }}
+        Jellyfin:    http://{{ ansible_host }}:{{ jellyfin_port }}

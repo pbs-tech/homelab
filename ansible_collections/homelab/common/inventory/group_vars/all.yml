@@ -3,7 +3,7 @@
 # This file contains common settings used across all collections
 
 # Infrastructure topology
-homelab_domain: homelab.local
+homelab_domain: homelab.lan
 homelab_timezone: America/New_York
 
 # Network configuration

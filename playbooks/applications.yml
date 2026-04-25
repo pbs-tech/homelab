@@ -30,7 +30,7 @@
       tags: [homeassistant, automation]
 
 - name: Deploy TrueNAS VM
-  hosts: nas_vm
+  hosts: truenas
   gather_facts: false
   become: false
   roles:
@@ -38,62 +38,20 @@
       tags: [truenas, nas]
   tags: [truenas, nas, applications]
 
-- name: Deploy NAS services
-  hosts: nas_services
+- name: Deploy media stack VM
+  hosts: media-stack
   become: true
-  gather_facts: false  # Defer until containers exist
-  serial: 2 # Deploy NAS services in batches to avoid resource contention
-  pre_tasks:
-    - name: Ensure NAS containers exist
-      ansible.builtin.include_role:
-        name: homelab.common.container_base
-      vars:
-        container_resources:
-          cores: "{{ lxc_cores | default(1) }}"
-          memory: "{{ lxc_memory | default(512) }}"
-          swap: "{{ lxc_swap | default(0) }}"
-          disk_size: "{{ lxc_disk_size | default(8) }}"
-      when: container_id is defined
-
-    - name: Gather facts after container is available
-      ansible.builtin.setup:
-
+  gather_facts: false
   roles:
-    - role: homelab.common.common_setup
-      tags: [common_setup]
+    - role: homelab.proxmox_lxc.media_stack
+      tags: [media-stack, media]
+  tags: [media-stack, media, applications]
 
-    - role: homelab.proxmox_lxc.sonarr
-      when: inventory_hostname is search('sonarr')
-      tags: [sonarr, media]
-
-    - role: homelab.proxmox_lxc.radarr
-      when: inventory_hostname is search('radarr')
-      tags: [radarr, media]
-
-    - role: homelab.proxmox_lxc.bazarr
-      when: inventory_hostname is search('bazarr')
-      tags: [bazarr, media]
-
-    - role: homelab.proxmox_lxc.prowlarr
-      when: inventory_hostname is search('prowlarr')
-      tags: [prowlarr, media]
-
-    - role: homelab.proxmox_lxc.qbittorrent
-      when: inventory_hostname is search('qbittorrent')
-      tags: [qbittorrent, media]
-
-    - role: homelab.proxmox_lxc.jellyfin
-      when: inventory_hostname is search('jellyfin')
-      tags: [jellyfin, media]
-
-  post_tasks:
-    - name: Verify application services
-      ansible.builtin.uri:
-        url: http://{{ ansible_host }}:{{ service_port }}
-        method: GET
-        timeout: 30
-        status_code: [200, 302, 404]
-      delegate_to: localhost
-      become: false
-      when: service_port is defined
-      failed_when: false
+- name: Install monitoring agent on media-stack VM
+  hosts: media-stack
+  become: true
+  gather_facts: true
+  roles:
+    - role: homelab.common.monitoring_agent
+      tags: [monitoring_agent, node_exporter]
+  tags: [monitoring_agent, media-stack, applications]

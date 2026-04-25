@@ -104,7 +104,7 @@ homelab_network:
     - 1.1.1.1
     - 1.0.0.1
 
-homelab_domain: homelab.local
+homelab_domain: homelab.lan
 ```
 
 And extended in `ansible_collections/homelab/common/inventory/group_vars/all.yml`:
@@ -376,7 +376,7 @@ network:
           - 192.168.0.204
           - 1.1.1.1
         search:
-          - homelab.local
+          - homelab.lan
 ```
 
 ### Step 4: Firewall for VMs
@@ -547,7 +547,7 @@ searchdomain: "{{ homelab_domain }}"
 This results in a `/etc/resolv.conf` inside each container like:
 
 ```text
-search homelab.local
+search homelab.lan
 nameserver 192.168.0.202
 nameserver 192.168.0.204
 nameserver 1.1.1.1

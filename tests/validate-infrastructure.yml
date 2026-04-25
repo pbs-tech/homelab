@@ -71,22 +71,33 @@
       register: port_checks
       ignore_errors: true
 
-- name: Validate NAS LXC containers on pve-nas
+- name: Validate NAS VMs and containers on pve-nas
   hosts: localhost
   connection: local
   gather_facts: false
   vars:
+    pve_nas_vms:
+      - { vmid: 220, name: truenas, ip: 192.168.0.220, port: 80 }
+      - { vmid: 230, name: media-stack, ip: 192.168.0.230, port: 8096 }
     pve_nas_containers:
-      - { vmid: 230, name: sonarr, ip: 192.168.0.230, port: 8989 }
-      - { vmid: 231, name: radarr, ip: 192.168.0.231, port: 7878 }
-      - { vmid: 232, name: bazarr, ip: 192.168.0.232, port: 6767 }
-      - { vmid: 233, name: prowlarr, ip: 192.168.0.233, port: 9696 }
-      - { vmid: 234, name: qbittorrent, ip: 192.168.0.234, port: 8080 }
-      - { vmid: 235, name: jellyfin, ip: 192.168.0.235, port: 8096 }
       - { vmid: 240, name: pve-exporter-nas, ip: 192.168.0.240, port: 9221 }
     proxmox_host: "{{ proxmox_config['pve-nas'].host }}"
   tasks:
-    - name: Check NAS container status
+    - name: Check NAS VM status
+      ansible.builtin.uri:
+        # yamllint disable-line rule:line-length
+        url: https://{{ proxmox_host }}:8006/api2/json/nodes/{{ proxmox_config['pve-nas'].node }}/qemu/{{ item.vmid }}/status/current
+        method: GET
+        headers:
+          # yamllint disable-line rule:line-length
+          Authorization: PVEAPIToken={{ proxmox_config['pve-nas'].api_token_id }}={{ proxmox_config['pve-nas'].api_token_secret }}
+        validate_certs: false
+        timeout: 10
+      loop: "{{ pve_nas_vms }}"
+      register: nas_vm_status
+      ignore_errors: true
+
+    - name: Check NAS LXC container status
       ansible.builtin.uri:
         # yamllint disable-line rule:line-length
         url: https://{{ proxmox_host }}:8006/api2/json/nodes/{{ proxmox_config['pve-nas'].node }}/lxc/{{ item.vmid }}/status/current
@@ -106,7 +117,7 @@
         port: "{{ item.port }}"
         timeout: 5
         state: started
-      loop: "{{ pve_nas_containers }}"
+      loop: "{{ pve_nas_vms + pve_nas_containers }}"
       register: nas_port_checks
       ignore_errors: true
 

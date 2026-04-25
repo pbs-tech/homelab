@@ -27,7 +27,7 @@ This guide helps you configure WireGuard VPN clients to securely access your hom
 - VPN Network: `10.200.0.0/24`
 - Server VPN IP: `10.200.0.1`
 - Default Port: `51820` (UDP)
-- Domain: `vpn.homelab.local`
+- Domain: `vpn.homelab.lan`
 
 **What You'll Access:**
 
@@ -165,7 +165,7 @@ Address = 10.200.0.2/32
 DNS = 192.168.0.202
 # DNS integration for systems with NetworkManager/systemd-resolved (most modern Linux)
 # This ensures DNS works correctly instead of being overridden by NetworkManager
-PostUp = resolvectl dns %i 192.168.0.202; resolvectl domain %i ~homelab.local
+PostUp = resolvectl dns %i 192.168.0.202; resolvectl domain %i ~homelab.lan
 PostDown = resolvectl revert %i
 
 [Peer]
@@ -258,7 +258,7 @@ sudo nmcli connection import type wireguard file /etc/wireguard/wg0.conf
 **Step 2: Configure DNS**
 
 ```bash
-nmcli connection modify wg0 ipv4.dns "192.168.0.202" ipv4.dns-search "homelab.local"
+nmcli connection modify wg0 ipv4.dns "192.168.0.202" ipv4.dns-search "homelab.lan"
 ```
 
 **Step 3: Connect**
@@ -271,7 +271,7 @@ nmcli connection up wg0
 
 ```bash
 resolvectl status wg0
-resolvectl query grafana.homelab.local
+resolvectl query grafana.homelab.lan
 ```
 
 **Disconnect:**
@@ -283,7 +283,7 @@ nmcli connection down wg0
 **Advantages:**
 
 - No `resolvconf` signature mismatch errors
-- NM handles DNS routing natively — `.homelab.local` queries go to `192.168.0.202`
+- NM handles DNS routing natively — `.homelab.lan` queries go to `192.168.0.202`
 - No need for `PostUp`/`PostDown` hooks
 - GUI integration with desktop environment (connection also appears in system tray)
 - No need for sudo to connect after initial import
@@ -345,7 +345,7 @@ ping 192.168.0.202  # DNS server
 ifconfig utun3  # Interface name may vary
 
 # Test DNS resolution
-dig grafana.homelab.local @192.168.0.202
+dig grafana.homelab.lan @192.168.0.202
 ```
 
 ### Method 2: Command Line (Homebrew)
@@ -437,7 +437,7 @@ ping 192.168.0.202
 route print
 
 # Test DNS resolution
-nslookup grafana.homelab.local 192.168.0.202
+nslookup grafana.homelab.lan 192.168.0.202
 ```
 
 **Features:**
@@ -581,7 +581,7 @@ Address = 10.200.0.2/32
 
 # DNS servers to use when VPN is active
 # Comma-separated list
-# Use homelab DNS for .homelab.local resolution
+# Use homelab DNS for .homelab.lan resolution
 DNS = 192.168.0.202
 
 # Optional: Custom MTU (default: 1420)
@@ -625,7 +625,7 @@ PersistentKeepalive = 25
 
 - **PrivateKey**: Your client's private key. Generate once, keep secret.
 - **Address**: Your IP in VPN subnet. Must match server's allowed IPs for your peer.
-- **DNS**: DNS servers used when VPN is active. Use homelab DNS (192.168.0.202) to resolve `.homelab.local` domains.
+- **DNS**: DNS servers used when VPN is active. Use homelab DNS (192.168.0.202) to resolve `.homelab.lan` domains.
 - **MTU**: Maximum transmission unit. Lower if experiencing packet loss (try 1380, 1360).
 - **PostUp/PostDown**: Scripts run when VPN starts/stops. Useful for custom routing.
 
@@ -691,7 +691,7 @@ PersistentKeepalive = 25
 
 ### Why DNS Matters
 
-Your homelab uses internal DNS names like `grafana.homelab.local`, `prometheus.homelab.local`. Without proper DNS configuration, you'll have to use IP addresses.
+Your homelab uses internal DNS names like `grafana.homelab.lan`, `prometheus.homelab.lan`. Without proper DNS configuration, you'll have to use IP addresses.
 
 ### Configure DNS in VPN Client
 
@@ -716,11 +716,11 @@ is often overridden by NetworkManager. Add `PostUp`/`PostDown` to your config to
 PrivateKey = YOUR_PRIVATE_KEY
 Address = 10.200.0.2/32
 DNS = 192.168.0.202
-PostUp = resolvectl dns %i 192.168.0.202; resolvectl domain %i ~homelab.local
+PostUp = resolvectl dns %i 192.168.0.202; resolvectl domain %i ~homelab.lan
 PostDown = resolvectl revert %i
 ```
 
-This tells systemd-resolved to route `.homelab.local` queries through the VPN DNS, while
+This tells systemd-resolved to route `.homelab.lan` queries through the VPN DNS, while
 leaving other DNS queries on the default resolver.
 
 **Method 3: Manual DNS (If Auto-DNS Fails)**
@@ -739,7 +739,7 @@ sudo nano /etc/systemd/resolved.conf
 
 # Add under [Resolve]:
 DNS=192.168.0.202
-Domains=~homelab.local
+Domains=~homelab.lan
 
 # Restart
 sudo systemctl restart systemd-resolved
@@ -751,7 +751,7 @@ sudo systemctl restart systemd-resolved
 2. Select VPN interface
 3. Advanced > DNS
 4. Add DNS Server: `192.168.0.202`
-5. Search Domains: `homelab.local`
+5. Search Domains: `homelab.lan`
 
 **Windows:**
 
@@ -760,16 +760,16 @@ sudo systemctl restart systemd-resolved
 3. Select "Internet Protocol Version 4 (TCP/IPv4)" > Properties
 4. Use following DNS servers:
    - Preferred: `192.168.0.202`
-5. Advanced > DNS > Append these DNS suffixes: `homelab.local`
+5. Advanced > DNS > Append these DNS suffixes: `homelab.lan`
 
 ### Testing DNS Resolution
 
 ```bash
 # Test homelab DNS server directly
-nslookup grafana.homelab.local 192.168.0.202
+nslookup grafana.homelab.lan 192.168.0.202
 
 # Test DNS through VPN (should use homelab DNS)
-nslookup grafana.homelab.local
+nslookup grafana.homelab.lan
 
 # Verify DNS server in use
 # Linux/macOS:
@@ -789,8 +789,8 @@ cat /etc/resolv.conf  # Linux/macOS
 ipconfig /all  # Windows
 
 # Test DNS server directly
-dig @192.168.0.202 grafana.homelab.local  # Linux/macOS
-nslookup grafana.homelab.local 192.168.0.202  # Windows
+dig @192.168.0.202 grafana.homelab.lan  # Linux/macOS
+nslookup grafana.homelab.lan 192.168.0.202  # Windows
 ```
 
 **Solution:** Ensure `DNS = 192.168.0.202` in configuration file.
@@ -1015,7 +1015,7 @@ sudo wg show  # Should now list a [Peer] section
 
 ### DNS Not Working
 
-**Problem: Can ping IPs but not resolve .homelab.local names**
+**Problem: Can ping IPs but not resolve .homelab.lan names**
 
 **Diagnostics:**
 
@@ -1032,7 +1032,7 @@ ipconfig /all
 # Look for DNS Servers: 192.168.0.202
 
 # Test DNS directly
-nslookup grafana.homelab.local 192.168.0.202
+nslookup grafana.homelab.lan 192.168.0.202
 ```
 
 **Solutions:**
@@ -1040,7 +1040,7 @@ nslookup grafana.homelab.local 192.168.0.202
 1. **If connecting via `nmcli`**, set DNS on the connection:
 
 ```bash
-nmcli connection modify wg0 ipv4.dns "192.168.0.202" ipv4.dns-search "homelab.local"
+nmcli connection modify wg0 ipv4.dns "192.168.0.202" ipv4.dns-search "homelab.lan"
 nmcli connection down wg0 && nmcli connection up wg0
 ```
 
@@ -1049,7 +1049,7 @@ nmcli connection down wg0 && nmcli connection up wg0
 ```ini
 [Interface]
 DNS = 192.168.0.202
-PostUp = resolvectl dns %i 192.168.0.202; resolvectl domain %i ~homelab.local
+PostUp = resolvectl dns %i 192.168.0.202; resolvectl domain %i ~homelab.lan
 PostDown = resolvectl revert %i
 ```
 
@@ -1423,7 +1423,7 @@ PrivateKey = REPLACE_WITH_YOUR_PRIVATE_KEY
 Address = 10.200.0.X/32
 DNS = 192.168.0.202
 # For Linux with NetworkManager/systemd-resolved, add these two lines:
-PostUp = resolvectl dns %i 192.168.0.202; resolvectl domain %i ~homelab.local
+PostUp = resolvectl dns %i 192.168.0.202; resolvectl domain %i ~homelab.lan
 PostDown = resolvectl revert %i
 
 [Peer]
@@ -1438,11 +1438,11 @@ PersistentKeepalive = 25
 
 Once connected to VPN:
 
-- **Grafana**: `http://grafana.homelab.local` or `http://192.168.0.201:3000`
-- **Prometheus**: `http://prometheus.homelab.local` or `http://192.168.0.200:9090`
-- **Home Assistant**: `http://homeassistant.homelab.local` or `http://192.168.0.208:8123`
-- **AdGuard**: `http://adguard.homelab.local` or `http://192.168.0.204`
-- **Traefik**: `http://traefik.homelab.local` or `http://192.168.0.205:8080`
+- **Grafana**: `http://grafana.homelab.lan` or `http://192.168.0.201:3000`
+- **Prometheus**: `http://prometheus.homelab.lan` or `http://192.168.0.200:9090`
+- **Home Assistant**: `http://homeassistant.homelab.lan` or `http://192.168.0.208:8123`
+- **AdGuard**: `http://adguard.homelab.lan` or `http://192.168.0.204`
+- **Traefik**: `http://traefik.homelab.lan` or `http://192.168.0.205:8080`
 
 ### Getting Help
 

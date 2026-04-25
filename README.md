@@ -216,9 +216,13 @@ ansible-playbook playbooks/site.yml
 | Loki | 192.168.0.210 | Log aggregation | proxmox_lxc |
 | **Applications** | | |
 | Home Assistant | 192.168.0.208 | Home automation | proxmox_lxc |
-| Sonarr | 192.168.0.230 | TV management | proxmox_lxc |
-| Radarr | 192.168.0.231 | Movie management | proxmox_lxc |
-| Jellyfin | 192.168.0.235 | Media streaming | proxmox_lxc |
+| **Media Stack VM** | **192.168.0.230** | **Ubuntu VM hosting all arr services via Docker Compose** | proxmox_lxc |
+| Sonarr | 192.168.0.230:8989 | TV management | media_stack |
+| Radarr | 192.168.0.230:7878 | Movie management | media_stack |
+| Bazarr | 192.168.0.230:6767 | Subtitle management | media_stack |
+| Prowlarr | 192.168.0.230:9696 | Indexer management | media_stack |
+| qBittorrent | 192.168.0.230:8080 | BitTorrent client (NordVPN via Gluetun) | media_stack |
+| Jellyfin | 192.168.0.230:8096 | Media streaming | media_stack |
 | **NAS VMs** | | |
 | TrueNAS | 192.168.0.220 | NAS storage (ISO) | proxmox_lxc |
 | **Cluster** | | |
@@ -256,7 +260,7 @@ Edit `inventory/group_vars/all.yml` to customize:
 
 ```yaml
 # Domain configuration
-homelab_domain: "homelab.local"
+homelab_domain: "homelab.lan"
 external_domain: "yourdomain.com"
 
 # Network settings
@@ -473,7 +477,7 @@ For comprehensive troubleshooting guidance, see [TROUBLESHOOTING.md](TROUBLESHOO
 # Run system health check
 for service in traefik prometheus grafana; do
   echo -n "Testing $service: "
-  curl -s -o /dev/null -w "%{http_code}" "https://$service.homelab.local" |
+  curl -s -o /dev/null -w "%{http_code}" "https://$service.homelab.lan" |
     grep -q "200\|401\|302" && echo "OK" || echo "FAILED"
 done
 ```
@@ -496,7 +500,7 @@ pct exec 205 -- journalctl -u traefik -f
 
 ```bash
 # Test DNS resolution
-nslookup prometheus.homelab.local 192.168.0.204
+nslookup prometheus.homelab.lan 192.168.0.204
 # Check service connectivity
 telnet 192.168.0.200 9090
 ```

@@ -21,6 +21,16 @@
   vars:
     docker_ensure_group: true
 
+- name: Mount NAS NFS shares
+  ansible.builtin.include_role:
+    name: homelab.common.nas_mounts
+  vars:
+    nas_subdirs:
+      - /mnt/nas/downloads/complete
+      - /mnt/nas/downloads/complete/tv
+      - /mnt/nas/downloads/complete/movies
+      - /mnt/nas/downloads/incomplete
+
 # Validate PUID/PGID - ensure user/group exist or will be created by container
 - name: Validate PUID/PGID configuration
   ansible.builtin.assert:
@@ -82,48 +92,13 @@
     - "{{ qbittorrent_data_dir }}"
     - "{{ qbittorrent_config_dir }}"
 
-- name: Check if qBittorrent config already exists
-  ansible.builtin.stat:
-    path: "{{ qbittorrent_config_dir }}/qBittorrent/qBittorrent.conf"
-  register: qbt_conf_stat
-
-- name: Pre-configure qBittorrent WebUI password (first install only)
-  when: not qbt_conf_stat.stat.exists
-  block:
-    - name: Generate qBittorrent WebUI password hash
-      ansible.builtin.command:
-        argv:
-          - python3
-          - -c
-          - |
-            import hashlib, os, base64
-            password = os.environ['QB_PASS'].encode('utf-8')
-            salt = os.urandom(16)
-            key = hashlib.pbkdf2_hmac('sha1', password, salt, 100000, dklen=32)
-            print(base64.b64encode(salt).decode() + ':' + base64.b64encode(key).decode())
-      environment:
-        QB_PASS: "{{ qbittorrent_admin_password }}"
-      register: qbittorrent_password_hash
-      changed_when: false
-      no_log: true
-
-    - name: Create qBittorrent config subdirectory
-      ansible.builtin.file:
-        path: "{{ qbittorrent_config_dir }}/qBittorrent"
-        state: directory
-        owner: "{{ qbittorrent_puid }}"
-        group: "{{ qbittorrent_pgid }}"
-        mode: "0755"
-
-    - name: Write initial qBittorrent.conf with configured credentials
-      ansible.builtin.template:
-        src: qbittorrent.conf.j2
-        dest: "{{ qbittorrent_config_dir }}/qBittorrent/qBittorrent.conf"
-        owner: "{{ qbittorrent_puid }}"
-        group: "{{ qbittorrent_pgid }}"
-        mode: "0600"
-      vars:
-        _password_hash: "{{ qbittorrent_password_hash.stdout | trim }}"
+- name: Create qBittorrent config subdirectory
+  ansible.builtin.file:
+    path: "{{ qbittorrent_config_dir }}/qBittorrent"
+    state: directory
+    owner: "{{ qbittorrent_puid }}"
+    group: "{{ qbittorrent_pgid }}"
+    mode: "0755"
 
 - name: Deploy docker-compose.yml
   ansible.builtin.template:
@@ -216,6 +191,71 @@
       ansible.builtin.fail:
         msg: "qBittorrent health check failed and strict mode is enabled"
       when: qbittorrent_strict_health_check | default(false)
+
+- name: Configure qBittorrent WebUI password via API
+  block:
+    - name: Try login with vault password
+      ansible.builtin.uri:
+        url: "http://localhost:{{ qbittorrent_webui_port }}/api/v2/auth/login"
+        method: POST
+        body: "username={{ qbittorrent_admin_username }}&password={{ qbittorrent_admin_password | urlencode }}"
+        headers:
+          Content-Type: "application/x-www-form-urlencoded"
+        status_code: 200
+        return_content: true
+      register: qbt_login_vault
+      no_log: true
+      failed_when: false
+
+    - name: Extract temporary password from logs (qBittorrent 5.x first-run)
+      ansible.builtin.command:
+        argv:
+          - docker
+          - logs
+          - "{{ qbittorrent_container_name }}"
+      register: qbt_logs
+      changed_when: false
+      no_log: true
+      when: qbt_login_vault.content | default('') != 'Ok.'
+
+    - name: Parse temporary password from logs
+      ansible.builtin.set_fact:
+        _qbt_temp_password: "{{ qbt_logs.stderr | regex_search('temporary password is provided for this session: (\\S+)', '\\1') | first }}"
+      no_log: true
+      when:
+        - qbt_login_vault.content | default('') != 'Ok.'
+        - "'temporary password' in (qbt_logs.stderr | default(''))"
+
+    - name: Login with temporary password
+      ansible.builtin.uri:
+        url: "http://localhost:{{ qbittorrent_webui_port }}/api/v2/auth/login"
+        method: POST
+        body: "username={{ qbittorrent_admin_username }}&password={{ _qbt_temp_password | urlencode }}"
+        headers:
+          Content-Type: "application/x-www-form-urlencoded"
+        status_code: 200
+        return_content: true
+      register: qbt_login_temp
+      no_log: true
+      when:
+        - qbt_login_vault.content | default('') != 'Ok.'
+        - _qbt_temp_password is defined
+
+    - name: Set vault password via API
+      ansible.builtin.uri:
+        url: "http://localhost:{{ qbittorrent_webui_port }}/api/v2/app/setPreferences"
+        method: POST
+        body: "json={\"web_ui_password\":\"{{ qbittorrent_admin_password }}\"}"
+        headers:
+          Content-Type: "application/x-www-form-urlencoded"
+          Cookie: "{{ qbt_login_temp.set_cookie | default(qbt_login_vault.set_cookie) }}"
+        status_code: 200
+      no_log: true
+      when: >
+        qbt_login_vault.content | default('') != 'Ok.' and
+        qbt_login_temp is defined and
+        qbt_login_temp.content | default('') == 'Ok.'
+      changed_when: true
 
 - name: Display qBittorrent access information
   ansible.builtin.debug:

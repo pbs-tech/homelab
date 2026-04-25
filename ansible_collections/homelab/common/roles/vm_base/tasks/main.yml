@@ -127,8 +127,8 @@
     net:
       net0: "{{ _vm_net0 }}"
 
-    # Boot order: disk first, then cdrom
-    boot: "order=scsi0;ide2"
+    # Boot order: configurable via vm_boot_order (default: disk first, then cdrom)
+    boot: "{{ vm_boot_order | default('order=scsi0;ide2') }}"
 
     state: present
 
@@ -182,7 +182,11 @@
     - kvm
     - clone
 
-- name: Configure cloud-init on cloned VM
+# proxmox_kvm update: true is unreliable for cloud-init settings — it silently
+# succeeds but doesn't apply ipconfig/sshkeys in some collection versions.
+# Use qm set directly (same approach as create-vm-template.yml) for guaranteed application.
+
+- name: Update VM hardware resources via API
   community.proxmox.proxmox_kvm:
     api_host: "{{ _vm_api_host }}"
     api_user: "{{ _vm_api_user }}"
@@ -190,35 +194,92 @@
     api_token_secret: "{{ _vm_api_token_secret }}"
     validate_certs: "{{ _vm_validate_certs }}"
     timeout: "{{ proxmox_api_defaults.timeout | default(300) }}"
-
     vmid: "{{ _vm_vmid }}"
     node: "{{ _vm_node }}"
     update: true
-
-    # Cloud-init settings
-    ciuser: "{{ vm_cloudinit.user }}"
-    ipconfig:
-      ipconfig0: "{{ vm_cloudinit.ip_config }}"
-    nameservers: "{{ vm_cloudinit.dns_servers }}"
-    searchdomains: "{{ vm_cloudinit.search_domain }}"
-    sshkeys: "{{ vm_cloudinit.ssh_public_key }}"
-
-    # Hardware overrides (may differ from template)
     cores: "{{ vm_resources.cores }}"
     sockets: "{{ vm_resources.sockets }}"
     memory: "{{ vm_resources.memory }}"
     onboot: "{{ vm_config.onboot }}"
-
   delegate_to: localhost
   become: false
+  when:
+    - vm_clone.enabled | bool
+  tags:
+    - proxmox
+    - vm
+    - kvm
+    - clone
+
+- name: Write SSH public key to temp file on Proxmox host
+  ansible.builtin.copy:
+    content: "{{ vm_cloudinit.ssh_public_key }}\n"
+    dest: "/tmp/vm-{{ _vm_vmid }}-sshkey.pub"
+    mode: "0600"
+  delegate_to: "{{ _vm_api_host }}"
+  become: true
+  vars:
+    ansible_user: ansible
   when:
     - vm_clone.enabled | bool
     - vm_cloudinit.enabled | bool
   tags:
     - proxmox
     - vm
-    - kvm
-    - clone
+    - cloudinit
+
+- name: Apply cloud-init settings via qm set
+  ansible.builtin.command:
+    cmd: >-
+      qm set {{ _vm_vmid }}
+      --ciuser {{ vm_cloudinit.user }}
+      --ipconfig0 {{ vm_cloudinit.ip_config }}
+      --nameserver "{{ vm_cloudinit.dns_servers | join(' ') }}"
+      --searchdomain {{ vm_cloudinit.search_domain }}
+      --sshkeys /tmp/vm-{{ _vm_vmid }}-sshkey.pub
+  delegate_to: "{{ _vm_api_host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  changed_when: true
+  when:
+    - vm_clone.enabled | bool
+    - vm_cloudinit.enabled | bool
+  tags:
+    - proxmox
+    - vm
+    - cloudinit
+
+- name: Regenerate cloud-init ISO
+  ansible.builtin.command:
+    cmd: qm cloudinit update {{ _vm_vmid }}
+  delegate_to: "{{ _vm_api_host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  changed_when: true
+  when:
+    - vm_clone.enabled | bool
+    - vm_cloudinit.enabled | bool
+  tags:
+    - proxmox
+    - vm
+    - cloudinit
+
+- name: Remove temp SSH key file from Proxmox host
+  ansible.builtin.file:
+    path: "/tmp/vm-{{ _vm_vmid }}-sshkey.pub"
+    state: absent
+  delegate_to: "{{ _vm_api_host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  when:
+    - vm_clone.enabled | bool
+    - vm_cloudinit.enabled | bool
+  tags:
+    - proxmox
+    - vm
     - cloudinit
 
 - name: Resize cloned VM disk

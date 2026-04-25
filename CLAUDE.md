@@ -501,7 +501,7 @@ ansible-galaxy collection install *.tar.gz --force
   - NAS monitoring: 192.168.0.240+
 - **NAS VMs (KVM/QEMU)**:
   - TrueNAS: 192.168.0.220 (NAS storage, ISO-based)
-- **Domain**: homelab.local
+- **Domain**: homelab.lan
 
 ### Core Services Deployed
 

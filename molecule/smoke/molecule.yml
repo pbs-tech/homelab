@@ -83,7 +83,7 @@ provisioner:
           onboot: false
           unprivileged: true
         proxmox_config:
-          api_host: pve-mac.homelab.local
+          api_host: pve-mac.homelab.lan
           api_user: root@pam
           validate_certs: false
           nodes: [pve-mac, pve-nas]

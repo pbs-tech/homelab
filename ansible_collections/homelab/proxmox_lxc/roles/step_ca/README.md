@@ -6,7 +6,7 @@ TLS-ALPN-01 challenge, integrated with Traefik as the certificate resolver.
 
 ## Features
 
-- **Local ACME CA** - Issues TLS certificates for `*.homelab.local` without external dependencies
+- **Local ACME CA** - Issues TLS certificates for `*.homelab.lan` without external dependencies
 - **TLS-ALPN-01 Challenge** - Works without exposing port 80; compatible with Traefik
 - **Automatic ACME Provisioner** - Configures the `acme` provisioner on first run
 - **Idempotent** - Safe to re-run; skips CA initialization if already complete
@@ -15,7 +15,7 @@ TLS-ALPN-01 challenge, integrated with Traefik as the certificate resolver.
 ## Requirements
 
 - Ubuntu 22.04 LXC container provisioned via `homelab.common.container_base`
-- Unbound DNS at `192.168.0.202` resolving `homelab.local`
+- Unbound DNS at `192.168.0.202` resolving `homelab.lan`
 - Traefik configured to use step-ca as its ACME `caServer`
 
 ## Role Variables
@@ -31,7 +31,7 @@ step_ca_port: 8443
 
 # DNS SANs on the CA's own TLS certificate
 step_ca_dns_names:
-  - "step-ca.homelab.local"
+  - "step-ca.homelab.lan"
   - "192.168.0.212"
 
 # ACME provisioner name (must match Traefik caServer URL path)

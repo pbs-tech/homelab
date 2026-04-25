@@ -64,7 +64,7 @@
 
 - name: Set architecture for AlertManager download
   ansible.builtin.set_fact:
-    _alertmanager_arch: "{{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}"
+    _alertmanager_arch: "{{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'amd64' }}"
 
 - name: Download AlertManager
   ansible.builtin.get_url:

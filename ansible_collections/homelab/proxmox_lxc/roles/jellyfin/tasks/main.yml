@@ -21,6 +21,10 @@
   vars:
     docker_ensure_group: true
 
+- name: Mount NAS NFS shares
+  ansible.builtin.include_role:
+    name: homelab.common.nas_mounts
+
 # Validate PUID/PGID - ensure user/group exist or will be created by container
 - name: Validate PUID/PGID configuration
   ansible.builtin.assert:
@@ -37,21 +41,27 @@
   ansible.builtin.group:
     name: "{{ jellyfin_group_name | default('media') }}"
     gid: "{{ jellyfin_pgid }}"
-    system: true
     state: present
   when: jellyfin_ensure_user | default(true)
+  register: group_result
+  failed_when: >
+    group_result is failed and
+    'already exists' not in (group_result.msg | default(''))
 
 # Ensure user exists for PUID (required for directory ownership)
 - name: Ensure media user exists for Jellyfin
   ansible.builtin.user:
     name: "{{ jellyfin_user_name | default('media') }}"
     uid: "{{ jellyfin_puid }}"
-    group: "{{ jellyfin_group_name | default('media') }}"
-    system: true
     shell: /usr/sbin/nologin
     create_home: false
     state: present
   when: jellyfin_ensure_user | default(true)
+  register: user_result
+  failed_when: >
+    user_result is failed and
+    'already exists' not in (user_result.msg | default('')) and
+    'not unique' not in (user_result.msg | default(''))
 
 - name: Create jellyfin directories
   ansible.builtin.file:

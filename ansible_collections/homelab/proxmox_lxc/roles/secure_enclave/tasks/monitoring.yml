@@ -106,7 +106,7 @@
 
 - name: Set architecture for node_exporter download
   ansible.builtin.set_fact:
-    _node_exporter_arch: "{{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}"
+    _node_exporter_arch: "{{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'amd64' }}"
 
 - name: Install node_exporter for metrics
   when: enclave_monitoring.metrics_enabled | default(true)

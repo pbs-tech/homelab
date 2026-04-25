@@ -85,11 +85,11 @@ adguard_blocklist: []
 ```yaml
 # Custom DNS records for local services
 adguard_rewrites:
-  - domain: "*.homelab.local"
+  - domain: "*.homelab.lan"
     answer: "192.168.0.205"  # Traefik
-  - domain: "grafana.homelab.local"
+  - domain: "grafana.homelab.lan"
     answer: "192.168.0.201"
-  - domain: "prometheus.homelab.local"
+  - domain: "prometheus.homelab.lan"
     answer: "192.168.0.200"
 ```
 
@@ -128,7 +128,7 @@ adguard_dhcp_lease_duration: 86400
     adguard_upstream_dns:
       - "192.168.0.202"  # Unbound as primary upstream
     adguard_rewrites:
-      - domain: "*.homelab.local"
+      - domain: "*.homelab.lan"
         answer: "192.168.0.205"
   roles:
     - homelab.proxmox_lxc.adguard

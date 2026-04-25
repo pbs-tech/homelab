@@ -178,7 +178,7 @@ wg genpsk > preshared.key
 PrivateKey = <client-private-key>
 Address = 10.200.0.2/32
 DNS = 192.168.0.202
-PostUp = resolvectl dns %i 192.168.0.202; resolvectl domain %i ~homelab.local
+PostUp = resolvectl dns %i 192.168.0.202; resolvectl domain %i ~homelab.lan
 PostDown = resolvectl revert %i
 
 [Peer]
@@ -239,7 +239,7 @@ wireguard_metrics_port: 9586
 Access internal services via VPN:
 
 - Connect to VPN
-- Access services at their internal URLs (e.g., <http://grafana.homelab.local>)
+- Access services at their internal URLs (e.g., <http://grafana.homelab.lan>)
 
 ## Troubleshooting
 

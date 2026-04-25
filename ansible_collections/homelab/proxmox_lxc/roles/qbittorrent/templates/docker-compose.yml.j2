@@ -50,7 +50,7 @@ services:
       - WEBUI_PORT={{ qbittorrent_webui_port }}
     volumes:
       - {{ qbittorrent_config_dir }}:/config
-      - {{ qbittorrent_download_dir }}:/downloads
+      - /mnt/nas:/mnt/nas
 {% for volume in qbittorrent_extra_volumes %}
       - {{ volume }}
 {% endfor %}

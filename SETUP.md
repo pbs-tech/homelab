@@ -195,7 +195,7 @@ make test-services
 
 Once deployed, access your services at:
 
-- **Grafana**: https://grafana.homelab.local (or http://192.168.0.201:3000)
+- **Grafana**: https://grafana.homelab.lan (or http://192.168.0.201:3000)
 - **Prometheus**: http://192.168.0.200:9090
 - **Traefik Dashboard**: http://192.168.0.205:8080
 - **Home Assistant**: http://192.168.0.208:8123
@@ -213,9 +213,9 @@ Update your local DNS or router settings to use:
 Or add entries to your `/etc/hosts` file:
 
 ```bash
-192.168.0.200  prometheus.homelab.local
-192.168.0.201  grafana.homelab.local
-192.168.0.205  traefik.homelab.local
+192.168.0.200  prometheus.homelab.lan
+192.168.0.201  grafana.homelab.lan
+192.168.0.205  traefik.homelab.lan
 ```
 
 ### Set Up VPN Access (Optional)
@@ -303,7 +303,9 @@ telnet 192.168.0.200 9090
 
 3. **Customize Services**
    - Configure Home Assistant for your smart home devices
-   - Set up media management with Sonarr/Radarr
+   - Set up media management: see the [media_stack role README](ansible_collections/homelab/proxmox_lxc/roles/media_stack/README.md)
+     for step-by-step Prowlarr/Radarr/Sonarr wiring. All services run on a single Ubuntu VM
+     (192.168.0.230) and communicate using Docker container names — not the VM IP.
 
 4. **Security Hardening Review**
    - Review firewall rules: `make test-security`

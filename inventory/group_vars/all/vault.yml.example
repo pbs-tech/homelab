@@ -58,4 +58,8 @@ vault_qbittorrent_admin_password: "your-qbittorrent-admin-password"
 vault_nordvpn_openvpn_username: "your-nordvpn-service-username"
 vault_nordvpn_openvpn_password: "your-nordvpn-service-password"
 
+# TrueNAS - API key for REST API access (used by truenas-network tag)
+# Generate via TrueNAS shell: midclt call api_key.create '{"name": "ansible", "allowlist": []}'
+vault_truenas_api_key: "your-truenas-api-key"
+
 # Additional secrets can be added here as needed

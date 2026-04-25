@@ -125,3 +125,19 @@ config rule
 	option dest_port '500'
 	option proto 'udp'
 	option target 'ACCEPT'
+
+{% for fwd in openwrt_port_forwards | default([]) %}
+config redirect
+	option name '{{ fwd.name }}'
+	option src 'wan'
+	option dest 'lan'
+	option proto '{{ fwd.proto }}'
+	option src_dport '{{ fwd.src_dport }}'
+	option dest_ip '{{ fwd.dest_ip }}'
+	option dest_port '{{ fwd.dest_port }}'
+	option target 'DNAT'
+{% if fwd.reflection | default(false) %}
+	option reflection '1'
+{% endif %}
+
+{% endfor %}

@@ -69,7 +69,7 @@ grafana_domain: "{{ ansible_default_ipv4.address }}"
 grafana_root_url: "http://{{ grafana_domain }}:{{ grafana_port }}"
 
 # For production with reverse proxy
-grafana_domain: "grafana.homelab.local"
+grafana_domain: "grafana.homelab.lan"
 grafana_root_url: "https://{{ grafana_domain }}"
 grafana_serve_from_sub_path: false
 ```
@@ -274,7 +274,7 @@ grafana_ldap_config_file: /etc/grafana/ldap.toml
     grafana_oauth_allowed_domains: example.com
 
     grafana_database_type: postgres
-    grafana_database_host: postgres.homelab.local:5432
+    grafana_database_host: postgres.homelab.lan:5432
     grafana_database_name: grafana
   roles:
     - homelab.proxmox_lxc.grafana
@@ -373,7 +373,7 @@ Common dashboard imports:
 - name: Deploy Grafana with full observability stack
   hosts: proxmox_hosts
   vars:
-    grafana_domain: grafana.homelab.local
+    grafana_domain: grafana.homelab.lan
     grafana_root_url: "https://{{ grafana_domain }}"
 
     grafana_datasources:
@@ -539,7 +539,7 @@ For production use with many users/dashboards:
 ```yaml
 # Switch to PostgreSQL
 grafana_database_type: postgres
-grafana_database_host: postgres.homelab.local:5432
+grafana_database_host: postgres.homelab.lan:5432
 grafana_database_name: grafana
 grafana_database_max_open_conn: 300
 grafana_database_max_idle_conn: 100
@@ -601,7 +601,7 @@ Expose Grafana through Traefik:
 # Traefik labels for Grafana
 traefik_labels:
   - "traefik.enable=true"
-  - "traefik.http.routers.grafana.rule=Host(`grafana.homelab.local`)"
+  - "traefik.http.routers.grafana.rule=Host(`grafana.homelab.lan`)"
   - "traefik.http.routers.grafana.tls=true"
   - "traefik.http.services.grafana.loadbalancer.server.port=3000"
 ```

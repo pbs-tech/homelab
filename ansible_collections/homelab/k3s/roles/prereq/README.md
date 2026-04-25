@@ -57,9 +57,9 @@ registries_config_yaml: |
   mirrors:
     docker.io:
       endpoint:
-        - "https://registry.homelab.local:5000"
+        - "https://registry.homelab.lan:5000"
   configs:
-    "registry.homelab.local:5000":
+    "registry.homelab.lan:5000":
       auth:
         username: admin
         password: secret
@@ -119,9 +119,9 @@ extra_manifests:
       mirrors:
         docker.io:
           endpoint:
-            - "https://registry.homelab.local"
+            - "https://registry.homelab.lan"
       configs:
-        "registry.homelab.local":
+        "registry.homelab.lan":
           auth:
             username: "{{ vault_registry_user }}"
             password: "{{ vault_registry_pass }}"
@@ -453,7 +453,7 @@ apt-get install apparmor
       mirrors:
         docker.io:
           endpoint:
-            - "https://harbor.homelab.local"
+            - "https://harbor.homelab.lan"
   roles:
     - homelab.k3s.prereq
 ```

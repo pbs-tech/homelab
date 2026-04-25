@@ -124,3 +124,12 @@ scrape_configs:
     static_configs:
       - targets:
         - '{{ hostvars["pve-exporter-nas"]["ansible_host"] | default("192.168.0.240") }}:9221'
+
+  - job_name: 'media-stack'
+    static_configs:
+      - targets:
+        - '{{ media_stack_ip | default("192.168.0.230") }}:9100'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'media-stack'
