@@ -1,9 +1,0 @@
----
-- name: Reload systemd
-  ansible.builtin.systemd:
-    daemon_reload: true
-
-- name: Restart prowlarr
-  ansible.builtin.systemd:
-    name: prowlarr
-    state: restarted

@@ -1,8 +1,0 @@
----
-# Docker role default variables
-
-# Ensure the docker group exists
-docker_ensure_group: true
-
-# List of users to add to the docker group
-docker_group_users: []
