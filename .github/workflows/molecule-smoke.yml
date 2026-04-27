@@ -31,14 +31,19 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
+
+      - name: Verify homelab collections are present
+        run: |
+          if [ ! -d ansible_collections/homelab ]; then
+            echo "ERROR: ansible_collections/homelab not found — homelab collections must be committed to the repo"
+            exit 1
+          fi
 
       - name: Cache Ansible collections
         uses: actions/cache@v4
@@ -49,152 +54,34 @@ jobs:
             ${{ runner.os }}-ansible-collections-${{ env.PYTHON_VERSION }}-
 
       - name: Install Molecule and dependencies
-        run: |
-          set -e
-          pip install "ansible-core${{ env.ANSIBLE_VERSION }}" || {
-            echo "ERROR: Failed to install ansible-core"
-            exit 1
-          }
-          pip install "molecule>=6.0" "molecule-plugins[docker]>=23.5.0" || {
-            echo "ERROR: Failed to install molecule and plugins"
-            exit 1
-          }
-          pip install docker || {
-            echo "ERROR: Failed to install docker python package"
-            exit 1
-          }
-
-      - name: Install critical Ansible collections for Molecule Docker driver
-        run: |
-          set -e
-          echo "Installing critical collections for Molecule Docker driver..."
-          # These are essential for molecule's Docker driver to work
-          # Version requirements match requirements.yml
-
-          INSTALL_FAILED=0
-
-          if ! ansible-galaxy collection install "community.docker:>=4.7.0" -p ~/.ansible/collections --force; then
-            echo "WARNING: Failed to install community.docker"
-            INSTALL_FAILED=$((INSTALL_FAILED + 1))
-          fi
-
-          if ! ansible-galaxy collection install "ansible.posix:>=1.5.0" -p ~/.ansible/collections --force; then
-            echo "WARNING: Failed to install ansible.posix"
-            INSTALL_FAILED=$((INSTALL_FAILED + 1))
-          fi
-
-          # Verify at least one critical collection was installed successfully
-          if [ $INSTALL_FAILED -eq 2 ]; then
-            echo "ERROR: Both critical collections failed to install. Cannot proceed with molecule tests."
-            exit 1
-          fi
-
-          # Verify installations
-          echo "Verifying critical collection installations..."
-          ansible-galaxy collection list community.docker || echo "WARNING: community.docker not found"
-          ansible-galaxy collection list ansible.posix || echo "WARNING: ansible.posix not found"
-
-          echo "Critical collections installation completed with $INSTALL_FAILED failures"
+        run: pip install "ansible-core${{ env.ANSIBLE_VERSION }}" "molecule>=6.0" "molecule-plugins[docker]>=23.5.0" docker
 
       - name: Install external Ansible collections
-        run: |
-          set -e
-          echo "Installing external collections from requirements.yml..."
-          # requirements.yml now contains only external collections
-          # (local homelab collections are found via collections_path = . in ansible.cfg)
-          ansible-galaxy collection install -r requirements.yml -p ~/.ansible/collections --force || {
-            echo "WARNING: Some external collections failed to install"
-            echo "This is acceptable for smoke tests as they primarily test homelab collections"
-          }
+        run: ansible-galaxy collection install -r requirements.yml -p ~/.ansible/collections --force
 
       - name: Build and install homelab collections
         run: |
-          set -e
-          # Build tarballs and install to ~/.ansible/collections
-          # to avoid source==destination issues with collections_path = .
           for collection in common k3s proxmox_lxc; do
-            echo "Building and installing homelab.${collection}..."
             cd ansible_collections/homelab/${collection}
             ansible-galaxy collection build --force
-            ansible-galaxy collection install *.tar.gz -p ~/.ansible/collections --force || {
-              echo "ERROR: Failed to install homelab.${collection} collection"
-              exit 1
-            }
+            ansible-galaxy collection install *.tar.gz -p ~/.ansible/collections --force
             rm -f *.tar.gz
             cd ../../..
           done
 
       - name: Verify collection installation
         run: |
-          echo "=== Installed homelab collections ==="
           ansible-galaxy collection list homelab.common
           ansible-galaxy collection list homelab.k3s
           ansible-galaxy collection list homelab.proxmox_lxc
 
-      - name: Display tool versions
+      - name: Start Docker service
         run: |
-          echo "=== Tool versions ==="
-          molecule --version
-          ansible --version
-          docker --version
-          python --version
-
-      - name: Start and verify Docker service
-        run: |
-          set -e
-
-          echo "Starting Docker service..."
-          sudo systemctl start docker || {
-            echo "ERROR: Failed to start Docker service"
-            sudo systemctl status docker || true
-            exit 1
-          }
-
-          # Wait for Docker to be fully ready with retries
-          echo "Waiting for Docker to be ready..."
-          RETRY_COUNT=0
-          MAX_RETRIES=30
-          until docker info > /dev/null 2>&1; do
-            RETRY_COUNT=$((RETRY_COUNT + 1))
-            if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
-              echo "ERROR: Docker failed to become ready after ${MAX_RETRIES} attempts"
-              sudo systemctl status docker || true
-              docker info || true
-              exit 1
-            fi
-            echo "Waiting for Docker... (attempt $RETRY_COUNT/$MAX_RETRIES)"
-            sleep 1
-          done
-
-          # Verify Docker is operational
-          echo "Docker is ready. Verifying operation..."
-          docker info || {
-            echo "ERROR: Docker info command failed"
-            exit 1
-          }
-          docker ps -a || {
-            echo "ERROR: Docker ps command failed"
-            exit 1
-          }
-
-          echo "Docker service is ready and operational"
-
-      - name: List smoke test scenario
-        run: |
-          echo "=== Available Molecule scenarios ==="
-          molecule list -s smoke
+          sudo systemctl start docker
+          until docker info > /dev/null 2>&1; do sleep 1; done
 
       - name: Run smoke test
-        run: |
-          set -e
-          echo "Starting Molecule smoke test..."
-          molecule test -s smoke || {
-            echo "ERROR: Molecule smoke test failed"
-            echo "Collecting diagnostic information..."
-            docker ps -a || true
-            exit 1
-          }
-          echo "Smoke test completed successfully"
+        run: molecule test -s smoke
         env:
           PY_COLORS: '1'
           ANSIBLE_FORCE_COLOR: '1'
@@ -205,20 +92,12 @@ jobs:
       - name: Show logs on failure
         if: failure()
         run: |
-          echo "=== Molecule logs ==="
           if [ -d .molecule/smoke ]; then
             find .molecule/smoke -type f -name "*.log" -exec echo "--- {} ---" \; -exec cat {} \;
           fi
-          echo ""
-          echo "=== Docker containers ==="
           docker ps -a
-          echo ""
-          echo "=== Docker images ==="
-          docker images
-          echo ""
-          echo "=== Recent Docker logs ==="
           docker ps -a --format "{{.Names}}" | while read container; do
-            echo "--- Logs for $container ---"
+            echo "--- $container ---"
             docker logs --tail 50 "$container" 2>&1 || true
           done
 

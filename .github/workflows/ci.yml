@@ -19,120 +19,34 @@ env:
   ANSIBLE_VERSION: '>=2.17,<2.19'
 
 jobs:
-  lint:
-    name: Lint (YAML, Ansible, Markdown)
+  version-sync:
+    name: Verify Collection Version Sync
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-
-      - name: Install linting tools
+      - name: Verify galaxy.yml versions match
         run: |
-          set -e
-          pip install "yamllint>=1.35" "ansible-core${{ env.ANSIBLE_VERSION }}" "ansible-lint>=24.0" pymarkdownlnt || {
-            echo "ERROR: Failed to install linting tools"
+          if [ ! -d ansible_collections/homelab ]; then
+            echo "ERROR: ansible_collections/homelab not found — homelab collections must be committed to the repo"
             exit 1
-          }
-
-      - name: YAML lint
-        run: |
-          yamllint . --format github || {
-            echo "ERROR: YAML linting failed"
-            exit 1
-          }
-
-      - name: Markdown lint
-        run: |
-          pymarkdown --config .markdownlint.yaml scan . || {
-            echo "ERROR: Markdown linting failed"
-            exit 1
-          }
-
-      - name: Cache Ansible collections
-        uses: actions/cache@v4
-        with:
-          path: ~/.ansible/collections
-          key: ${{ runner.os }}-ansible-collections-${{ env.PYTHON_VERSION }}-${{ hashFiles('**/requirements.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-ansible-collections-${{ env.PYTHON_VERSION }}-
-
-      - name: Install Ansible collections
-        run: |
-          set -e
-          # Install external collections from requirements.yml
-          # Local homelab collections are found via collections_path = . in ansible.cfg
-          echo "Installing external collections from requirements.yml..."
-          ansible-galaxy collection install -r requirements.yml -p ~/.ansible/collections --force || {
-            echo "ERROR: Failed to install external collections"
-            exit 1
-          }
-          echo "All collections installed successfully"
-
-      - name: Ansible lint
-        run: |
-          ansible-lint --format quiet --nocolor || {
-            echo "ERROR: Ansible linting failed"
-            exit 1
-          }
-
-      - name: Verify galaxy.yml version sync
-        run: |
+          fi
           versions=$(grep '^version:' ansible_collections/homelab/*/galaxy.yml | awk '{print $2}' | sort -u | wc -l)
           if [ "$versions" -ne 1 ]; then
             echo "ERROR: galaxy.yml version mismatch across collections"
             grep '^version:' ansible_collections/homelab/*/galaxy.yml
             exit 1
           fi
-          echo "All galaxy.yml versions in sync"
+          echo "All collections at version: $(grep '^version:' ansible_collections/homelab/common/galaxy.yml | awk '{print $2}')"
 
-      - name: Ansible syntax check
-        run: |
-          set -e
-          echo "Checking root playbooks..."
-          for playbook in site.yml test-security-hardening.yml; do
-            if [ -f "$playbook" ]; then
-              echo "Checking $playbook..."
-              ansible-playbook --syntax-check $playbook || {
-                echo "ERROR: Syntax check failed for $playbook"
-                exit 1
-              }
-            fi
-          done
-
-          echo "Checking collection playbooks..."
-          ansible-playbook --syntax-check ansible_collections/homelab/k3s/playbooks/site.yml || {
-            echo "ERROR: Syntax check failed for k3s/playbooks/site.yml"
-            exit 1
-          }
-          ansible-playbook --syntax-check ansible_collections/homelab/proxmox_lxc/site.yml || {
-            echo "ERROR: Syntax check failed for proxmox_lxc/site.yml"
-            exit 1
-          }
-          echo "All syntax checks passed"
-
-
-      - name: TruffleHog secrets scan
-        if: github.ref != 'refs/heads/main'
-        uses: trufflesecurity/trufflehog@v3.88.24  # pin to specific version; update via Renovate
-        with:
-          path: ./
-          base: ${{ github.event.repository.default_branch }}
-          head: HEAD
-          extra_args: --only-verified
-
-
-  collections:
+  validate-collections:
     name: Validate Collections
     runs-on: ubuntu-latest
-    needs: lint
+    needs: version-sync
     timeout-minutes: 15
     strategy:
-      fail-fast: false  # Allow all collections to be tested even if one fails
+      fail-fast: false
       matrix:
         collection: [common, k3s, proxmox_lxc]
     steps:
@@ -144,53 +58,40 @@ jobs:
           cache: pip
 
       - name: Install tools
-        run: |
-          set -e
-          pip install "ansible-core${{ env.ANSIBLE_VERSION }}" galaxy-importer || {
-            echo "ERROR: Failed to install tools for collection validation"
-            exit 1
-          }
+        run: pip install "ansible-core${{ env.ANSIBLE_VERSION }}" galaxy-importer
 
       - name: Install external dependencies
-        run: |
-          set -e
-          ansible-galaxy collection install -r requirements.yml -p ~/.ansible/collections --force || {
-            echo "ERROR: Failed to install external dependencies"
-            exit 1
-          }
+        run: ansible-galaxy collection install -r requirements.yml -p ~/.ansible/collections --force
 
-      - name: Install homelab.common collection (dependency)
+      - name: Install homelab.common (dependency for k3s and proxmox_lxc)
         if: matrix.collection != 'common'
         run: |
-          set -e
-          # Build tarball first, then install to ~/.ansible/collections
-          # to avoid source==destination issue with collections_path = .
           cd ansible_collections/homelab/common
           ansible-galaxy collection build --force
-          ansible-galaxy collection install *.tar.gz -p ~/.ansible/collections --force || {
-            echo "ERROR: Failed to install homelab.common collection dependency"
-            exit 1
-          }
+          ansible-galaxy collection install *.tar.gz -p ~/.ansible/collections --force
           rm -f *.tar.gz
 
-      - name: Clean build artifacts
-        run: rm -f ansible_collections/homelab/${{ matrix.collection }}/*.tar.gz
-
-      - name: Build and validate
+      - name: Build and validate homelab.${{ matrix.collection }}
         run: |
-          set -e
           cd ansible_collections/homelab/${{ matrix.collection }}
+          rm -f *.tar.gz
+          ansible-galaxy collection build
+          python -m galaxy_importer.main *.tar.gz
 
-          echo "Building homelab.${{ matrix.collection }} collection..."
-          ansible-galaxy collection build || {
-            echo "ERROR: Failed to build homelab.${{ matrix.collection }} collection"
-            exit 1
-          }
+  secrets:
+    name: Secrets Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.ref != 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-          echo "Validating collection with galaxy-importer..."
-          python -m galaxy_importer.main *.tar.gz || {
-            echo "ERROR: Collection validation failed for homelab.${{ matrix.collection }}"
-            exit 1
-          }
-
-          echo "Collection homelab.${{ matrix.collection }} built and validated successfully"
+      - name: TruffleHog secrets scan
+        uses: trufflesecurity/trufflehog@v3.88.24
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --only-verified

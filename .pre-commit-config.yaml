@@ -30,18 +30,15 @@ repos:
       - id: yamllint
         args: [-c=.yamllint]
 
-  # Ansible linting — scoped to homelab collections only for speed
-  - repo: https://github.com/ansible/ansible-lint
-    rev: v26.3.0
+  # Ansible linting — uses system install so it has access to ~/.ansible/collections
+  - repo: local
     hooks:
       - id: ansible-lint
-        files: ^(ansible_collections/homelab|playbooks|inventory|roles|tests)/.*\.(yaml|yml)$
+        name: Ansible Lint
+        entry: ansible-lint
+        language: system
         pass_filenames: false
-        args:
-          - ansible_collections/homelab/
-          - playbooks/
-        additional_dependencies:
-          - ansible-core>=2.17
+        files: ^(ansible_collections/homelab|playbooks|inventory|roles|tests)/.*\.(yaml|yml)$
 
   # Markdown linting
   - repo: https://github.com/DavidAnson/markdownlint-cli2
