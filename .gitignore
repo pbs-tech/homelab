@@ -7,6 +7,13 @@
 # Collection build artifacts
 ansible_collections/**/homelab-*.tar.gz
 
+# Third-party collections installed via requirements.yml — install to ~/.ansible/collections
+ansible_collections/ansible/
+ansible_collections/community/
+ansible_collections/containers/
+ansible_collections/kubernetes/
+ansible_collections/*.info/
+
 # Cache directories
 **/.ansible/
 .cache/
