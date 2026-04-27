@@ -1,0 +1,84 @@
+---
+dependency:
+  name: galaxy
+  options:
+    requirements-file: ../../requirements.yml
+
+driver:
+  name: docker
+
+platforms:
+  # Use Docker containers for CI/CD testing
+  # For real hardware testing, use molecule converge with --scenario-name raspberry-pi-real
+  - name: k3s-test-server
+    image: geerlingguy/docker-ubuntu2204-ansible:latest
+    pre_build_image: true
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    tmpfs:
+      - /tmp:exec,mode=1777
+      - /run
+      - /run/lock
+    command: /lib/systemd/systemd
+    capabilities:
+      - SYS_ADMIN
+    groups:
+      - k3s_servers
+      - k3s_agents
+      - raspberry_pi_test
+      - molecule_test
+
+provisioner:
+  env:
+    ANSIBLE_REMOTE_TMP: /tmp/ansible-tmp
+  name: ansible
+  config_options:
+    defaults:
+      callbacks_enabled: profile_tasks,timer
+      stdout_callback: default
+      result_format: yaml
+      host_key_checking: false
+      remote_user: pbs
+      remote_tmp: /tmp/ansible-tmp
+  inventory:
+    host_vars:
+      k3s-test-server:
+        ansible_connection: docker
+        ansible_user: root
+        k3s_role: server
+        k3s_server_init: true
+    group_vars:
+      all:
+        # K3s configuration for testing
+        k3s_version: v1.28.2+k3s1
+        k3s_server: https://192.168.0.111:6443
+        k3s_token: molecule-test-token-{{ ansible_date_time.epoch }}
+        k3s_kubeconfig_mode: 644
+        k3s_become: true
+
+        # Networking
+        k3s_flannel_backend: host-gw
+        k3s_cluster_cidr: 10.42.0.0/16
+        k3s_service_cidr: 10.43.0.0/16
+
+        # Security settings for testing
+        k3s_etcd_datastore: true
+        k3s_disable:
+          - traefik  # We'll test with external Traefik
+          - local-storage
+
+      raspberry_pi_test:
+        # Raspberry Pi specific optimizations
+        k3s_server_manifest_files_dir: /var/lib/rancher/k3s/server/manifests
+
+verifier:
+  name: ansible
+
+scenario:
+  test_sequence:
+    - dependency
+    - prepare
+    - converge
+    - verify
+    - cleanup

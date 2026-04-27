@@ -1,0 +1,44 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  gather_facts: true
+  vars:
+    # Override security settings for container testing
+    security_config:
+      hardening_enabled: false  # Skip security hardening in basic tests
+      log_retention_days: 1
+
+  tasks:
+    - name: Test common_setup role
+      ansible.builtin.include_role:
+        name: homelab.common.common_setup
+        tasks_from: main
+      vars:
+        # Skip SSH configuration in molecule tests (requires real SSH keys)
+        common_users: []
+      tags: [common_setup]
+
+    - name: Test security_hardening role (basic checks only)
+      ansible.builtin.include_role:
+        name: homelab.common.security_hardening
+      tags: [security_hardening, molecule-notest]
+
+  post_tasks:
+    - name: Verify common packages are installed
+      ansible.builtin.package:
+        name: "{{ item }}"
+        state: present
+      check_mode: true
+      loop:
+        - curl
+        - wget
+        - htop
+        - vim
+      register: package_check
+
+    - name: Assert packages were installed
+      ansible.builtin.assert:
+        that: not item.changed
+        fail_msg: "Package {{ item.item }} was not installed"
+      loop: "{{ package_check.results }}"

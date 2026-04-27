@@ -1,0 +1,93 @@
+---
+# Proxmox VE NAS Node Dynamic Inventory
+# Use alongside proxmox.yml to discover containers on both Proxmox nodes
+#
+# Usage:
+#   ansible-inventory -i inventory/ --graph  # Show all hosts from both nodes
+#   ansible-playbook -i inventory/ site.yml  # Use both inventory files
+#
+plugin: community.proxmox.proxmox
+url: https://192.168.0.57:8006
+
+# API Token Authentication (preferred - secure method)
+api_token_id: "{{ vault_proxmox_api_tokens.pve_nas.token_id }}"
+api_token_secret: "{{ vault_proxmox_api_tokens.pve_nas.token_secret }}"
+
+# Legacy username/password authentication (deprecated)
+# Only used as fallback if API token is not configured
+username: root@pam
+password: "{{ vault_proxmox_passwords.pve_nas | default('') }}"
+
+# Verify SSL certificates - set to false if using self-signed certs
+validate_certs: false
+
+# Security: API token validation and health checks
+# The token should have minimum required privileges:
+# - VM.Allocate, VM.Config, VM.Console, VM.PowerMgmt, Datastore.AllocateSpace
+
+# Compose inventory groups based on Proxmox attributes
+compose:
+  # Set ansible_host to the first IP address found
+  ansible_host: "{{ ansible_host | default(proxmox_ipconfig0_ip0.split('/')[0]) if proxmox_ipconfig0_ip0 else proxmox_net0_ip }}"
+  # Set container_id from Proxmox VMID
+  container_id: proxmox_vmid
+  # Set service_port based on known services (can be overridden in host_vars)
+  service_port: >-
+    9221 if inventory_hostname.startswith('pve-exporter') else
+    8989 if inventory_hostname.startswith('sonarr') else
+    7878 if inventory_hostname.startswith('radarr') else
+    6767 if inventory_hostname.startswith('bazarr') else
+    9696 if inventory_hostname.startswith('prowlarr') else
+    8080 if inventory_hostname.startswith('qbittorrent') else
+    8096 if inventory_hostname.startswith('jellyfin') else
+    22
+
+# Create groups based on VM/container names and status
+groups:
+  # Group by container type
+  lxc_containers: "'lxc' in proxmox_type"
+  vms: "'qemu' in proxmox_type"
+
+  # NAS-specific service groups
+  nas_services: >-
+    inventory_hostname.startswith('sonarr') or
+    inventory_hostname.startswith('radarr') or
+    inventory_hostname.startswith('bazarr') or
+    inventory_hostname.startswith('prowlarr') or
+    inventory_hostname.startswith('qbittorrent') or
+    inventory_hostname.startswith('jellyfin')
+
+  nas_monitoring: >-
+    inventory_hostname.startswith('pve-exporter-nas')
+
+  nas_storage: >-
+    inventory_hostname.startswith('truenas')
+
+  bastion_host: >-
+    inventory_hostname.startswith('nas-bastion')
+
+  # Group by Proxmox node
+  pve_nas: "'pve-nas' in proxmox_node"
+
+  # Group by status
+  running: "'running' in proxmox_status"
+  stopped: "'stopped' in proxmox_status"
+
+# Set variables based on container characteristics
+keyed_groups:
+  - key: proxmox_node
+    prefix: node
+  - key: proxmox_type
+    prefix: type
+  - key: proxmox_status
+    prefix: status
+
+# Only include running containers/VMs by default
+filters:
+  - proxmox_status == "running"
+
+# Cache settings for performance
+cache: true
+cache_plugin: memory
+cache_timeout: 300
+cache_connection: proxmox_nas_inventory

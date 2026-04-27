@@ -1,0 +1,60 @@
+---
+# Docker Compose file for qBittorrent + Gluetun VPN
+# Managed by Ansible - {{ ansible_managed }}
+# qBittorrent runs inside Gluetun's network namespace — all traffic exits via NordVPN.
+# If the VPN tunnel drops, qBittorrent loses network access entirely (kill-switch).
+
+services:
+{% if qbittorrent_vpn_enabled | default(true) %}
+  gluetun:
+    image: qmcgaw/gluetun:latest
+    container_name: gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      - VPN_SERVICE_PROVIDER={{ qbittorrent_vpn_service_provider }}
+      - VPN_TYPE={{ qbittorrent_vpn_type }}
+{% if qbittorrent_vpn_type == 'openvpn' %}
+      - OPENVPN_USER={{ qbittorrent_vpn_openvpn_username }}
+      - OPENVPN_PASSWORD={{ qbittorrent_vpn_openvpn_password }}
+{% elif qbittorrent_vpn_type == 'wireguard' %}
+      - WIREGUARD_PRIVATE_KEY={{ qbittorrent_vpn_wireguard_private_key | default('') }}
+{% endif %}
+      - SERVER_COUNTRIES={{ qbittorrent_vpn_server_countries }}
+    ports:
+      - {{ qbittorrent_webui_port }}:{{ qbittorrent_webui_port }}
+    restart: {{ qbittorrent_docker_restart_policy }}
+
+{% endif %}
+  qbittorrent:
+    image: {{ qbittorrent_docker_image }}:{{ qbittorrent_version }}
+    container_name: {{ qbittorrent_container_name }}
+{% if qbittorrent_vpn_enabled | default(true) %}
+    network_mode: "service:gluetun"
+    depends_on:
+      - gluetun
+{% else %}
+    ports:
+      - {{ qbittorrent_webui_port }}:{{ qbittorrent_webui_port }}
+      - {{ qbittorrent_torrent_port }}:6881
+      - {{ qbittorrent_torrent_port }}:6881/udp
+{% endif %}
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - PUID={{ qbittorrent_puid }}
+      - PGID={{ qbittorrent_pgid }}
+      - TZ={{ qbittorrent_timezone }}
+      - WEBUI_PORT={{ qbittorrent_webui_port }}
+    volumes:
+      - {{ qbittorrent_config_dir }}:/config
+      - /mnt/nas:/mnt/nas
+{% for volume in qbittorrent_extra_volumes %}
+      - {{ volume }}
+{% endfor %}
+    restart: {{ qbittorrent_docker_restart_policy }}
+{% if qbittorrent_memory_limit %}
+    mem_limit: {{ qbittorrent_memory_limit }}
+{% endif %}

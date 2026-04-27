@@ -1,0 +1,155 @@
+---
+# Radarr deployment tasks
+
+- name: Update system packages
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install required packages
+  ansible.builtin.apt:
+    name:
+      - curl
+      - ca-certificates
+      - gnupg
+    state: present
+
+# Install Docker using common role
+- name: Install Docker
+  ansible.builtin.include_role:
+    name: homelab.common.docker
+  vars:
+    docker_ensure_group: true
+
+- name: Mount NAS NFS shares
+  ansible.builtin.include_role:
+    name: homelab.common.nas_mounts
+  vars:
+    nas_subdirs:
+      - /mnt/nas/media/movies
+
+# Validate PUID/PGID - ensure user/group exist or will be created by container
+- name: Validate PUID/PGID configuration
+  ansible.builtin.assert:
+    that:
+      - radarr_puid is defined
+      - radarr_pgid is defined
+      - radarr_puid | int > 0
+      - radarr_pgid | int > 0
+    fail_msg: "radarr_puid and radarr_pgid must be defined and greater than 0"
+    quiet: true
+
+# Ensure group exists for PGID (required for directory ownership)
+- name: Ensure media group exists for Radarr
+  ansible.builtin.group:
+    name: "{{ radarr_group_name | default('media') }}"
+    gid: "{{ radarr_pgid }}"
+    state: present
+  when: radarr_ensure_user | default(true)
+  register: group_result
+  failed_when: >
+    group_result is failed and
+    'already exists' not in (group_result.msg | default(''))
+
+# Ensure user exists for PUID (required for directory ownership)
+- name: Ensure media user exists for Radarr
+  ansible.builtin.user:
+    name: "{{ radarr_user_name | default('media') }}"
+    uid: "{{ radarr_puid }}"
+    shell: /usr/sbin/nologin
+    create_home: false
+    state: present
+  when: radarr_ensure_user | default(true)
+  register: user_result
+  failed_when: >
+    user_result is failed and
+    'already exists' not in (user_result.msg | default('')) and
+    'not unique' not in (user_result.msg | default(''))
+
+- name: Create radarr directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ radarr_puid }}"
+    group: "{{ radarr_pgid }}"
+    mode: "0755"
+  loop:
+    - "{{ radarr_data_dir }}"
+    - "{{ radarr_config_dir }}"
+
+- name: Deploy docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ radarr_data_dir }}/docker-compose.yml"
+    owner: root
+    group: docker
+    mode: "0640"
+  notify: Restart radarr
+
+- name: Create Radarr systemd service
+  ansible.builtin.template:
+    src: radarr.service.j2
+    dest: /etc/systemd/system/radarr.service
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart radarr
+
+- name: Configure UFW firewall for Radarr (restricted access)
+  community.general.ufw:
+    rule: allow
+    port: "{{ radarr_port }}"
+    proto: tcp
+    src: "{{ item }}"
+    comment: "Radarr ({{ item }})"
+  loop: "{{ radarr_allowed_sources | default([traefik_ip | default('192.168.0.205'), '127.0.0.1']) }}"
+  when: radarr_configure_firewall
+
+- name: Pull Radarr Docker image
+  community.docker.docker_image:
+    name: "{{ radarr_docker_image }}"
+    tag: "{{ radarr_version }}"
+    source: pull
+  retries: 3
+  delay: 10
+  register: docker_pull_result
+  until: docker_pull_result is succeeded
+
+- name: Enable and start Radarr
+  ansible.builtin.systemd:
+    name: radarr
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Wait for Radarr to be ready
+  block:
+    - name: Check Radarr health endpoint
+      ansible.builtin.uri:
+        url: "http://localhost:{{ radarr_port }}/ping"
+        method: GET
+        status_code: [200]
+      register: radarr_health
+      until: radarr_health.status == 200
+      retries: 30
+      delay: 5
+
+  rescue:
+    - name: Warn about Radarr health check failure
+      ansible.builtin.debug:
+        msg: |
+          WARNING: Radarr health check did not pass after 150 seconds.
+          The service may still be starting or there may be a configuration issue.
+          Please verify manually: http://{{ ansible_host }}:{{ radarr_port }}
+
+    - name: Fail if strict health checks are enabled
+      ansible.builtin.fail:
+        msg: "Radarr health check failed and strict mode is enabled"
+      when: radarr_strict_health_check | default(false)
+
+- name: Display Radarr access information
+  ansible.builtin.debug:
+    msg: |
+      Radarr is ready!
+      Access URL: http://{{ ansible_host }}:{{ radarr_port }}
+      Configure authentication and add indexers via Prowlarr.

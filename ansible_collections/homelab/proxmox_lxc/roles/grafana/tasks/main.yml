@@ -1,0 +1,197 @@
+---
+- name: Validate required Grafana variables
+  ansible.builtin.assert:
+    that:
+      - grafana_admin_password is defined
+      - grafana_admin_password | length >= 12
+      - grafana_secret_key is defined
+      - grafana_secret_key | length >= 32
+    fail_msg: |
+      Required Grafana security variables are missing or insufficient.
+      Please set in vault:
+        - vault_grafana_admin_password: (minimum 12 characters)
+        - vault_grafana_secret_key: (generate with: openssl rand -base64 32)
+    success_msg: "Grafana security configuration validated"
+  tags: validate
+
+- name: Update system packages
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Install required packages
+  ansible.builtin.apt:
+    name:
+      - curl
+      - gnupg
+      - apt-transport-https
+      - software-properties-common
+    state: present
+
+- name: Create keyrings directory
+  ansible.builtin.file:
+    path: /usr/share/keyrings
+    state: directory
+    mode: "0755"
+
+- name: Add Grafana GPG key (modern method)
+  ansible.builtin.get_url:
+    url: https://apt.grafana.com/gpg.key
+    dest: /usr/share/keyrings/grafana.asc
+    mode: "0644"
+
+- name: Add Grafana repository (with signed-by)
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/grafana.asc] https://apt.grafana.com stable main"
+    state: present
+    filename: grafana
+
+- name: Install Grafana
+  ansible.builtin.apt:
+    name: grafana
+    state: present
+    update_cache: true
+
+- name: Create grafana directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ grafana_user }}"
+    group: "{{ grafana_group }}"
+    mode: "0755"
+  loop:
+    - "{{ grafana_data_dir }}"
+    - "{{ grafana_logs_dir }}"
+    - "{{ grafana_plugins_dir }}"
+    - "{{ grafana_dashboards_dir }}"
+    - "{{ grafana_provisioning_dir }}"
+    - "{{ grafana_provisioning_dir }}/datasources"
+    - "{{ grafana_provisioning_dir }}/dashboards"
+
+- name: Create Grafana configuration file
+  ansible.builtin.template:
+    src: grafana.ini.j2
+    dest: "{{ grafana_config_dir }}/grafana.ini"
+    owner: "{{ grafana_user }}"
+    group: "{{ grafana_group }}"
+    mode: "0640"
+    backup: true
+  notify: Restart grafana
+
+- name: Create datasources provisioning configuration
+  ansible.builtin.template:
+    src: datasources.yml.j2
+    dest: "{{ grafana_provisioning_dir }}/datasources/datasources.yml"
+    owner: "{{ grafana_user }}"
+    group: "{{ grafana_group }}"
+    mode: "0644"
+  notify: Restart grafana
+
+- name: Create dashboard provisioning configuration
+  ansible.builtin.template:
+    src: dashboards.yml.j2
+    dest: "{{ grafana_provisioning_dir }}/dashboards/dashboards.yml"
+    owner: "{{ grafana_user }}"
+    group: "{{ grafana_group }}"
+    mode: "0644"
+  notify: Restart grafana
+
+- name: Install Grafana plugins
+  community.grafana.grafana_plugin:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ grafana_plugins }}"
+  notify: Restart grafana
+  failed_when: false # Plugin installation can fail if already installed or unavailable
+
+- name: Configure UFW firewall for Grafana
+  community.general.ufw:
+    rule: allow
+    port: "{{ grafana_port }}"
+    proto: tcp
+    comment: "Grafana"
+  when: grafana_configure_firewall
+
+- name: Enable and start Grafana
+  ansible.builtin.systemd:
+    name: grafana-server
+    enabled: true
+    state: started
+
+- name: Wait for Grafana to start
+  ansible.builtin.wait_for:
+    host: "{{ grafana_domain }}"
+    port: "{{ grafana_port }}"
+    delay: 10
+    timeout: 60
+
+- name: Reset Grafana admin password via binary
+  ansible.builtin.command:
+    argv:
+      - /usr/share/grafana/bin/grafana
+      - cli
+      - --homepath=/usr/share/grafana
+      - --config=/etc/grafana/grafana.ini
+      - --pluginsDir=/var/lib/grafana/plugins
+      - admin
+      - reset-admin-password
+      - "{{ grafana_admin_password }}"
+  register: grafana_passwd_result
+  changed_when: "'Admin password changed successfully' in grafana_passwd_result.stdout"
+  no_log: true
+
+# Grafana will not let you change a provisioned datasource's UID via PUT.
+# Workaround: delete datasources with wrong UIDs so the provisioner recreates
+# them from the config file (which has the correct uid: field).
+- name: Get current datasource state to check UIDs
+  ansible.builtin.uri:
+    url: "{{ grafana_root_url }}/api/datasources/name/{{ item.name }}"
+    method: GET
+    user: "{{ grafana_admin_user }}"
+    password: "{{ grafana_admin_password }}"
+    force_basic_auth: true
+    status_code: [200, 404]
+  loop: "{{ grafana_datasources }}"
+  register: grafana_ds_current
+  no_log: true
+
+- name: Delete datasources that have wrong UIDs
+  ansible.builtin.uri:
+    url: "{{ grafana_root_url }}/api/datasources/{{ item.json.id }}"
+    method: DELETE
+    user: "{{ grafana_admin_user }}"
+    password: "{{ grafana_admin_password }}"
+    force_basic_auth: true
+    status_code: [200, 404]
+  loop: "{{ grafana_ds_current.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when:
+    - item.status == 200
+    - item.json.uid != item.item.uid
+  no_log: true
+
+- name: Reload datasource provisioner to recreate datasources with correct UIDs
+  ansible.builtin.uri:
+    url: "{{ grafana_root_url }}/api/admin/provisioning/datasources/reload"
+    method: POST
+    user: "{{ grafana_admin_user }}"
+    password: "{{ grafana_admin_password }}"
+    force_basic_auth: true
+    status_code: [200]
+  no_log: true
+
+- name: Import community dashboards via Grafana API
+  ansible.builtin.import_tasks: dashboards.yml
+
+- name: Check Grafana health
+  ansible.builtin.uri:
+    url: "{{ grafana_root_url }}/api/health"
+    method: GET
+    return_content: true
+  register: grafana_health
+  retries: 5
+  delay: 5
+
+- name: Display Grafana status
+  ansible.builtin.debug:
+    msg: "Grafana is running at {{ grafana_root_url }}"

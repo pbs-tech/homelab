@@ -1,0 +1,87 @@
+---
+# K3s cluster configuration with security hardening
+k3s_version: v1.30.2+k3s1
+ansible_user: pbs
+systemd_dir: /etc/systemd/system
+k3s_cluster_name: homelab
+
+# Network configuration
+cluster_cidr: 10.42.0.0/16
+service_cidr: 10.43.0.0/16
+api_port: 6443
+
+# Node groups
+server_group: server
+agent_group: agent
+
+# Security hardening configuration
+security_hardening_enabled: true
+
+# Pi-specific security settings
+pi_security_config:
+  enable_local_domains: true
+  optimize_for_sd_card: true
+  enable_monitoring: true
+  log_retention_days: 7
+
+# Network security
+network_security:
+  enable_network_policies: true
+  restrict_node_access: true
+  enable_pod_security_standards: true
+
+# K3s server configuration with security hardening
+k3s_server:
+  node-ip: "{{ ansible_default_ipv4.address }}"
+  tls-san:
+    - "{{ ansible_default_ipv4.address }}"
+    - "{{ inventory_hostname }}.local"
+  docker: false
+  flannel-backend: vxlan
+  write-kubeconfig-mode: "0600"
+  cluster-cidr: "{{ cluster_cidr }}"
+  service-cidr: "{{ service_cidr }}"
+  disable:
+    - traefik
+    - servicelb
+  # Security-focused server args
+  kube-apiserver-arg:
+    - "anonymous-auth=false"
+    - "authorization-mode=RBAC"
+    - "enable-admission-plugins=NodeRestriction,PodSecurityPolicy"
+    - "audit-log-path=/var/lib/rancher/k3s/server/logs/audit.log"
+    - "audit-policy-file=/etc/rancher/k3s/audit-policy.yaml"
+    - "audit-log-maxage=30"
+    - "audit-log-maxbackup=3"
+    - "audit-log-maxsize=100"
+  kube-controller-manager-arg:
+    - "terminated-pod-gc-threshold=10"
+
+# K3s agent configuration with security hardening
+k3s_agent:
+  node-ip: "{{ ansible_default_ipv4.address }}"
+  docker: false
+  kubelet-arg:
+    - "anonymous-auth=false"
+    - "authorization-mode=Webhook"
+    - "read-only-port=0"
+
+# Container runtime security
+k3s_container_security:
+  enable_apparmor: true
+  enable_seccomp: true
+  restrict_syscalls: true
+
+# Resource limits for Pi nodes
+k3s_resource_limits:
+  max_pods: 50
+  node_allocatable:
+    memory: 512Mi
+    cpu: 500m
+
+# Integration with existing homelab services
+homelab_integration:
+  traefik_external: true
+  traefik_host: 192.168.0.205
+  monitoring_enabled: true
+  prometheus_host: 192.168.0.200

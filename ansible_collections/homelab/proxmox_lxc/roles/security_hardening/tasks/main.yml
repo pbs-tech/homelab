@@ -1,0 +1,51 @@
+---
+- name: Update package cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install security packages
+  ansible.builtin.apt:
+    name:
+      - iptables
+      - fail2ban
+      - unattended-upgrades
+      - apt-listchanges
+      - logrotate
+      - rsyslog
+    state: present
+
+- name: Configure iptables firewall
+  ansible.builtin.include_tasks: configure_iptables.yml
+  when: security_hardening.firewall_enabled | default(security_hardening.ufw_enabled | default(true))
+
+- name: Configure SSH hardening
+  ansible.builtin.include_tasks: configure_ssh.yml
+- name: Configure Fail2ban
+  ansible.builtin.include_tasks: configure_fail2ban.yml
+  when: security_hardening.fail2ban.enabled
+
+- name: Configure automatic updates
+  ansible.builtin.include_tasks: configure_unattended_upgrades.yml
+  when: security_hardening.unattended_upgrades.enabled
+
+- name: Apply system hardening
+  ansible.builtin.include_tasks: system_hardening.yml
+- name: Configure logging
+  ansible.builtin.include_tasks: configure_logging.yml
+  when: security_hardening.logging.rsyslog_enabled
+
+- name: Create security monitoring script
+  ansible.builtin.template:
+    src: security_monitor.sh.j2
+    dest: /usr/local/bin/security_monitor.sh
+    mode: "0755"
+    owner: root
+    group: root
+
+- name: Setup security monitoring cron job
+  ansible.builtin.cron:
+    name: Security monitoring
+    minute: "*/15"
+    job: /usr/local/bin/security_monitor.sh
+    user: root

@@ -1,0 +1,26 @@
+---
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Restart homeassistant
+  ansible.builtin.systemd:
+    name: homeassistant
+    state: restarted
+  when: homeassistant_service.status.ActiveState | default('inactive') != 'inactive'
+
+- name: Reload homeassistant
+  ansible.builtin.command:
+    cmd: docker exec {{ homeassistant_container_name }} /bin/sh -c "kill -HUP 1"
+  changed_when: true
+  when: homeassistant_install_method == 'docker'
+
+- name: Check homeassistant config
+  ansible.builtin.command:
+    cmd: >
+      docker exec {{ homeassistant_container_name }}
+      python -m homeassistant --script check_config -c /config
+  register: ha_config_check
+  changed_when: false
+  failed_when: ha_config_check.rc != 0
+  when: homeassistant_install_method == 'docker'

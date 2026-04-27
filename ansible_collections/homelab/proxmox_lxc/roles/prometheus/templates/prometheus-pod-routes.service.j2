@@ -1,0 +1,14 @@
+[Unit]
+Description=Add K3s pod network routes for Prometheus scraping
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+{% for node in k3s_nodes %}
+ExecStart=/sbin/ip route replace {{ node.pod_cidr }} via {{ node.ip }}
+{% endfor %}
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,65 @@
+# Bastion Host SSH Configuration
+# Managed by Ansible - {{ ansible_managed }}
+# Security-hardened configuration for bastion hosts
+
+Port {{ bastion_security.ssh_port }}
+Protocol 2
+
+# Host keys - modern algorithms only (DSA removed as deprecated/weak)
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_ecdsa_key
+HostKey /etc/ssh/ssh_host_ed25519_key
+
+# Modern key exchange algorithms (secure ciphers only)
+KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256,diffie-hellman-group-exchange-sha256
+
+# Modern ciphers (AEAD modes preferred)
+Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr
+
+# Modern MACs (encrypt-then-mac preferred)
+MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512,hmac-sha2-256
+
+# Logging
+SyslogFacility AUTH
+LogLevel INFO
+
+# Authentication settings
+LoginGraceTime 120
+PermitRootLogin no
+StrictModes yes
+
+# Public key authentication only
+PubkeyAuthentication yes
+AuthorizedKeysFile %h/.ssh/authorized_keys
+
+# Disable legacy authentication methods
+IgnoreRhosts yes
+HostbasedAuthentication no
+IgnoreUserKnownHosts yes
+
+# Disable password authentication
+PermitEmptyPasswords no
+ChallengeResponseAuthentication no
+PasswordAuthentication no
+
+# X11 forwarding disabled for security - reduces attack surface on bastion hosts
+X11Forwarding no
+X11DisplayOffset 10
+PrintMotd no
+PrintLastLog yes
+TCPKeepAlive yes
+
+# Connection limits
+MaxStartups 2
+MaxAuthTries 3
+ClientAliveInterval 600
+ClientAliveCountMax 3
+
+# Environment and subsystems
+AcceptEnv LANG LC_*
+Subsystem sftp /usr/lib/openssh/sftp-server
+
+UsePAM yes
+
+# Allowed users (ansible needed for provisioning/re-runs)
+AllowUsers pbs ansible

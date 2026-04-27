@@ -1,0 +1,44 @@
+[DEFAULT]
+# Global Fail2ban configuration for K3s nodes
+bantime = {{ pi_security_hardening.fail2ban.bantime }}
+findtime = {{ pi_security_hardening.fail2ban.findtime }}
+maxretry = {{ pi_security_hardening.fail2ban.maxretry }}
+ignoreip = {{ pi_security_hardening.fail2ban.ignoreip | join(' ') }}
+
+# Backend for storing ban information
+backend = auto
+
+# Action to take when IP is banned
+action = %(action_)s
+
+[sshd]
+enabled = true
+port = {{ pi_security_hardening.ssh_hardening.port }}
+filter = sshd
+logpath = /var/log/auth.log
+maxretry = {{ pi_security_hardening.fail2ban.maxretry }}
+
+# Disable default jails that aren't relevant for K3s nodes
+[nginx-http-auth]
+enabled = false
+
+[nginx-noscript]
+enabled = false
+
+[nginx-badbots]
+enabled = false
+
+[nginx-noproxy]
+enabled = false
+
+[apache-auth]
+enabled = false
+
+[apache-badbots]
+enabled = false
+
+[apache-noscript]
+enabled = false
+
+[apache-overflows]
+enabled = false

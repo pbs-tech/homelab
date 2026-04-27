@@ -1,0 +1,26 @@
+---
+# Docker Compose file for Bazarr
+# Managed by Ansible - {{ ansible_managed }}
+
+services:
+  bazarr:
+    image: {{ bazarr_docker_image }}:{{ bazarr_version }}
+    container_name: {{ bazarr_container_name }}
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - PUID={{ bazarr_puid }}
+      - PGID={{ bazarr_pgid }}
+      - TZ={{ bazarr_timezone }}
+    volumes:
+      - {{ bazarr_config_dir }}:/config
+      - /mnt/nas:/mnt/nas
+{% for volume in bazarr_extra_volumes %}
+      - {{ volume }}
+{% endfor %}
+    ports:
+      - {{ bazarr_port }}:6767
+    restart: {{ bazarr_docker_restart_policy }}
+{% if bazarr_memory_limit %}
+    mem_limit: {{ bazarr_memory_limit }}
+{% endif %}

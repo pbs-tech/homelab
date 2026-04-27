@@ -1,0 +1,28 @@
+---
+qbittorrent_version: "latest"
+qbittorrent_webui_port: 8080
+qbittorrent_torrent_port: 6881
+qbittorrent_container_name: "qbittorrent"
+qbittorrent_puid: 1000
+qbittorrent_pgid: 1000
+qbittorrent_timezone: "UTC"
+qbittorrent_config_dir: /opt/qbittorrent/config
+qbittorrent_data_dir: /opt/qbittorrent
+qbittorrent_download_dir: "/downloads"
+qbittorrent_docker_image: "lscr.io/linuxserver/qbittorrent"
+qbittorrent_docker_restart_policy: "unless-stopped"
+qbittorrent_memory_limit: "1g"
+qbittorrent_configure_firewall: true
+qbittorrent_extra_volumes: []
+
+# WebUI credentials
+qbittorrent_admin_username: "admin"
+qbittorrent_admin_password: "{{ vault_qbittorrent_admin_password }}"
+
+# Gluetun VPN settings (routes all qBittorrent traffic through NordVPN)
+qbittorrent_vpn_enabled: true
+qbittorrent_vpn_service_provider: nordvpn
+qbittorrent_vpn_type: openvpn
+qbittorrent_vpn_server_countries: "Switzerland"
+qbittorrent_vpn_openvpn_username: "{{ vault_nordvpn_openvpn_username | default('') }}"
+qbittorrent_vpn_openvpn_password: "{{ vault_nordvpn_openvpn_password | default('') }}"

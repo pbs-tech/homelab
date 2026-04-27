@@ -1,0 +1,116 @@
+---
+- name: Update system packages
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Install required packages
+  ansible.builtin.apt:
+    name:
+      - curl
+      - unzip
+      - ca-certificates
+    state: present
+
+- name: Create promtail group
+  ansible.builtin.group:
+    name: "{{ promtail_group }}"
+    system: true
+
+- name: Create promtail user
+  ansible.builtin.user:
+    name: "{{ promtail_user }}"
+    system: true
+    shell: /bin/false
+    home: "{{ promtail_data_dir }}"
+    create_home: false
+    groups: adm,systemd-journal
+    group: "{{ promtail_group }}"
+
+- name: Create promtail directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ promtail_user }}"
+    group: "{{ promtail_group }}"
+    mode: "0755"
+  loop:
+    - "{{ promtail_config_dir }}"
+    - "{{ promtail_data_dir }}"
+    - "{{ promtail_log_dir }}"
+
+- name: Set architecture for Promtail download
+  ansible.builtin.set_fact:
+    _promtail_arch: "{{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'amd64' }}"
+
+- name: Download Promtail binary
+  ansible.builtin.get_url:
+    url: https://github.com/grafana/loki/releases/download/v{{ promtail_version }}/promtail-linux-{{ _promtail_arch }}.zip
+    dest: /tmp/promtail.zip
+    mode: "0644"
+  register: promtail_download
+
+- name: Extract Promtail binary  # noqa: no-handler - Sequential installation step, must run in order during task flow
+  ansible.builtin.unarchive:
+    src: /tmp/promtail.zip
+    dest: /tmp
+    remote_src: true
+  register: promtail_extract
+  when: promtail_download.changed
+
+- name: Install Promtail binary  # noqa: no-handler - Sequential installation step, must run in order during task flow
+  ansible.builtin.copy:
+    src: /tmp/promtail-linux-{{ _promtail_arch }}
+    dest: "{{ promtail_bin_dir }}/promtail"
+    owner: root
+    group: root
+    mode: "0755"
+    remote_src: true
+  when: promtail_extract.changed
+  notify: Restart promtail
+
+- name: Create Promtail configuration file
+  ansible.builtin.template:
+    src: promtail.yml.j2
+    dest: "{{ promtail_config_dir }}/promtail.yml"
+    owner: "{{ promtail_user }}"
+    group: "{{ promtail_group }}"
+    mode: "0644"
+    backup: true
+  notify: Restart promtail
+
+- name: Create Promtail systemd service
+  ansible.builtin.template:
+    src: promtail.service.j2
+    dest: /etc/systemd/system/promtail.service
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart promtail
+
+- name: Enable and start Promtail
+  ansible.builtin.systemd:
+    name: promtail
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Wait for Promtail to start
+  ansible.builtin.wait_for:
+    host: "{{ promtail_listen_address }}"
+    port: "{{ promtail_listen_port }}"
+    delay: 5
+    timeout: 30
+
+- name: Check Promtail readiness
+  ansible.builtin.uri:
+    url: "http://{{ ansible_default_ipv4.address }}:{{ promtail_listen_port }}/ready"
+    method: GET
+    return_content: true
+  register: promtail_health
+  retries: 3
+  delay: 5
+  ignore_errors: true
+
+- name: Display Promtail status
+  ansible.builtin.debug:
+    msg: "Promtail is running and shipping logs to {{ loki_endpoint }}"

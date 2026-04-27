@@ -1,0 +1,105 @@
+---
+# AdGuard Home configuration
+
+# Installation settings
+adguard_version: "latest"
+adguard_install_dir: "/opt/AdGuardHome"
+adguard_work_dir: "/var/lib/AdGuardHome"
+adguard_config_dir: "/etc/AdGuardHome"
+adguard_user: "adguard"
+adguard_group: "adguard"
+
+# Web interface configuration
+adguard_bind_host: "0.0.0.0"
+adguard_bind_port: 3000
+adguard_web_session_ttl: 720
+
+# Authentication
+adguard_admin_username: "admin"
+# REQUIRED: Must be set in vault - minimum 12 characters
+adguard_admin_password: "{{ vault_adguard_admin_password }}"
+adguard_admin_password_hash: ""  # Auto-generated from adguard_admin_password if empty
+adguard_auth_attempts: 5
+adguard_block_auth_min: 15
+
+# DNS configuration
+adguard_dns_bind_hosts:
+  - "0.0.0.0"
+adguard_dns_port: 53
+adguard_enable_dnssec: true
+adguard_enable_filtering: true
+adguard_protection_enabled: true
+
+# Query logging
+adguard_querylog_enabled: true
+adguard_querylog_interval: "24h"
+adguard_querylog_size_memory: 1000
+adguard_statistics_interval: "24h"
+
+# Upstream DNS (point to Unbound)
+adguard_upstream_dns:
+  - "192.168.0.202:53"  # Unbound DNS server
+adguard_bootstrap_dns:
+  - "1.1.1.1"
+  - "1.0.0.1"
+
+# Network access control
+adguard_allowed_clients:
+  - "127.0.0.0/8"     # Localhost (required for local DNS validation)
+  - "192.168.0.0/24"
+adguard_disallowed_clients: []
+
+# Security features
+adguard_safebrowsing_enabled: true
+adguard_parental_enabled: false
+adguard_safesearch_enabled: false
+
+# Filter lists
+adguard_filters:
+  - enabled: true
+    url: "https://adguardteam.github.io/AdGuardSDNSFilter/Filters/filter.txt"
+    name: "AdGuard DNS filter"
+    id: 1
+  - enabled: true
+    url: "https://someonewhocares.org/hosts/zero/hosts"
+    name: "Dan Pollock's List"
+    id: 2
+  - enabled: true
+    url: "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts"
+    name: "Steven Black's List"
+    id: 3
+  - enabled: true
+    url: "https://malware-filter.gitlab.io/malware-filter/urlhaus-filter-dns.txt"
+    name: "Malware Domain Blocklist"
+    id: 4
+  - enabled: true
+    url: "https://phishing.army/download/phishing_army_blocklist_extended.txt"
+    name: "Phishing Army"
+    id: 5
+
+# Blocked services
+adguard_blocked_services: []
+
+# DNS rewrites — wildcard routes all homelab.lan names through Traefik
+adguard_rewrites:
+  - domain: "*.homelab.lan"
+    answer: "192.168.0.205"  # Traefik reverse proxy
+
+# Custom user rules
+adguard_user_rules:
+  - "||tk^$important"  # Block .tk TLD
+  - "||ml^$important"  # Block .ml TLD
+  - "||ga^$important"  # Block .ga TLD
+  - "||cf^$important"  # Block .cf TLD
+  - "@@||homelab.lan^$important"  # Allow homelab domain
+
+# DHCP server (disabled by default)
+adguard_dhcp_enabled: false
+
+# Performance settings
+adguard_rlimit_nofile: 8192
+adguard_max_goroutines: 300
+adguard_cache_size: 4194304
+
+# Firewall configuration
+adguard_enable_firewall: true

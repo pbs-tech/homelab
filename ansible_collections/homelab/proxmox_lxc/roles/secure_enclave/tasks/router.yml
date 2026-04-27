@@ -1,0 +1,196 @@
+---
+# Enclave Router/Firewall Deployment
+# Provides routing and additional firewall between management and isolated networks
+
+- name: Create enclave router LXC container
+  community.proxmox.proxmox:
+    api_host: "{{ proxmox_config[enclave_proxmox_node].host }}"
+    api_token_id: "{{ proxmox_config[enclave_proxmox_node].api_token_id }}"
+    api_token_secret: "{{ proxmox_config[enclave_proxmox_node].api_token_secret }}"
+    validate_certs: "{{ proxmox_config[enclave_proxmox_node].validate_certs }}"
+
+    vmid: "{{ enclave_router.container_id }}"
+    node: "{{ proxmox_config[enclave_proxmox_node].node }}"
+    hostname: "{{ enclave_router.hostname }}"
+    ostemplate: "{{ enclave_lxc_template }}"
+
+    cores: "{{ enclave_router.cores }}"
+    memory: "{{ enclave_router.memory }}"
+    disk: "{{ enclave_router.disk_size }}"
+    swap: 0
+
+    # Dual-homed: management network + isolated network
+    netif: |
+      {
+        "net0": "name=eth0,bridge=vmbr0,ip={{ enclave_router.wan_ip }}/24,gw={{ homelab_network.gateway_ip }}",
+        "net1": "name=eth1,bridge={{ enclave_network.bridge_name }},ip={{ enclave_router.lan_ip }}/24"
+      }
+
+    nameserver: "{{ homelab_network.dns_servers | join(' ') }}"
+    searchdomain: "{{ homelab_domain }}"
+    onboot: "{{ enclave_persistent_onboot | default(true) }}"
+    unprivileged: true  # Run as unprivileged with capabilities
+
+    features:
+      - nesting=1
+
+    state: present
+  delegate_to: localhost
+  register: router_result
+  tags:
+    - router
+    - lxc
+
+- name: Configure container capabilities for unprivileged router  # noqa: no-handler
+  ansible.builtin.shell: |
+    # Add capabilities to container config for networking
+    if ! grep -q "lxc.cap.keep" {{ enclave_paths.proxmox_pve }}/lxc/{{ enclave_router.container_id }}.conf; then
+      cat >> {{ enclave_paths.proxmox_pve }}/lxc/{{ enclave_router.container_id }}.conf <<EOF
+    # Network capabilities for unprivileged router
+    lxc.cap.keep: NET_ADMIN NET_RAW NET_BIND_SERVICE
+    EOF
+    fi
+  args:
+    executable: /bin/bash
+  delegate_to: "{{ proxmox_config[enclave_proxmox_node].host }}"
+  when: router_result is changed
+  changed_when: true
+  tags:
+    - router
+    - capabilities
+
+- name: Start enclave router container  # noqa: no-handler
+  community.proxmox.proxmox:
+    api_host: "{{ proxmox_config[enclave_proxmox_node].host }}"
+    api_token_id: "{{ proxmox_config[enclave_proxmox_node].api_token_id }}"
+    api_token_secret: "{{ proxmox_config[enclave_proxmox_node].api_token_secret }}"
+    validate_certs: "{{ proxmox_config[enclave_proxmox_node].validate_certs }}"
+
+    vmid: "{{ enclave_router.container_id }}"
+    node: "{{ proxmox_config[enclave_proxmox_node].node }}"
+    state: started
+  delegate_to: localhost
+  when: router_result is changed
+  register: router_start_result
+  retries: 3
+  delay: 5
+  until: router_start_result is succeeded
+  tags:
+    - router
+
+- name: Wait for router to be reachable  # noqa: no-handler
+  ansible.builtin.wait_for:
+    host: "{{ enclave_router.wan_ip }}"
+    port: 22
+    delay: 10
+    timeout: 120
+  when: router_result is changed
+  tags:
+    - router
+
+- name: Add router to inventory
+  ansible.builtin.add_host:
+    name: "{{ enclave_router.hostname }}"
+    ansible_host: "{{ enclave_router.wan_ip }}"
+    ansible_user: root
+    groups:
+      - enclave_infrastructure
+  tags:
+    - router
+    - inventory
+
+- name: Enable IP forwarding on router
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    state: present
+    reload: true
+  delegate_to: "{{ enclave_router.hostname }}"
+  tags:
+    - router
+    - networking
+
+- name: Install routing and firewall packages
+  ansible.builtin.apt:
+    name:
+      - iptables
+      - iptables-persistent
+      - conntrack
+      - tcpdump
+      - nftables
+    state: present
+    update_cache: true
+  delegate_to: "{{ enclave_router.hostname }}"
+  tags:
+    - router
+    - packages
+
+- name: Configure NAT for isolated network
+  ansible.builtin.iptables:
+    table: nat
+    chain: POSTROUTING
+    out_interface: eth0
+    source: "{{ enclave_network.isolated_subnet }}"
+    jump: MASQUERADE
+    comment: "NAT for enclave isolated network"
+  delegate_to: "{{ enclave_router.hostname }}"
+  tags:
+    - router
+    - firewall
+
+- name: Configure router firewall rules
+  ansible.builtin.iptables:
+    chain: FORWARD
+    source: "{{ item.source | default(omit) }}"
+    destination: "{{ item.destination | default(omit) }}"
+    protocol: "{{ item.protocol | default(omit) }}"
+    destination_port: "{{ item.destination_port | default(omit) }}"
+    jump: "{{ item.action }}"
+    comment: "{{ item.name }}"
+  loop: "{{ enclave_firewall_rules }}"
+  delegate_to: "{{ enclave_router.hostname }}"
+  tags:
+    - router
+    - firewall
+
+- name: Save iptables rules on router
+  ansible.builtin.shell: |
+    set -e
+    iptables-save > {{ enclave_paths.iptables_rules }}
+  args:
+    executable: /bin/bash
+  delegate_to: "{{ enclave_router.hostname }}"
+  changed_when: true
+  tags:
+    - router
+    - firewall
+
+- name: Create router status script
+  ansible.builtin.copy:
+    dest: "{{ enclave_paths.bin }}/router-status"
+    content: |
+      #!/bin/bash
+      # Display router status and firewall rules
+
+      echo "=== Enclave Router Status ==="
+      echo ""
+      echo "Network Interfaces:"
+      ip addr show | grep -E "inet|eth"
+      echo ""
+      echo "Routing Table:"
+      ip route
+      echo ""
+      echo "Active Firewall Rules:"
+      iptables -L -n -v | head -30
+      echo ""
+      echo "NAT Rules:"
+      iptables -t nat -L -n -v
+      echo ""
+      echo "Active Connections:"
+      conntrack -L | wc -l
+      echo " connections tracked"
+    mode: '0755'
+  delegate_to: "{{ enclave_router.hostname }}"
+  tags:
+    - router
+    - scripts

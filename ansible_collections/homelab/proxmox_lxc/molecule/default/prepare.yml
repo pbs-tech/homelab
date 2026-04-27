@@ -1,0 +1,104 @@
+---
+- name: Prepare test environment
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Create Ansible remote temp directory (raw command to avoid module dependency)
+      ansible.builtin.raw: mkdir -p /tmp/ansible-tmp && chmod 755 /tmp/ansible-tmp
+      changed_when: false
+
+    - name: Gather facts (now that temp directory exists)
+      ansible.builtin.setup:
+
+    # Fix /tmp permissions for apt in Docker/Podman containers
+    - name: Ensure /tmp directory has correct permissions
+      ansible.builtin.file:
+        path: /tmp
+        state: directory
+        mode: '1777'
+        owner: root
+        group: root
+
+    # Clean and reinitialize apt for Docker/Podman containers
+    - name: Clean apt cache
+      ansible.builtin.command: apt-get clean
+      changed_when: false
+      failed_when: false
+      when: ansible_os_family == "Debian"
+
+    - name: Remove apt lists
+      ansible.builtin.file:
+        path: /var/lib/apt/lists
+        state: absent
+      when: ansible_os_family == "Debian"
+
+    - name: Recreate apt lists directory
+      ansible.builtin.file:
+        path: /var/lib/apt/lists
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+      when: ansible_os_family == "Debian"
+
+    - name: Update apt cache with retries
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 0
+      retries: 3
+      delay: 5
+      register: apt_update
+      until: apt_update is success
+      when: ansible_os_family == "Debian"
+
+    # Install Docker for container-based services
+    - name: Install Docker for container-based services
+      ansible.builtin.apt:
+        name:
+          - docker.io
+          - docker-compose
+        state: present
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+      when: ansible_os_family == "Debian"
+      failed_when: false  # May not be available in test containers
+
+    - name: Enable Docker socket
+      ansible.builtin.systemd:
+        name: docker.socket
+        state: started
+        enabled: true
+      failed_when: false  # May not be available in all test containers
+
+    - name: Create test directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - /opt/test
+        - /var/log/test
+        - /etc/test
+
+    - name: Ensure SSH directory exists
+      ansible.builtin.file:
+        path: /root/.ssh
+        state: directory
+        mode: "0700"
+
+    - name: Generate SSH keypair for testing
+      community.crypto.openssh_keypair:
+        path: /root/.ssh/homelab_ed25519
+        type: ed25519
+        comment: molecule-test-key
+        force: false
+
+    - name: Set proper permissions on SSH keys
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - { path: "/root/.ssh/homelab_ed25519", mode: "0600" }
+        - { path: "/root/.ssh/homelab_ed25519.pub", mode: "0644" }

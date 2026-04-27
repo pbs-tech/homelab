@@ -1,0 +1,19 @@
+---
+# Radarr default variables
+
+radarr_version: "latest"
+radarr_port: 7878
+radarr_container_name: "radarr"
+radarr_puid: 1000
+radarr_pgid: 1000
+radarr_timezone: "UTC"
+radarr_config_dir: /opt/radarr/config
+radarr_data_dir: /opt/radarr
+radarr_media_dir: "/media/movies"
+radarr_download_dir: "/downloads"
+radarr_docker_image: "lscr.io/linuxserver/radarr"
+radarr_docker_network: "bridge"
+radarr_docker_restart_policy: "unless-stopped"
+radarr_memory_limit: "1g"
+radarr_configure_firewall: true
+radarr_extra_volumes: []

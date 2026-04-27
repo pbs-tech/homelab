@@ -1,0 +1,37 @@
+---
+galaxy_info:
+  role_name: secure_enclave
+  namespace: homelab
+  author: Homelab Administrator
+  description: >-
+    Deploy and configure a secure, isolated pentesting and security research
+    environment with network isolation, monitoring, and automatic safety controls
+  company: Homelab
+  license: MIT
+
+  min_ansible_version: "2.13"
+
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+        - focal
+    - name: Debian
+      versions:
+        - bullseye
+        - bookworm
+
+  galaxy_tags:
+    - security
+    - pentesting
+    - enclave
+    - isolation
+    - kali
+    - vulnerable
+    - research
+    - homelab
+    - proxmox
+
+dependencies:
+  - role: homelab.common.container_base
+  - role: homelab.common.security_hardening

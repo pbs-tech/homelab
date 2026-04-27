@@ -1,0 +1,62 @@
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+api:
+{% if traefik_dashboard_enabled %}
+  dashboard: true
+  insecure: true
+{% else %}
+  dashboard: false
+{% endif %}
+
+entryPoints:
+  web:
+    address: ":{{ traefik_http_port }}"
+{% if traefik_tls_enabled | default(false) %}
+    http:
+      redirections:
+        entrypoint:
+          to: websecure
+          scheme: https
+{% endif %}
+
+  websecure:
+    address: ":{{ traefik_https_port }}"
+
+  metrics:
+    address: ":{{ traefik_metrics_port }}"
+
+{% if traefik_tls_enabled | default(false) %}
+certificatesResolvers:
+  {{ traefik_ssl_resolver }}:
+    acme:
+      email: {{ traefik_ssl_email }}
+      storage: /var/lib/traefik/acme.json
+      caServer: "{{ step_ca_acme_url }}"
+      tlsChallenge: {}
+{% endif %}
+
+providers:
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+{% if traefik_k8s_enabled | default(false) %}
+
+  # Kubernetes provider for K3s services
+  kubernetesIngress:
+    kubeConfigPath: /etc/traefik/kubeconfig
+{% endif %}
+
+metrics:
+  prometheus:
+    addEntryPointsLabels: true
+    addServicesLabels: true
+    entryPoint: metrics
+
+log:
+  level: INFO
+  filePath: /var/log/traefik/traefik.log
+
+accessLog:
+  filePath: /var/log/traefik/access.log

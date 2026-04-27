@@ -1,0 +1,70 @@
+---
+dependency:
+  name: galaxy
+  options:
+    requirements-file: ../../requirements.yml
+
+driver:
+  name: docker
+
+platforms:
+  - name: ubuntu-test
+    image: geerlingguy/docker-ubuntu2204-ansible:latest
+    pre_build_image: true
+    # SECURITY NOTE: Docker test container runs privileged to support systemd
+    # This is ONLY for testing infrastructure. Actual LXC containers deployed
+    # by these roles use container_unprivileged=true by default.
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    tmpfs:
+      - /tmp:exec,mode=1777
+      - /run
+      - /run/lock
+    command: /lib/systemd/systemd
+    capabilities:
+      - SYS_ADMIN
+    groups:
+      - proxmox_lxc_test
+
+provisioner:
+  env:
+    ANSIBLE_REMOTE_TMP: /tmp/ansible-tmp
+  name: ansible
+  config_options:
+    defaults:
+      callbacks_enabled: profile_tasks,timer
+      stdout_callback: default
+      result_format: yaml
+      host_key_checking: false
+      remote_tmp: /tmp/ansible-tmp
+  inventory:
+    host_vars:
+      ubuntu-test:
+        ansible_user: root
+        ansible_connection: docker
+        # Override network settings for testing
+        ansible_default_ipv4:
+          address: 127.0.0.1
+        # Mock Proxmox settings for testing
+        proxmox_host: 127.0.0.1
+        proxmox_user: root@pam
+        container_ssh_key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC... mock-key
+
+verifier:
+  name: ansible
+
+scenario:
+  test_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    - verify
+    - cleanup
+    - destroy
+  # Note: Idempotence test skipped for service roles due to dynamic
+  # configuration changes and state management in containerized services

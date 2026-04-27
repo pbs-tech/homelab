@@ -1,0 +1,401 @@
+---
+# VM base tasks
+# Common tasks for all KVM/QEMU VM deployments with standardized Proxmox API integration
+# Supports two creation modes:
+#   - Scratch (default): Create VM from ISO with full hardware config
+#   - Clone (vm_clone.enabled: true): Clone from template with cloud-init
+
+- name: Include Proxmox API validation tasks
+  delegate_to: localhost
+  run_once: true
+  tags:
+    - validation
+    - proxmox
+
+  block:
+    - name: Run API validation tasks
+      ansible.builtin.include_tasks: ../../../tasks/proxmox_api_validation.yml
+
+# Validate and parse API token
+# Token format should be: user@realm!tokenname
+# We need to extract just 'tokenname' for api_token_id parameter
+- name: Validate API token format
+  ansible.builtin.assert:
+    that:
+      - proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id is defined
+      - "'!' in proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id"
+    fail_msg: >-
+      API token ID must be in format 'user@realm!tokenname'.
+      Got: {{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id | default('undefined') }}
+    quiet: true
+  delegate_to: localhost
+  run_once: true
+  tags:
+    - validation
+    - proxmox
+
+- name: Extract API token name from full token ID
+  ansible.builtin.set_fact:
+    _api_token_name: >-
+      {{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id.split('!')[1]
+         if '!' in proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id
+         else proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id }}
+  delegate_to: localhost
+  run_once: true
+
+- name: Set VM configuration variables
+  ansible.builtin.set_fact:
+    _vm_vmid: "{{ vm_id }}"
+    _vm_hostname: "{{ inventory_hostname }}"
+    _vm_node: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].node }}"
+    _vm_api_host: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+    _vm_api_user: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].user }}"
+    _vm_api_token_secret: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_secret }}"
+    _vm_validate_certs: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].validate_certs }}"
+
+- name: Build VM network string
+  ansible.builtin.set_fact:
+    # yamllint disable-line rule:line-length
+    _vm_net0: "{{ vm_network.model }},bridge={{ vm_network.bridge }},firewall={{ vm_network.firewall | int }}"
+
+# =============================================================================
+# Scratch path: Create VM from ISO (default)
+# =============================================================================
+
+- name: Build VM boot disk string
+  ansible.builtin.set_fact:
+    _vm_scsi0: "{{ vm_config.storage }}:{{ vm_resources.disk_size }}"
+  when: not vm_clone.enabled | bool
+
+- name: Build EFI disk dict
+  ansible.builtin.set_fact:
+    _vm_efidisk0:
+      storage: "{{ vm_config.storage }}"
+      format: raw
+      efitype: 4m
+      pre_enrolled_keys: true
+  when:
+    - not vm_clone.enabled | bool
+    - vm_config.bios == 'ovmf'
+
+- name: Build IDE CD-ROM string
+  ansible.builtin.set_fact:
+    _vm_ide2: "{{ vm_iso.storage }}:iso/{{ vm_iso.file }},media=cdrom"
+  when:
+    - not vm_clone.enabled | bool
+    - vm_iso.file | default('') | length > 0
+
+- name: Create KVM virtual machine via API token authentication
+  community.proxmox.proxmox_kvm:
+    api_host: "{{ _vm_api_host }}"
+    api_user: "{{ _vm_api_user }}"
+    api_token_id: "{{ _api_token_name }}"
+    api_token_secret: "{{ _vm_api_token_secret }}"
+    validate_certs: "{{ _vm_validate_certs }}"
+    timeout: "{{ proxmox_api_defaults.timeout | default(300) }}"
+
+    # VM identification
+    vmid: "{{ _vm_vmid }}"
+    node: "{{ _vm_node }}"
+    name: "{{ _vm_hostname }}"
+
+    # Hardware configuration
+    bios: "{{ vm_config.bios }}"
+    machine: "{{ vm_config.machine }}"
+    ostype: "{{ vm_config.ostype }}"
+    scsihw: "{{ vm_config.scsihw }}"
+    agent: "{{ vm_config.agent }}"
+    onboot: "{{ vm_config.onboot }}"
+
+    # Resource allocation
+    cores: "{{ vm_resources.cores }}"
+    sockets: "{{ vm_resources.sockets }}"
+    memory: "{{ vm_resources.memory }}"
+
+    # Storage — OS disk on VirtIO SCSI
+    scsi:
+      scsi0: "{{ _vm_scsi0 }}"
+
+    # EFI disk for UEFI boot
+    efidisk0: "{{ _vm_efidisk0 | default(omit) }}"
+
+    # CD-ROM with ISO (when provided)
+    ide:
+      ide2: "{{ _vm_ide2 | default(omit) }}"
+
+    # Network
+    net:
+      net0: "{{ _vm_net0 }}"
+
+    # Boot order: configurable via vm_boot_order (default: disk first, then cdrom)
+    boot: "{{ vm_boot_order | default('order=scsi0;ide2') }}"
+
+    state: present
+
+  register: vm_creation_result
+  retries: "{{ proxmox_api_defaults.retry_count | default(3) }}"
+  delay: "{{ proxmox_api_defaults.retry_delay | default(5) }}"
+  until: vm_creation_result is succeeded
+  delegate_to: localhost
+  become: false
+  when: not vm_clone.enabled | bool
+  tags:
+    - proxmox
+    - vm
+    - kvm
+
+# =============================================================================
+# Clone path: Clone from template with cloud-init
+# =============================================================================
+
+- name: Clone VM from template
+  community.proxmox.proxmox_kvm:
+    api_host: "{{ _vm_api_host }}"
+    api_user: "{{ _vm_api_user }}"
+    api_token_id: "{{ _api_token_name }}"
+    api_token_secret: "{{ _vm_api_token_secret }}"
+    validate_certs: "{{ _vm_validate_certs }}"
+    timeout: "{{ proxmox_api_defaults.timeout | default(300) }}"
+
+    # Clone source — vmid identifies the template, clone is required to trigger cloning
+    vmid: "{{ vm_clone.template_id }}"
+    clone: "{{ vm_clone.template_name | default('template') }}"
+    full: "{{ vm_clone.full_clone | default(true) }}"
+
+    # Target VM
+    newid: "{{ _vm_vmid }}"
+    node: "{{ _vm_node }}"
+    name: "{{ _vm_hostname }}"
+
+    state: present
+
+  register: vm_clone_result
+  retries: "{{ proxmox_api_defaults.retry_count | default(3) }}"
+  delay: "{{ proxmox_api_defaults.retry_delay | default(5) }}"
+  until: vm_clone_result is succeeded
+  delegate_to: localhost
+  become: false
+  when: vm_clone.enabled | bool
+  tags:
+    - proxmox
+    - vm
+    - kvm
+    - clone
+
+# proxmox_kvm update: true is unreliable for cloud-init settings — it silently
+# succeeds but doesn't apply ipconfig/sshkeys in some collection versions.
+# Use qm set directly (same approach as create-vm-template.yml) for guaranteed application.
+
+- name: Update VM hardware resources via API
+  community.proxmox.proxmox_kvm:
+    api_host: "{{ _vm_api_host }}"
+    api_user: "{{ _vm_api_user }}"
+    api_token_id: "{{ _api_token_name }}"
+    api_token_secret: "{{ _vm_api_token_secret }}"
+    validate_certs: "{{ _vm_validate_certs }}"
+    timeout: "{{ proxmox_api_defaults.timeout | default(300) }}"
+    vmid: "{{ _vm_vmid }}"
+    node: "{{ _vm_node }}"
+    update: true
+    cores: "{{ vm_resources.cores }}"
+    sockets: "{{ vm_resources.sockets }}"
+    memory: "{{ vm_resources.memory }}"
+    onboot: "{{ vm_config.onboot }}"
+  delegate_to: localhost
+  become: false
+  when:
+    - vm_clone.enabled | bool
+  tags:
+    - proxmox
+    - vm
+    - kvm
+    - clone
+
+- name: Write SSH public key to temp file on Proxmox host
+  ansible.builtin.copy:
+    content: "{{ vm_cloudinit.ssh_public_key }}\n"
+    dest: "/tmp/vm-{{ _vm_vmid }}-sshkey.pub"
+    mode: "0600"
+  delegate_to: "{{ _vm_api_host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  when:
+    - vm_clone.enabled | bool
+    - vm_cloudinit.enabled | bool
+  tags:
+    - proxmox
+    - vm
+    - cloudinit
+
+- name: Apply cloud-init settings via qm set
+  ansible.builtin.command:
+    cmd: >-
+      qm set {{ _vm_vmid }}
+      --ciuser {{ vm_cloudinit.user }}
+      --ipconfig0 {{ vm_cloudinit.ip_config }}
+      --nameserver "{{ vm_cloudinit.dns_servers | join(' ') }}"
+      --searchdomain {{ vm_cloudinit.search_domain }}
+      --sshkeys /tmp/vm-{{ _vm_vmid }}-sshkey.pub
+  delegate_to: "{{ _vm_api_host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  changed_when: true
+  when:
+    - vm_clone.enabled | bool
+    - vm_cloudinit.enabled | bool
+  tags:
+    - proxmox
+    - vm
+    - cloudinit
+
+- name: Regenerate cloud-init ISO
+  ansible.builtin.command:
+    cmd: qm cloudinit update {{ _vm_vmid }}
+  delegate_to: "{{ _vm_api_host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  changed_when: true
+  when:
+    - vm_clone.enabled | bool
+    - vm_cloudinit.enabled | bool
+  tags:
+    - proxmox
+    - vm
+    - cloudinit
+
+- name: Remove temp SSH key file from Proxmox host
+  ansible.builtin.file:
+    path: "/tmp/vm-{{ _vm_vmid }}-sshkey.pub"
+    state: absent
+  delegate_to: "{{ _vm_api_host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  when:
+    - vm_clone.enabled | bool
+    - vm_cloudinit.enabled | bool
+  tags:
+    - proxmox
+    - vm
+    - cloudinit
+
+- name: Resize cloned VM disk
+  ansible.builtin.command:
+    cmd: >-
+      qm resize {{ _vm_vmid }} scsi0 {{ vm_resources.disk_size }}G
+  delegate_to: "{{ _vm_api_host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  when:
+    - vm_clone.enabled | bool
+    - vm_resources.disk_size is defined
+  changed_when: true
+  tags:
+    - proxmox
+    - vm
+    - kvm
+    - clone
+
+# =============================================================================
+# Shared tasks: Firewall, start, and SSH wait (both paths)
+# =============================================================================
+
+- name: Build per-VM firewall content
+  ansible.builtin.set_fact:
+    _vm_fw_content: |
+      [OPTIONS]
+      enable: 1
+
+      [RULES]
+      {% for group in vm_firewall_groups %}
+      GROUP {{ group }}
+      {% endfor %}
+      {% for rule in vm_firewall_extra_rules %}
+      {{ rule }}
+      {% endfor %}
+  when: vm_network.firewall | bool
+  tags:
+    - proxmox
+    - firewall
+    - vm
+
+- name: Check existing per-VM firewall configuration
+  ansible.builtin.slurp:
+    src: "/etc/pve/firewall/{{ _vm_vmid }}.fw"
+  register: _existing_vm_fw
+  failed_when: false
+  delegate_to: "{{ _vm_api_host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  when: vm_network.firewall | bool
+  tags:
+    - proxmox
+    - firewall
+    - vm
+
+# pmxcfs doesn't support Ansible's atomic file operations (copy/template),
+# so we write directly via shell. The slurp+compare ensures idempotency.
+- name: Deploy per-VM firewall configuration
+  ansible.builtin.shell:
+    cmd: |
+      cat > '/etc/pve/firewall/{{ _vm_vmid }}.fw' << 'FWEOF'
+      {{ _vm_fw_content }}
+      FWEOF
+    executable: /bin/bash
+  delegate_to: "{{ _vm_api_host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  when:
+    - vm_network.firewall | bool
+    - _existing_vm_fw.content is not defined or
+      (_existing_vm_fw.content | b64decode) != _vm_fw_content
+  changed_when: true
+  tags:
+    - proxmox
+    - firewall
+    - vm
+
+- name: Start VM using secure API token authentication
+  community.proxmox.proxmox_kvm:
+    api_host: "{{ _vm_api_host }}"
+    api_user: "{{ _vm_api_user }}"
+    api_token_id: "{{ _api_token_name }}"
+    api_token_secret: "{{ _vm_api_token_secret }}"
+    validate_certs: "{{ _vm_validate_certs }}"
+    timeout: "{{ proxmox_api_defaults.timeout | default(300) }}"
+
+    vmid: "{{ _vm_vmid }}"
+    node: "{{ _vm_node }}"
+    state: started
+
+  register: vm_start_result
+  retries: "{{ proxmox_api_defaults.retry_count | default(3) }}"
+  delay: "{{ proxmox_api_defaults.retry_delay | default(5) }}"
+  until: vm_start_result is succeeded
+  delegate_to: localhost
+  become: false
+  tags:
+    - proxmox
+    - vm
+    - kvm
+    - state
+
+- name: Wait for VM SSH to be available
+  ansible.builtin.wait_for:
+    host: "{{ ansible_host }}"
+    port: 22
+    delay: "{{ vm_ssh_delay }}"
+    timeout: "{{ vm_ssh_timeout }}"
+    search_regex: OpenSSH
+  delegate_to: localhost
+  become: false
+  when: vm_wait_for_ssh | bool
+  tags:
+    - connectivity
+    - vm

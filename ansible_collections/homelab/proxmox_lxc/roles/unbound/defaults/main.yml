@@ -1,0 +1,77 @@
+---
+# Unbound DNS server configuration
+
+# Network configuration
+unbound_interface: "0.0.0.0"
+unbound_port: 53
+unbound_enable_ipv4: true
+unbound_enable_ipv6: false
+unbound_enable_udp: true
+unbound_enable_tcp: true
+
+# Security settings
+unbound_hide_identity: true
+unbound_hide_version: true
+unbound_harden_glue: true
+unbound_harden_dnssec_stripped: true
+unbound_use_caps_for_id: true
+
+# Performance settings
+unbound_cache_min_ttl: 3600
+unbound_cache_max_ttl: 86400
+unbound_prefetch: true
+unbound_prefetch_key: true
+unbound_num_threads: 2
+unbound_msg_cache_size: "8m"
+unbound_rrset_cache_size: "16m"
+
+# Access control - allow homelab network
+unbound_access_control:
+  - "192.168.0.0/24 allow"
+  - "127.0.0.0/8 allow"
+  - "0.0.0.0/0 refuse"
+
+# Private addresses and domains
+unbound_private_addresses:
+  - "192.168.0.0/24"
+  - "10.0.0.0/8"
+  - "172.16.0.0/12"
+
+unbound_private_domains:
+  - "homelab.lan"
+
+# Local zone for homelab domain
+# "redirect" returns the zone-level IP for any unmatched *.homelab.lan query
+unbound_local_zone: "homelab.lan"
+unbound_local_zone_type: "redirect"
+
+# All homelab.lan names resolve to Traefik; Traefik routes by Host header
+unbound_traefik_ip: "192.168.0.205"
+
+# Optional per-name overrides (e.g. management interfaces that bypass Traefik)
+unbound_local_data_overrides: []
+
+# DNS over TLS upstream resolvers
+unbound_forward_tls: true
+unbound_forward_addresses:
+  - "1.1.1.1@853#cloudflare-dns.com"
+  - "1.0.0.1@853#cloudflare-dns.com"
+  - "9.9.9.9@853#dns.quad9.net"
+  - "149.112.112.112@853#dns.quad9.net"
+
+# DNSSEC validation
+unbound_enable_dnssec: true
+unbound_trust_anchor_file: "/var/lib/unbound/root.key"
+
+# Logging
+unbound_verbosity: 1
+unbound_log_queries: false
+unbound_log_replies: false
+
+# Security blocklist
+unbound_enable_blocklist: true
+unbound_blocklist_url: "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts"
+unbound_blocklist_file: "/etc/unbound/unbound.conf.d/security-blocklist.conf"
+
+# Firewall configuration
+unbound_enable_firewall: true

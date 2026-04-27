@@ -1,0 +1,21 @@
+config system
+	option hostname '{{ openwrt_hostname }}'
+	option timezone '{{ openwrt_timezone }}'
+	option ttylogin '0'
+	option log_size '64'
+	option urandom_seed '0'
+
+config timeserver 'ntp'
+	option enabled '1'
+	option enable_server '0'
+	list server '0.openwrt.pool.ntp.org'
+	list server '1.openwrt.pool.ntp.org'
+	list server '2.openwrt.pool.ntp.org'
+	list server '3.openwrt.pool.ntp.org'
+
+{% if openwrt_remote_syslog_server is defined %}
+config system
+	option log_ip '{{ openwrt_remote_syslog_server }}'
+	option log_port '{{ openwrt_remote_syslog_port | default(514) }}'
+	option log_proto 'udp'
+{% endif %}

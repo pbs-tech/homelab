@@ -1,0 +1,39 @@
+---
+# Proxmox connection settings (using connection plugin)
+ansible_connection: community.proxmox.proxmox
+
+# Proxmox API configuration - uses shared configuration from common collection
+# Override specific settings by defining proxmox_override in host_vars or group_vars
+proxmox_host: "{{ proxmox_override.host | default(proxmox_config['pve-mac'].host) }}"
+proxmox_user: "{{ proxmox_override.user | default(proxmox_config['pve-mac'].user) }}"
+proxmox_node: "{{ proxmox_override.node | default(proxmox_config['pve-mac'].node) }}"
+
+# API Token authentication (preferred)
+proxmox_api_token_id: "{{ proxmox_override.api_token_id | default(proxmox_config['pve-mac'].api_token_id) }}"
+proxmox_api_token_secret: "{{ proxmox_override.api_token_secret | default(proxmox_config['pve-mac'].api_token_secret) }}"
+
+# Network settings
+gateway_ip: 192.168.0.1
+dns_servers:
+  - "1.1.1.1"
+  - "1.0.0.1"
+
+# SSH settings
+container_ssh_key: "{{ lookup('file', '~/.ssh/homelab_ed25519.pub') }}"
+container_ssh_private_key: ~/.ssh/homelab_ed25519
+
+# Container defaults
+container_template: local:vztmpl/ubuntu-22.04-standard_22.04-1_amd64.tar.zst
+container_onboot: true
+container_unprivileged: true
+
+# SSL/TLS settings for Traefik
+ssl_email: "{{ vault_ssl_email }}"
+homelab_domain: homelab.lan
+
+# K3s cluster settings (integrated with k3s-ansible)
+k3s_cluster_endpoint: https://192.168.0.111:6443
+k3s_kubeconfig_path: /etc/rancher/k3s/k3s.yaml
+
+# Reference existing k3s-ansible inventory
+k3s_ansible_inventory: ../k3s-ansible/inventory/sample

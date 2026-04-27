@@ -1,0 +1,448 @@
+---
+# Container base tasks
+# Common tasks for all container deployments with standardized Proxmox API integration
+
+- name: Include Proxmox API validation tasks
+  delegate_to: localhost
+  run_once: true
+  tags:
+    - validation
+    - proxmox
+
+  block:
+    - name: Run API validation tasks
+      ansible.builtin.include_tasks: ../../../tasks/proxmox_api_validation.yml
+
+# Validate and parse API token
+# Token format should be: user@realm!tokenname
+# We need to extract just 'tokenname' for api_token_id parameter
+- name: Validate API token format
+  ansible.builtin.assert:
+    that:
+      - proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id is defined
+      - "'!' in proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id"
+    fail_msg: >-
+      API token ID must be in format 'user@realm!tokenname'.
+      Got: {{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id | default('undefined') }}
+    quiet: true
+  delegate_to: localhost
+  run_once: true
+  tags:
+    - validation
+    - proxmox
+
+- name: Extract API token name from full token ID
+  ansible.builtin.set_fact:
+    _api_token_name: >-
+      {{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id.split('!')[1]
+         if '!' in proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id
+         else proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_id }}
+  delegate_to: localhost
+  tags:
+    - proxmox
+    - lxc
+    - containers
+
+- name: Set container configuration variables
+  ansible.builtin.set_fact:
+    container_vmid: "{{ container_id }}"
+    container_hostname: "{{ inventory_hostname }}"
+    container_template: "local:vztmpl/{{ lxc_config.template }}"
+    container_cores: "{{ container_resources.cores }}"
+    container_memory: "{{ container_resources.memory }}"
+    container_swap: "{{ container_resources.swap }}"
+    container_disk_size: "{{ container_resources.disk_size }}"
+    container_netif:
+      # yamllint disable-line rule:line-length
+      net0: name=eth0,bridge={{ container_network.bridge }},ip={{ ansible_host }}/24,gw={{ homelab_network.gateway_ip }},firewall={{
+        container_network.firewall | int }}
+    container_unprivileged: "{{ lxc_config.unprivileged }}"
+    container_onboot: "{{ lxc_config.onboot }}"
+    container_state: present
+    container_ssh_key: "{{ container_defaults.ssh_key | default(omit) }}"
+  tags:
+    - proxmox
+    - lxc
+    - containers
+
+- name: Create LXC container using API token authentication (preferred)
+  community.proxmox.proxmox:
+    # API Token authentication - secure method
+    # api_user is required by the module (set to user part of token: user@realm)
+    # api_token_id should be just the token name (not full user@realm!token format)
+    api_host: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+    api_user: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].user }}"
+    api_token_id: "{{ _api_token_name }}"
+    api_token_secret: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_secret }}"
+    validate_certs: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].validate_certs }}"
+    timeout: "{{ proxmox_api_defaults.timeout | default(300) }}"
+
+    # Container configuration
+    vmid: "{{ container_vmid }}"
+    node: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].node }}"
+    hostname: "{{ container_hostname }}"
+    ostemplate: "{{ container_template }}"
+
+    # Resource allocation
+    cores: "{{ container_cores }}"
+    memory: "{{ container_memory }}"
+    swap: "{{ container_swap }}"
+    disk: "{{ lxc_config.storage | default('local-lvm') }}:{{ container_disk_size }}"
+
+    # Network configuration
+    netif: "{{ container_netif }}"
+    nameserver: "{{ homelab_network.dns_servers | join(' ') }}"
+    searchdomain: "{{ homelab_domain }}"
+
+    # Security and management settings
+    unprivileged: "{{ container_unprivileged }}"
+    onboot: "{{ container_onboot }}"
+    pubkey: "{{ container_ssh_key }}"
+    state: "{{ container_state }}"
+
+  register: container_creation_result
+  retries: "{{ proxmox_api_defaults.retry_count | default(3) }}"
+  delay: "{{ proxmox_api_defaults.retry_delay | default(5) }}"
+  until: container_creation_result is succeeded
+  delegate_to: localhost
+  become: false
+  tags:
+    - proxmox
+    - lxc
+    - containers
+
+- name: Enforce container resource allocation
+  ansible.builtin.command:
+    cmd: >-
+      pct set {{ container_vmid | int }}
+      --cores {{ lxc_cores | default(1) }}
+      --memory {{ lxc_memory | default(512) }}
+      --swap {{ lxc_swap | default(0) }}
+  delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  changed_when: false
+  tags:
+    - proxmox
+    - lxc
+    - containers
+
+- name: Bind-mount TUN device into LXC config (required for VPN clients in unprivileged containers)
+  ansible.builtin.lineinfile:
+    path: "/etc/pve/lxc/{{ container_vmid }}.conf"
+    line: "{{ item }}"
+    state: present
+  loop:
+    - "lxc.cgroup2.devices.allow: c 10:200 rwm"
+    - "lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file"
+  register: tun_config_result
+  delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  when: container_tun_enabled | default(false)
+  notify: Restart container for TUN device
+  tags:
+    - proxmox
+    - lxc
+    - containers
+
+- name: Build per-container firewall content
+  ansible.builtin.set_fact:
+    _container_fw_content: |
+      [OPTIONS]
+      enable: 1
+
+      [RULES]
+      {% for group in container_firewall_groups %}
+      GROUP {{ group }}
+      {% endfor %}
+      {% for rule in container_firewall_extra_rules %}
+      {{ rule }}
+      {% endfor %}
+  when: container_network.firewall | bool
+  tags:
+    - proxmox
+    - firewall
+    - lxc
+    - containers
+
+- name: Check existing per-container firewall configuration
+  ansible.builtin.slurp:
+    src: "/etc/pve/firewall/{{ container_vmid }}.fw"
+  register: _existing_fw
+  failed_when: false
+  delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  when: container_network.firewall | bool
+  tags:
+    - proxmox
+    - firewall
+    - lxc
+    - containers
+
+# pmxcfs doesn't support Ansible's atomic file operations (copy/template),
+# so we write directly via shell. The slurp+compare ensures idempotency.
+- name: Deploy per-container firewall configuration
+  ansible.builtin.shell:
+    cmd: |
+      cat > '/etc/pve/firewall/{{ container_vmid }}.fw' << 'FWEOF'
+      {{ _container_fw_content }}
+      FWEOF
+    executable: /bin/bash
+  delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  when:
+    - container_network.firewall | bool
+    - _existing_fw.content is not defined or
+      (_existing_fw.content | b64decode) != _container_fw_content
+  changed_when: true
+  tags:
+    - proxmox
+    - firewall
+    - lxc
+    - containers
+
+- name: Start container using secure API token authentication
+  community.proxmox.proxmox:
+    # Secure API token authentication (preferred)
+    api_host: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+    api_user: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].user }}"
+    api_token_id: "{{ _api_token_name }}"
+    api_token_secret: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_secret }}"
+    validate_certs: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].validate_certs }}"
+    timeout: "{{ proxmox_api_defaults.timeout | default(300) }}"
+
+    # Container identification and state
+    vmid: "{{ container_vmid }}"
+    node: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].node }}"
+    state: started
+
+  register: container_start_result
+  retries: "{{ proxmox_api_defaults.retry_count | default(3) }}"
+  delay: "{{ proxmox_api_defaults.retry_delay | default(5) }}"
+  until: container_start_result is succeeded
+  delegate_to: localhost
+  become: false
+  tags:
+    - proxmox
+    - lxc
+    - containers
+    - state
+
+- name: Fix SSH in container (Ubuntu 22.04 socket activation kills sshd in LXC)
+  ansible.builtin.shell:
+    cmd: |
+      pct exec {{ container_vmid | int }} -- bash -c '
+        systemctl mask ssh.socket 2>/dev/null || true
+        systemctl unmask ssh.service 2>/dev/null || true
+        systemctl enable ssh.service
+        systemctl restart ssh.service
+      '
+    executable: /bin/bash
+  delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  retries: 12
+  delay: 5
+  register: ssh_fix_result
+  until: ssh_fix_result.rc == 0
+  changed_when: false
+  tags:
+    - proxmox
+    - lxc
+    - containers
+
+- name: Wait for container SSH to be available
+  ansible.builtin.wait_for:
+    host: "{{ ansible_host }}"
+    port: 22
+    delay: 10
+    timeout: 300
+    search_regex: OpenSSH
+  delegate_to: localhost
+  become: false
+  tags:
+    - connectivity
+
+# Create ansible user in container for Ansible management
+# The pubkey parameter injects SSH key into root, but we need the ansible user
+- name: Validate container_vmid is numeric (security check)
+  ansible.builtin.assert:
+    that:
+      - container_vmid is defined
+      - container_vmid | string is match('^[0-9]+$')
+    fail_msg: "container_vmid must be a numeric value. Got: {{ container_vmid | default('undefined') }}"
+    quiet: true
+  tags:
+    - validation
+    - security
+
+- name: Create ansible user in container
+  ansible.builtin.shell:
+    # Use set -e for strict error handling
+    cmd: |
+      set -euo pipefail
+      pct exec "{{ container_vmid | int }}" -- bash -c '
+        set -euo pipefail
+
+        # Check if ansible user already exists
+        if id ansible &>/dev/null; then
+          # Ensure existing account is unlocked for SSH key auth
+          usermod -p "*" ansible || true
+          echo "exists"
+          exit 0
+        fi
+
+        # Create ansible user with home directory
+        useradd -m -s /bin/bash ansible
+
+        # Unlock account for SSH key-based login (set password to * instead of !)
+        usermod -p "*" ansible
+
+        # Setup SSH directory with proper permissions
+        mkdir -p /home/ansible/.ssh
+        chmod 700 /home/ansible/.ssh
+
+        # Copy SSH authorized_keys from root if available
+        if [ -f /root/.ssh/authorized_keys ]; then
+          cp /root/.ssh/authorized_keys /home/ansible/.ssh/
+          chown -R ansible:ansible /home/ansible/.ssh
+          chmod 600 /home/ansible/.ssh/authorized_keys
+        fi
+
+        # Configure passwordless sudo
+        echo "ansible ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/ansible
+        chmod 440 /etc/sudoers.d/ansible
+
+        # Validate sudoers file syntax
+        visudo -cf /etc/sudoers.d/ansible
+
+        echo "created"
+      '
+    executable: /bin/bash
+  register: ansible_user_result
+  changed_when: "'created' in ansible_user_result.stdout"
+  failed_when:
+    - ansible_user_result.rc != 0
+    - "'exists' not in ansible_user_result.stdout"
+    - "'created' not in ansible_user_result.stdout"
+  delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  tags:
+    - proxmox
+    - lxc
+    - containers
+    - user_setup
+
+- name: Verify ansible user SSH connectivity
+  ansible.builtin.wait_for_connection:
+    delay: 5
+    timeout: 60
+  tags:
+    - connectivity
+    - user_setup
+
+- name: Create additional users in container
+  ansible.builtin.shell:
+    cmd: |
+      set -euo pipefail
+      pct exec "{{ container_vmid | int }}" -- bash -c '
+        set -euo pipefail
+        USERNAME="{{ item }}"
+
+        # Check if user already exists
+        if id "$USERNAME" &>/dev/null; then
+          # Ensure existing account is unlocked for SSH key auth
+          usermod -p "*" "$USERNAME" || true
+          echo "exists"
+          exit 0
+        fi
+
+        # Create user with home directory
+        useradd -m -s /bin/bash "$USERNAME"
+
+        # Unlock account for SSH key-based login (set password to * instead of !)
+        usermod -p "*" "$USERNAME"
+
+        # Setup SSH directory with proper permissions
+        mkdir -p /home/$USERNAME/.ssh
+        chmod 700 /home/$USERNAME/.ssh
+
+        # Copy SSH authorized_keys from root if available
+        if [ -f /root/.ssh/authorized_keys ]; then
+          cp /root/.ssh/authorized_keys /home/$USERNAME/.ssh/
+          chown -R $USERNAME:$USERNAME /home/$USERNAME/.ssh
+          chmod 600 /home/$USERNAME/.ssh/authorized_keys
+        fi
+
+        # Configure passwordless sudo
+        echo "$USERNAME ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/$USERNAME
+        chmod 440 /etc/sudoers.d/$USERNAME
+
+        # Validate sudoers file syntax
+        visudo -cf /etc/sudoers.d/$USERNAME
+
+        echo "created"
+      '
+    executable: /bin/bash
+  register: additional_user_result
+  changed_when: "'created' in additional_user_result.stdout"
+  failed_when:
+    - additional_user_result.rc != 0
+    - "'exists' not in additional_user_result.stdout"
+    - "'created' not in additional_user_result.stdout"
+  delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  loop: "{{ container_additional_users }}"
+  when: container_additional_users | length > 0
+  tags:
+    - proxmox
+    - lxc
+    - containers
+    - user_setup
+
+- name: Set container startup order using secure API token authentication
+  community.proxmox.proxmox:
+    # Secure API token authentication (preferred)
+    api_host: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+    api_user: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].user }}"
+    api_token_id: "{{ _api_token_name }}"
+    api_token_secret: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].api_token_secret }}"
+    validate_certs: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].validate_certs }}"
+    timeout: "{{ proxmox_api_defaults.timeout | default(300) }}"
+
+    # Container identification
+    vmid: "{{ container_vmid }}"
+    node: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].node }}"
+    hostname: "{{ container_hostname }}"
+
+    # Startup configuration
+    startup: "order={{ container_startup_order[group_names[0]] | default(10) }}"
+    state: present
+    update: true
+
+  register: container_startup_result
+  retries: "{{ proxmox_api_defaults.retry_count | default(3) }}"
+  delay: "{{ proxmox_api_defaults.retry_delay | default(5) }}"
+  until: container_startup_result is succeeded
+  delegate_to: localhost
+  become: false
+  when:
+    - group_names | length > 0
+    - container_startup_order is defined
+  tags:
+    - proxmox
+    - lxc
+    - containers
+    - startup

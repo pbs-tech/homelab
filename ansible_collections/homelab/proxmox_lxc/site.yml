@@ -1,0 +1,129 @@
+---
+# Main orchestration playbook for homelab LXC deployment
+
+- name: Download LXC templates
+  hosts: proxmox_hosts
+  become: true
+  roles:
+    - homelab.proxmox_lxc.lxc_template
+  tags: [deploy, templates, "setup"]
+
+- name: Create k3s-bastion container first
+  hosts: proxmox_hosts
+  become: true
+  roles:
+    - homelab.proxmox_lxc.bastion
+  tags: [deploy, bastion, "security"]
+
+- name: Deploy and configure homelab LXC containers
+  import_playbook: playbooks/deploy_services.yml
+  tags: [deploy, containers]
+
+- name: Pre-deployment security checks for monitoring services
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Include security prerequisite checks
+      include_tasks: tasks/bypass_security_checks.yml
+  tags: [monitoring, automation]
+
+- name: Configure Prometheus monitoring
+  hosts: prometheus-lxc
+  become: true
+  roles:
+    - homelab.proxmox_lxc.prometheus
+  tags: [configure, prometheus, "monitoring"]
+
+- name: Configure Grafana
+  hosts: grafana-lxc
+  become: true
+  roles:
+    - homelab.proxmox_lxc.grafana
+  tags: [configure, grafana, "monitoring"]
+
+- name: Configure Traefik reverse proxy
+  hosts: traefik-lxc
+  become: true
+  roles:
+    - homelab.proxmox_lxc.traefik
+  tags: [configure, traefik, "proxy"]
+
+- name: Configure AlertManager
+  hosts: alertmanager-lxc
+  become: true
+  roles:
+    - homelab.proxmox_lxc.alertmanager
+  tags: [configure, alertmanager, "monitoring"]
+
+- name: Configure Unbound DNS
+  hosts: unbound-lxc
+  become: true
+  roles:
+    - homelab.proxmox_lxc.unbound
+  tags: [configure, unbound, "dns"]
+
+- name: Configure AdGuard Home
+  hosts: adguard-lxc
+  become: true
+  roles:
+    - homelab.proxmox_lxc.adguard
+  tags: [configure, adguard, "dns"]
+
+- name: Configure WireGuard VPN
+  hosts: wireguard-lxc
+  become: true
+  roles:
+    - homelab.proxmox_lxc.wireguard
+  tags: [configure, wireguard, "vpn"]
+
+- name: Configure Proxmox VE Exporter
+  hosts: pve-exporter-lxc
+  become: true
+  roles:
+    - homelab.proxmox_lxc.pve_exporter
+  tags: [configure, pve-exporter, "monitoring"]
+
+- name: Configure Home Assistant
+  hosts: homeassistant-lxc
+  become: true
+  roles:
+    - homelab.proxmox_lxc.homeassistant
+  tags: [configure, homeassistant, "automation"]
+
+- name: Configure OpenWrt Router
+  hosts: openwrt-lxc
+  become: true
+  roles:
+    - homelab.proxmox_lxc.openwrt
+  tags: [configure, openwrt, "router", "networking"]
+
+- name: Configure Loki Log Aggregation
+  hosts: loki-lxc
+  become: true
+  roles:
+    - homelab.proxmox_lxc.loki
+  tags: [configure, loki, "logging"]
+
+- name: Configure Promtail Log Shipping
+  hosts: lxc_containers
+  become: true
+  roles:
+    - homelab.proxmox_lxc.promtail
+  tags: [configure, promtail, "logging"]
+
+- name: Configure K3s integration with Traefik
+  import_playbook: playbooks/configure_k3s_integration.yml
+  tags: [configure, k3s, "integration"]
+
+- name: Verify all services are running
+  hosts: lxc_containers
+  gather_facts: false
+  tasks:
+    - name: Check if service port is open
+      ansible.builtin.wait_for:
+        host: "{{ ansible_host }}"
+        port: "{{ service_port }}"
+        timeout: 30
+      delegate_to: localhost
+      when: service_port is defined
+  tags: [verify, health-check]

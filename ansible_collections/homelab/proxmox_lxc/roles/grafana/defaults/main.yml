@@ -1,0 +1,93 @@
+---
+grafana_version: 10.2.0
+grafana_port: 3000
+grafana_user: grafana
+grafana_group: grafana
+
+# Installation paths
+grafana_config_dir: /etc/grafana
+grafana_data_dir: /var/lib/grafana
+grafana_logs_dir: /var/log/grafana
+grafana_plugins_dir: "{{ grafana_data_dir }}/plugins"
+
+# Admin user
+grafana_admin_user: admin
+grafana_admin_password: "{{ vault_grafana_admin_password }}"
+
+# Server configuration
+grafana_domain: "{{ inventory_hostname }}"
+grafana_root_url: "http://{{ grafana_domain }}:{{ grafana_port }}"
+
+# Security settings
+grafana_allow_sign_up: false
+grafana_allow_org_create: false
+grafana_auto_assign_org: true
+grafana_auto_assign_org_role: Viewer
+
+# Database (using SQLite for simplicity)
+grafana_database_type: sqlite3
+grafana_database_path: "{{ grafana_data_dir }}/grafana.db"
+
+# Logging
+grafana_log_mode: file
+grafana_log_level: info
+
+# Security: Secret key for signing cookies and session tokens
+# MUST be set in vault - generate with: openssl rand -base64 32
+grafana_secret_key: "{{ vault_grafana_secret_key }}"
+
+# Datasource endpoint URLs
+prometheus_url: "http://192.168.0.200:9090"
+loki_url: "http://192.168.0.210:3100"
+
+# Datasources configuration
+grafana_datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: "{{ prometheus_url }}"
+    is_default: true
+    basic_auth: false
+    editable: true
+  - name: Loki
+    uid: loki
+    type: loki
+    access: proxy
+    url: "{{ loki_url }}"
+    is_default: false
+    basic_auth: false
+    editable: true
+    json_data:
+      maxLines: 1000
+
+# Dashboard provisioning
+grafana_dashboards_dir: "{{ grafana_data_dir }}/dashboards"
+grafana_provisioning_dir: "{{ grafana_config_dir }}/provisioning"
+
+# Firewall configuration
+grafana_configure_firewall: true
+
+# Plugins to install
+grafana_plugins:
+  - grafana-piechart-panel
+  - grafana-worldmap-panel
+
+# Community dashboards to provision (downloaded from grafana.com at deploy time)
+# Note: datasource inputs are resolved dynamically from each dashboard's __inputs at import time
+grafana_community_dashboards:
+  - id: 1860
+    filename: node-exporter-full
+    description: "Node Exporter Full - system metrics for all nodes"
+  - id: 10347
+    filename: proxmox-prometheus
+    description: "Proxmox via Prometheus - Proxmox cluster monitoring"
+  - id: 16450
+    filename: k3s-cluster-monitoring
+    description: "Kubernetes / Views / K3s Cluster"
+  - id: 13639
+    filename: loki-logs
+    description: "Logs / Loki - log browsing and volume"
+  - id: 3662
+    filename: prometheus-overview
+    description: "Prometheus 2.0 Overview - Prometheus self-monitoring"

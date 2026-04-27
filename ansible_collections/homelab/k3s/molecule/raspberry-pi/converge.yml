@@ -1,0 +1,79 @@
+---
+- name: Test K3s server installation
+  hosts: k3s_servers
+  become: true
+  serial: 1
+
+  tasks:
+    - name: Test common setup role
+      include_role:
+        name: homelab.common.common_setup
+      tags: [common_setup]
+
+    - name: Test prereq role
+      include_role:
+        name: homelab.k3s.prereq
+      tags: [prereq]
+
+    - name: Test K3s server role
+      include_role:
+        name: homelab.k3s.k3s_server
+      vars:
+        k3s_server_init: true
+        k3s_control_node: true
+      tags: [k3s-server]
+
+- name: Wait for K3s server to be ready
+  hosts: k3s_servers
+  become: true
+
+  tasks:
+    - name: Wait for K3s server startup
+      wait_for:
+        port: 6443
+        host: "{{ ansible_default_ipv4.address }}"
+        delay: 30
+        timeout: 300
+
+    - name: Verify server node is ready
+      command: k3s kubectl get nodes -o json
+      register: nodes_status
+      changed_when: false
+      retries: 10
+      delay: 15
+      until: >
+        (nodes_status.stdout | from_json).items | length > 0 and
+        (nodes_status.stdout | from_json).items[0].status.conditions |
+        selectattr('type', 'equalto', 'Ready') |
+        selectattr('status', 'equalto', 'True') |
+        list | length > 0
+
+- name: Test K3s agent installation
+  hosts: k3s_agents
+  become: true
+
+  tasks:
+    - name: Test common setup role on agent
+      include_role:
+        name: homelab.common.common_setup
+      tags: [common_setup]
+
+    - name: Test prereq role on agent
+      include_role:
+        name: homelab.k3s.prereq
+      tags: [prereq]
+
+    - name: Test K3s agent role
+      include_role:
+        name: homelab.k3s.k3s_agent
+      tags: [k3s-agent]
+
+- name: Test security hardening
+  hosts: raspberry_pi_test
+  become: true
+
+  tasks:
+    - name: Apply security hardening from common collection
+      include_role:
+        name: homelab.common.security_hardening
+      tags: [security]

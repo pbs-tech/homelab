@@ -1,0 +1,30 @@
+---
+galaxy_info:
+  author: "Homelab Administrator"
+  description: "Enables offline K3s installation by distributing pre-downloaded artifacts to cluster nodes"
+  company: "Homelab"
+  license: "Apache-2.0"
+  min_ansible_version: "2.12"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+        - focal
+    - name: Debian
+      versions:
+        - bullseye
+        - bookworm
+    - name: EL
+      versions:
+        - all
+  galaxy_tags:
+    - k3s
+    - kubernetes
+    - airgap
+    - offline
+    - airgapped
+    - deployment
+    - artifacts
+    - homelab
+
+dependencies: []

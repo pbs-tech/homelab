@@ -1,0 +1,98 @@
+---
+traefik_version: 3.0.4
+traefik_dashboard_enabled: true
+traefik_dashboard_port: 8080
+traefik_http_port: 80
+traefik_https_port: 443
+traefik_metrics_port: 8082
+
+# SSL/TLS settings
+# Uses step-ca (192.168.0.212) as a local ACME CA via TLS-ALPN-01 challenge.
+# Certs are signed by the homelab root CA — install it on clients once.
+traefik_tls_enabled: true
+traefik_ssl_email: admin@homelab.lan
+traefik_ssl_resolver: step-ca
+
+# step-ca ACME endpoint and root cert (fetched from step-ca host during deploy)
+step_ca_acme_url: "https://192.168.0.212:8443/acme/acme/directory"
+step_ca_root_cert_path: "/etc/traefik/step-ca-root.crt"
+step_ca_config_dir: /etc/step-ca
+
+# Domain for homelab services
+homelab_domain: homelab.lan
+
+# Service endpoints
+services:
+  prometheus:
+    ip: 192.168.0.200
+    port: 9090
+    domain: prometheus.{{ homelab_domain }}
+
+  grafana:
+    ip: 192.168.0.201
+    port: 3000
+    domain: grafana.{{ homelab_domain }}
+
+  adguard:
+    ip: 192.168.0.204
+    port: 3000
+    domain: adguard.{{ homelab_domain }}
+
+  alertmanager:
+    ip: 192.168.0.206
+    port: 9093
+    domain: alertmanager.{{ homelab_domain }}
+
+  homeassistant:
+    ip: 192.168.0.208
+    port: 8123
+    domain: ha.{{ homelab_domain }}
+
+  sonarr:
+    ip: 192.168.0.230
+    port: 8989
+    domain: sonarr.{{ homelab_domain }}
+
+  radarr:
+    ip: 192.168.0.230
+    port: 7878
+    domain: radarr.{{ homelab_domain }}
+
+  bazarr:
+    ip: 192.168.0.230
+    port: 6767
+    domain: bazarr.{{ homelab_domain }}
+
+  prowlarr:
+    ip: 192.168.0.230
+    port: 9696
+    domain: prowlarr.{{ homelab_domain }}
+
+  qbittorrent:
+    ip: 192.168.0.230
+    port: 8080
+    domain: qbittorrent.{{ homelab_domain }}
+
+  jellyfin:
+    ip: 192.168.0.230
+    port: 8096
+    domain: jellyfin.{{ homelab_domain }}
+
+  truenas:
+    ip: 192.168.0.220
+    port: 443
+    scheme: https
+    insecure_tls: true
+    domain: truenas.{{ homelab_domain }}
+
+
+# K3s cluster integration (disabled by default - requires proper kubeconfig)
+traefik_k8s_enabled: false
+k3s_api_endpoint: 192.168.0.111:6443
+
+# K3s nodes for load-balanced API access
+k3s_nodes:
+  - { name: "k3s-1", ip: "192.168.0.111" }
+  - { name: "k3s-2", ip: "192.168.0.112" }
+  - { name: "k3s-3", ip: "192.168.0.113" }
+  - { name: "k3s-4", ip: "192.168.0.114" }

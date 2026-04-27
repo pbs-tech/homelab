@@ -1,0 +1,167 @@
+---
+# Deploy individual vulnerable target
+# Handles both Docker-based and VM-based deployments
+
+- name: Create LXC container for vulnerable target
+  community.proxmox.proxmox:
+    api_host: "{{ proxmox_config[enclave_proxmox_node].host }}"
+    api_token_id: "{{ proxmox_config[enclave_proxmox_node].api_token_id }}"
+    api_token_secret: "{{ proxmox_config[enclave_proxmox_node].api_token_secret }}"
+    validate_certs: "{{ proxmox_config[enclave_proxmox_node].validate_certs }}"
+
+    vmid: "{{ target_vm.vm_id }}"
+    node: "{{ proxmox_config[enclave_proxmox_node].node }}"
+    hostname: "{{ target_vm.hostname }}"
+    ostemplate: "{{ enclave_lxc_template }}"
+
+    cores: "{{ target_vm.cores }}"
+    memory: "{{ target_vm.memory }}"
+    disk: "{{ target_vm.disk_size }}"
+    swap: 512
+
+    netif: |
+      {
+        "net0": "name=eth0,bridge={{ enclave_network.bridge_name }},ip={{ target_vm.ip_address }}/24,gw={{ enclave_router.lan_ip }}"
+      }
+
+    nameserver: "{{ homelab_network.dns_servers | join(' ') }}"
+    searchdomain: "{{ homelab_domain }}"
+    onboot: "{{ enclave_persistent_onboot | default(false) }}"
+    unprivileged: "{{ target_vm.deployment_type == 'docker' | ternary(false, true) }}"
+
+    features: "{{ target_vm.deployment_type == 'docker' | ternary(['nesting=1', 'keyctl=1'], []) }}"
+
+    state: present
+  delegate_to: localhost
+  register: target_result
+  tags:
+    - vulnerable
+    - lxc
+
+- name: Start vulnerable target container  # noqa: no-handler
+  community.proxmox.proxmox:
+    api_host: "{{ proxmox_config[enclave_proxmox_node].host }}"
+    api_token_id: "{{ proxmox_config[enclave_proxmox_node].api_token_id }}"
+    api_token_secret: "{{ proxmox_config[enclave_proxmox_node].api_token_secret }}"
+    validate_certs: "{{ proxmox_config[enclave_proxmox_node].validate_certs }}"
+
+    vmid: "{{ target_vm.vm_id }}"
+    node: "{{ proxmox_config[enclave_proxmox_node].node }}"
+    state: started
+  delegate_to: localhost
+  when: target_result is changed
+  tags:
+    - vulnerable
+
+- name: Wait for target container to be reachable  # noqa: no-handler
+  ansible.builtin.wait_for:
+    host: "{{ target_vm.ip_address }}"
+    port: 22
+    delay: 10
+    timeout: 120
+  when: target_result is changed
+  tags:
+    - vulnerable
+
+- name: Add target to inventory
+  ansible.builtin.add_host:
+    name: "{{ target_vm.hostname }}"
+    ansible_host: "{{ target_vm.ip_address }}"
+    ansible_user: root
+    groups:
+      - enclave_targets
+  tags:
+    - vulnerable
+    - inventory
+
+# Docker-based deployment (e.g., DVWA)
+- name: Install Docker for Docker-based targets
+  when: target_vm.deployment_type == 'docker'
+  tags:
+    - vulnerable
+    - docker
+  block:
+    - name: Install Docker prerequisites
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+        update_cache: true
+      delegate_to: "{{ target_vm.hostname }}"
+
+    - name: Add Docker GPG key
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+      delegate_to: "{{ target_vm.hostname }}"
+
+    - name: Add Docker repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+      delegate_to: "{{ target_vm.hostname }}"
+
+    - name: Install Docker
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: present
+        update_cache: true
+      delegate_to: "{{ target_vm.hostname }}"
+
+    - name: Start and enable Docker
+      ansible.builtin.systemd:
+        name: docker
+        state: started
+        enabled: true
+      delegate_to: "{{ target_vm.hostname }}"
+
+    - name: Deploy vulnerable application via Docker
+      community.docker.docker_container:
+        name: "{{ target_vm.name }}"
+        image: "{{ target_vm.docker_image }}"
+        state: started
+        restart_policy: unless-stopped
+        published_ports:
+          - "80:80"
+          - "{{ target_vm.service_port | default('80') }}:{{ target_vm.service_port | default('80') }}"
+      delegate_to: "{{ target_vm.hostname }}"
+      when: target_vm.docker_image is defined
+
+- name: Create target information file
+  ansible.builtin.copy:
+    dest: "/root/TARGET_INFO.txt"
+    content: |
+      ===========================================
+      Vulnerable Target: {{ target_vm.hostname }}
+      ===========================================
+
+      Name: {{ target_vm.name }}
+      Description: {{ target_vm.description }}
+      IP Address: {{ target_vm.ip_address }}
+      Network: {{ enclave_network.isolated_subnet }}
+
+      Deployment Type: {{ target_vm.deployment_type }}
+      {% if target_vm.deployment_type == 'docker' %}
+      Docker Image: {{ target_vm.docker_image }}
+      Service Port: {{ target_vm.service_port | default('80') }}
+      Access URL: http://{{ target_vm.ip_address }}:{{ target_vm.service_port | default('80') }}
+      {% endif %}
+
+      WARNING: This system is intentionally vulnerable!
+      - For authorized security testing only
+      - Network isolated from production
+      - Auto-shutdown enabled
+
+      Deployed: {{ ansible_date_time.iso8601 }}
+    mode: '0644'
+  delegate_to: "{{ target_vm.hostname }}"
+  tags:
+    - vulnerable
+    - documentation

@@ -1,0 +1,17 @@
+[Unit]
+Description=Traefik
+After=network.target
+
+[Service]
+User=traefik
+Group=traefik
+Type=simple
+Environment=LEGO_CA_CERTIFICATES={{ step_ca_root_cert_path }}
+ExecStart=/usr/local/bin/traefik --configfile=/etc/traefik/traefik.yml
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

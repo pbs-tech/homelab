@@ -1,0 +1,5 @@
+---
+# yamllint disable-line rule:line-length
+cluster_cidr: "{{ (server_config_yaml | from_yaml)['cluster-cidr'] | default('10.42.0.0/16') }}" # noqa var-naming[no-role-prefix]
+# yamllint disable-line rule:line-length
+service_cidr: "{{ (server_config_yaml | from_yaml)['service-cidr'] | default('10.43.0.0/16') }}" # noqa var-naming[no-role-prefix]

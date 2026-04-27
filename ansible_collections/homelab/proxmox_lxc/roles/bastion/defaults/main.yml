@@ -1,0 +1,42 @@
+---
+# Security configurations
+bastion_security:
+  ssh_port: 22
+  fail2ban_enabled: true
+  firewall_enabled: true
+  allowed_ports:
+    - 22 # SSH
+    - 53 # DNS (for local resolution)
+  fail2ban_bantime: 3600
+  fail2ban_maxretry: 3
+
+# Ansible/automation tools
+bastion_packages:
+  - ansible
+  - python3-pip
+  - git
+  - curl
+  - wget
+  - unzip
+  - jq
+  - fail2ban
+  - ufw
+  - htop
+  - net-tools
+  - openssh-client
+  - sshpass
+  - iptables
+
+# Python packages for Ansible collections
+bastion_pip_packages:
+  - kubernetes
+  - proxmoxer
+  - requests
+
+# Source paths for synchronization to bastion
+# Override these if your repository is in a different location
+bastion_sync_source_base: "{{ playbook_dir | dirname }}"
+bastion_sync_dest_base: /home/pbs
+
+# Whether to sync Ansible collections to bastion
+bastion_sync_collections: false

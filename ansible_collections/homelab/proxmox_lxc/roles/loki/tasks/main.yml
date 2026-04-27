@@ -1,0 +1,125 @@
+---
+- name: Update system packages
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Install required packages
+  ansible.builtin.apt:
+    name:
+      - curl
+      - unzip
+      - ca-certificates
+    state: present
+
+- name: Create loki group
+  ansible.builtin.group:
+    name: "{{ loki_group }}"
+    system: true
+
+- name: Create loki user
+  ansible.builtin.user:
+    name: "{{ loki_user }}"
+    system: true
+    shell: /bin/false
+    home: "{{ loki_data_dir }}"
+    create_home: false
+    group: "{{ loki_group }}"
+
+- name: Create loki directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ loki_user }}"
+    group: "{{ loki_group }}"
+    mode: "0755"
+  loop:
+    - "{{ loki_config_dir }}"
+    - "{{ loki_data_dir }}"
+    - "{{ loki_data_dir }}/chunks"
+    - "{{ loki_data_dir }}/boltdb-compactor"
+    - "{{ loki_log_dir }}"
+    - "{{ loki_tsdb_active_dir }}"
+    - "{{ loki_tsdb_cache_dir }}"
+
+- name: Set architecture for Loki download
+  ansible.builtin.set_fact:
+    _loki_arch: "{{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'amd64' }}"
+
+- name: Download Loki binary
+  ansible.builtin.get_url:
+    url: https://github.com/grafana/loki/releases/download/v{{ loki_version }}/loki-linux-{{ _loki_arch }}.zip
+    dest: /tmp/loki.zip
+    mode: "0644"
+  register: loki_download
+
+- name: Extract Loki binary  # noqa: no-handler
+  ansible.builtin.unarchive:
+    src: /tmp/loki.zip
+    dest: /tmp
+    remote_src: true
+  when: loki_download.changed
+
+- name: Install Loki binary  # noqa: no-handler
+  ansible.builtin.copy:
+    src: /tmp/loki-linux-{{ _loki_arch }}
+    dest: "{{ loki_bin_dir }}/loki"
+    owner: root
+    group: root
+    mode: "0755"
+    remote_src: true
+  when: loki_download.changed
+  notify: Restart loki
+
+- name: Create Loki configuration file
+  ansible.builtin.template:
+    src: loki.yml.j2
+    dest: "{{ loki_config_dir }}/loki.yml"
+    owner: "{{ loki_user }}"
+    group: "{{ loki_group }}"
+    mode: "0644"
+    backup: true
+  notify: Restart loki
+
+- name: Create Loki systemd service
+  ansible.builtin.template:
+    src: loki.service.j2
+    dest: /etc/systemd/system/loki.service
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart loki
+
+- name: Configure UFW firewall for Loki
+  community.general.ufw:
+    rule: allow
+    port: "{{ loki_port }}"
+    proto: tcp
+    comment: "Loki"
+  when: loki_configure_firewall
+
+- name: Enable and start Loki
+  ansible.builtin.systemd:
+    name: loki
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Wait for Loki to start
+  ansible.builtin.wait_for:
+    host: "{{ loki_listen_address }}"
+    port: "{{ loki_listen_port }}"
+    delay: 5
+    timeout: 30
+
+- name: Check Loki readiness
+  ansible.builtin.uri:
+    url: "http://{{ inventory_hostname }}:{{ loki_port }}/ready"
+    method: GET
+    return_content: true
+  register: loki_health
+  retries: 5
+  delay: 5
+
+- name: Display Loki status
+  ansible.builtin.debug:
+    msg: "Loki is ready and running on port {{ loki_port }}"

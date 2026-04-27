@@ -1,0 +1,32 @@
+---
+galaxy_info:
+  role_name: grafana
+  namespace: homelab
+  author: Homelab Administrator
+  description: Deploy and configure Grafana visualization and analytics platform in LXC containers
+  company: Homelab
+  license: MIT
+
+  min_ansible_version: "2.13"
+
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+        - focal
+
+  galaxy_tags:
+    - grafana
+    - monitoring
+    - visualization
+    - dashboards
+    - observability
+    - metrics
+    - analytics
+    - homelab
+    - lxc
+    - proxmox
+
+dependencies:
+  - role: homelab.common.container_base
+  - role: homelab.common.security_hardening

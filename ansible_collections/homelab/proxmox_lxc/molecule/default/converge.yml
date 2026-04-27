@@ -1,0 +1,23 @@
+---
+# Simplified molecule test for proxmox_lxc collection
+# Tests a single lightweight role to verify collection structure and basic functionality
+
+- name: Test lightweight Prometheus deployment
+  hosts: all
+  gather_facts: true
+  vars:
+    homelab_domain: test.local
+    ssl_email: test@test.local
+    container_ssh_key: "{{ lookup('file', '/root/.ssh/homelab_ed25519.pub') }}"
+
+  tasks:
+    - name: Test Prometheus role with minimal config
+      ansible.builtin.include_role:
+        name: homelab.proxmox_lxc.prometheus
+      vars:
+        prometheus_storage_retention: "15m"  # Minimal retention for testing
+        prometheus_web_listen_address: 0.0.0.0:9090
+        prometheus_scrape_configs:
+          - job_name: prometheus
+            static_configs:
+              - targets: ['localhost:9090']

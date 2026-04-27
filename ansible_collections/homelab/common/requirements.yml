@@ -1,0 +1,12 @@
+---
+# Common collection dependencies
+# Only includes collections used by common roles (security_hardening, container_base)
+collections:
+  - name: community.general
+    version: ">=7.0.0"
+  - name: ansible.posix
+    version: ">=1.5.0"
+  - name: community.crypto
+    version: ">=2.0.0"
+  # Note: community.proxmox and containers.podman are in proxmox_lxc requirements
+  # kubernetes.core is in k3s requirements

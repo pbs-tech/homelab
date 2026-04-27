@@ -1,0 +1,21 @@
+---
+nas_nfs_server: "192.168.0.220"
+
+nas_nfs_opts: "rw,nfsvers=3,hard,intr,timeo=600,retrans=5,rsize=131072,wsize=131072,_netdev"
+
+# Proxmox node key (from proxmox_config) that manages this container.
+# All NAS service containers live on pve-nas.
+nas_proxmox_node: "pve-nas"
+
+# Override per-role to mount only what the service needs.
+# Each entry: { path: <host and container mount path>, src: <NFS export> }
+nas_mounts:
+  - path: /mnt/nas
+    src: "{{ nas_nfs_server }}:/mnt/tank/data"
+
+# Subdirectories to create on the NFS share after mounting.
+# Override per-role with only the paths that role is responsible for.
+# Ownership 1000:1000 matches the media user on TrueNAS and container PUID/PGID.
+nas_subdirs: []
+nas_subdir_owner: 1000
+nas_subdir_group: 1000
