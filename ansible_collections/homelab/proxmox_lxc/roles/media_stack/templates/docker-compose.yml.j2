@@ -172,3 +172,28 @@ services:
 {% endif %}
     restart: {{ media_stack_restart_policy }}
     mem_limit: {{ jellyfin_memory }}
+
+{% if lettarrboxd_instances | length > 0 %}
+{% for instance in lettarrboxd_instances %}
+  lettarrboxd-{{ instance.name }}:
+    image: {{ lettarrboxd_image }}
+    container_name: lettarrboxd-{{ instance.name }}
+    environment:
+      - LETTERBOXD_URL={{ instance.letterboxd_url }}
+      - RADARR_API_URL=http://radarr:{{ radarr_port }}
+      - RADARR_API_KEY={{ lettarrboxd_radarr_api_key }}
+      - RADARR_QUALITY_PROFILE={{ instance.radarr_quality_profile | default(lettarrboxd_radarr_quality_profile) }}
+      - RADARR_MINIMUM_AVAILABILITY={{ instance.radarr_minimum_availability | default(lettarrboxd_radarr_minimum_availability) }}
+      - RADARR_ADD_UNMONITORED={{ (instance.radarr_add_unmonitored | default(lettarrboxd_radarr_add_unmonitored)) | bool | lower }}
+      - CHECK_INTERVAL_MINUTES={{ instance.check_interval | default(lettarrboxd_check_interval) }}
+      - DATA_DIR=/data
+    volumes:
+      - {{ media_stack_nfs_mount }}/config/lettarrboxd/{{ instance.name }}:/data
+    networks:
+      - arr_network
+    depends_on:
+      - radarr
+    restart: {{ media_stack_restart_policy }}
+    mem_limit: {{ lettarrboxd_memory }}
+{% endfor %}
+{% endif %}

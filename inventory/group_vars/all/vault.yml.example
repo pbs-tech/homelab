@@ -62,4 +62,8 @@ vault_nordvpn_openvpn_password: "your-nordvpn-service-password"
 # Generate via TrueNAS shell: midclt call api_key.create '{"name": "ansible", "allowlist": []}'
 vault_truenas_api_key: "your-truenas-api-key"
 
+# Radarr API key — used by lettarrboxd to sync Letterboxd watchlists.
+# Find in Radarr: Settings > General > Security > API Key
+vault_radarr_api_key: "your-radarr-api-key"
+
 # Additional secrets can be added here as needed

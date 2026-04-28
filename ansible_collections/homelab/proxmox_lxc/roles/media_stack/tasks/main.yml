@@ -210,6 +210,7 @@
     - "{{ media_stack_nfs_mount }}/config/prowlarr"
     - "{{ media_stack_nfs_mount }}/config/qbittorrent"
     - "{{ media_stack_nfs_mount }}/config/jellyfin"
+    - "{{ media_stack_nfs_mount }}/config/lettarrboxd"
 
 - name: Install Docker
   ansible.builtin.include_role:
@@ -307,6 +308,26 @@
   delay: 10
   register: _image_pull
   until: _image_pull is succeeded
+
+- name: Create lettarrboxd data directories
+  ansible.builtin.file:
+    path: "{{ media_stack_nfs_mount }}/config/lettarrboxd/{{ item.name }}"
+    state: directory
+    owner: "{{ media_stack_puid }}"
+    group: "{{ media_stack_pgid }}"
+    mode: "0755"
+  loop: "{{ lettarrboxd_instances }}"
+  when: lettarrboxd_instances | length > 0
+
+- name: Pull lettarrboxd image
+  community.docker.docker_image:
+    name: "{{ lettarrboxd_image }}"
+    source: pull
+  retries: 3
+  delay: 10
+  register: _lettarrboxd_pull
+  until: _lettarrboxd_pull is succeeded
+  when: lettarrboxd_instances | length > 0
 
 - name: Enable and start media-stack
   ansible.builtin.systemd:

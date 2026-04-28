@@ -80,3 +80,20 @@ media_stack_dns_servers:
 # Firewall — allow arr service ports only from Traefik and localhost
 media_stack_traefik_ip: "192.168.0.205"
 media_stack_configure_firewall: true
+
+# Lettarrboxd — syncs Letterboxd watchlists to Radarr.
+# Define one entry per list. Set vault_radarr_api_key in vault.yml.
+# Example (set in host_vars or group_vars):
+#   lettarrboxd_instances:
+#     - name: mine
+#       letterboxd_url: "https://letterboxd.com/yourname/watchlist/"
+#     - name: wife
+#       letterboxd_url: "https://letterboxd.com/hername/watchlist/"
+lettarrboxd_instances: []
+lettarrboxd_image: "ryanpage/lettarrboxd:latest"
+lettarrboxd_memory: "256m"
+lettarrboxd_check_interval: 60
+lettarrboxd_radarr_quality_profile: "Any"
+lettarrboxd_radarr_minimum_availability: "released"
+lettarrboxd_radarr_add_unmonitored: false
+lettarrboxd_radarr_api_key: "{{ vault_radarr_api_key | default('') }}"
