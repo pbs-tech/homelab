@@ -219,6 +219,15 @@
     regexp: "^precedence\\s+::ffff:0:0/96"
     state: present
 
+- name: Wait for DNS to be ready before installing Docker
+  ansible.builtin.command:
+    cmd: getent hosts download.docker.com
+  changed_when: false
+  retries: 12
+  delay: 5
+  register: _dns_check
+  until: _dns_check.rc == 0
+
 - name: Install Docker
   ansible.builtin.include_role:
     name: homelab.common.docker
