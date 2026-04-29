@@ -241,9 +241,7 @@
     dest: /etc/docker/daemon.json
     content: "{{ {'dns': media_stack_dns_servers, 'ipv6': false} | to_nice_json }}\n"
     mode: "0644"
-  notify:
-    - Restart Docker
-    - Restart media-stack
+  notify: Restart Docker
 
 - name: Flush handlers to restart Docker before pulling images
   ansible.builtin.meta: flush_handlers
