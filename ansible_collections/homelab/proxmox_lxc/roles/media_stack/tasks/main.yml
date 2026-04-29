@@ -246,6 +246,15 @@
 - name: Flush handlers to restart Docker before pulling images
   ansible.builtin.meta: flush_handlers
 
+- name: Wait for Docker daemon to be ready after restart
+  ansible.builtin.command:
+    cmd: docker info
+  changed_when: false
+  retries: 10
+  delay: 3
+  register: _docker_ready
+  until: _docker_ready.rc == 0
+
 - name: Deploy docker-compose.yml
   ansible.builtin.template:
     src: docker-compose.yml.j2
@@ -321,8 +330,8 @@
     - "{{ qbittorrent_image }}"
     - "{{ gluetun_image }}"
     - "{{ jellyfin_image }}"
-  retries: 3
-  delay: 10
+  retries: 5
+  delay: 15
   register: _image_pull
   until: _image_pull is succeeded
 
