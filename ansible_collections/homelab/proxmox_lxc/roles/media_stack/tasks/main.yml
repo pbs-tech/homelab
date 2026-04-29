@@ -135,6 +135,32 @@
 # System configuration
 # =============================================================================
 
+- name: Create systemd-resolved config directory
+  ansible.builtin.file:
+    path: /etc/systemd/resolved.conf.d
+    state: directory
+    mode: "0755"
+
+- name: Disable systemd-resolved stub and set upstream DNS directly
+  ansible.builtin.copy:
+    dest: /etc/systemd/resolved.conf.d/no-stub.conf
+    content: |
+      [Resolve]
+      DNS={{ media_stack_dns_servers | join(' ') }}
+      DNSStubListener=no
+    mode: "0644"
+  notify: Restart systemd-resolved
+
+- name: Point resolv.conf to upstream DNS (bypass stub)
+  ansible.builtin.file:
+    src: /run/systemd/resolve/resolv.conf
+    dest: /etc/resolv.conf
+    state: link
+    force: true
+
+- name: Flush handlers to apply DNS config before any package installs
+  ansible.builtin.meta: flush_handlers
+
 - name: Install required packages
   ansible.builtin.apt:
     name:
