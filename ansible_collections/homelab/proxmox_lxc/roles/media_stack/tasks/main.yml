@@ -212,6 +212,13 @@
     - "{{ media_stack_nfs_mount }}/config/jellyfin"
     - "{{ media_stack_nfs_mount }}/config/lettarrboxd"
 
+- name: Prefer IPv4 over IPv6 for DNS resolution
+  ansible.builtin.lineinfile:
+    path: /etc/gai.conf
+    line: "precedence ::ffff:0:0/96 100"
+    regexp: "^precedence\\s+::ffff:0:0/96"
+    state: present
+
 - name: Install Docker
   ansible.builtin.include_role:
     name: homelab.common.docker
@@ -228,6 +235,9 @@
   notify:
     - Restart Docker
     - Restart media-stack
+
+- name: Flush handlers to restart Docker before pulling images
+  ansible.builtin.meta: flush_handlers
 
 - name: Deploy docker-compose.yml
   ansible.builtin.template:
