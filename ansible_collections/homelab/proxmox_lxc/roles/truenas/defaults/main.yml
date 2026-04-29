@@ -52,11 +52,15 @@ truenas_nfs_shares:
     networks:
       - "192.168.0.0/24"
     ro: false
+    maproot_user: root
+    maproot_group: root
   - path: "/mnt/{{ truenas_pool_name }}/backups"
     comment: "Backups share"
     networks:
       - "192.168.0.0/24"
     ro: false
+    maproot_user: root
+    maproot_group: root
 
 truenas_smb_shares:
   - name: "documents"

@@ -442,6 +442,8 @@
       comment: "{{ item.comment | default('') }}"
       networks: "{{ item.networks | default([]) }}"
       ro: "{{ item.ro | default(false) }}"
+      maproot_user: "{{ item.maproot_user | default('root') }}"
+      maproot_group: "{{ item.maproot_group | default('root') }}"
       enabled: true
     status_code: 200
   loop: "{{ truenas_nfs_shares }}"
