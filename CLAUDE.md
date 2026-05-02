@@ -496,7 +496,7 @@ ansible-galaxy collection install *.tar.gz --force
   - k3s-bastion: 192.168.0.110 (main bastion)
   - nas-bastion: 192.168.0.109 (NAS services bastion)
 - **LXC container networks**:
-  - Core services: 192.168.0.200-210
+  - Core services: 192.168.0.200-212
   - NAS services: 192.168.0.230-235
   - NAS monitoring: 192.168.0.240+
 - **NAS VMs (KVM/QEMU)**:
@@ -528,6 +528,13 @@ ansible-galaxy collection install *.tar.gz --force
 - **Prowlarr** (192.168.0.233) - Indexer management
 - **qBittorrent** (192.168.0.234) - BitTorrent client
 - **Jellyfin** (192.168.0.235) - Media streaming server
+
+#### OCI Registry
+
+- **Zot Registry** (192.168.0.211) - OCI-native registry for Docker images and Helm charts
+  - Web UI: `https://registry.homelab.lan/`
+  - Port 5000 (proxied via Traefik); htpasswd auth
+  - Deploy: `ansible-playbook playbooks/applications.yml --tags registry`
 
 #### NAS Virtual Machines (KVM/QEMU)
 
