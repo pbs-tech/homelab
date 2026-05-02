@@ -38,12 +38,12 @@
   retries: 5
   delay: 30
   until: apt_update is succeeded
-  when: ansible_os_family == "Debian"
+  when: ansible_facts['os_family'] == "Debian"
   tags: [molecule-notest]
 
 - name: Install common packages
   ansible.builtin.package:
-    name: "{{ common_packages[ansible_distribution | lower] | default(common_packages.ubuntu) }}"
+    name: "{{ common_packages[ansible_facts['distribution'] | lower] | default(common_packages.ubuntu) }}"
     state: present
   tags: [molecule-notest]
 
