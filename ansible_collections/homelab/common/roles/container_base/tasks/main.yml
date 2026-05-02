@@ -235,6 +235,49 @@
     - containers
     - state
 
+- name: Wait for container systemd to be ready
+  ansible.builtin.shell:
+    cmd: |
+      pct exec {{ container_vmid | int }} -- bash -c '
+        systemctl is-system-running --wait 2>/dev/null || true
+      '
+    executable: /bin/bash
+  delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  changed_when: false
+  failed_when: false
+  retries: 12
+  delay: 5
+  tags:
+    - proxmox
+    - lxc
+    - containers
+
+- name: Stop and mask apt services before SSH fix to prevent openssh-server restart
+  ansible.builtin.shell:
+    cmd: |
+      pct exec {{ container_vmid | int }} -- bash -c '
+        systemctl stop unattended-upgrades apt-daily.service apt-daily-upgrade.service 2>/dev/null || true
+        systemctl mask unattended-upgrades apt-daily.service apt-daily-upgrade.service \
+          apt-daily.timer apt-daily-upgrade.timer 2>/dev/null || true
+        while fuser /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock /var/cache/apt/archives/lock 2>/dev/null; do
+          sleep 2
+        done
+      '
+    executable: /bin/bash
+  delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  changed_when: false
+  failed_when: false
+  tags:
+    - proxmox
+    - lxc
+    - containers
+
 - name: Fix SSH in container (Ubuntu 22.04 socket activation kills sshd in LXC)
   ansible.builtin.shell:
     cmd: |
@@ -254,27 +297,6 @@
   register: ssh_fix_result
   until: ssh_fix_result.rc == 0
   changed_when: false
-  tags:
-    - proxmox
-    - lxc
-    - containers
-
-- name: Stop unattended-upgrades in container to prevent SSH disruption
-  ansible.builtin.shell:
-    cmd: |
-      pct exec {{ container_vmid | int }} -- bash -c '
-        systemctl stop unattended-upgrades 2>/dev/null || true
-        while fuser /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock 2>/dev/null; do
-          sleep 2
-        done
-      '
-    executable: /bin/bash
-  delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
-  become: true
-  vars:
-    ansible_user: ansible
-  changed_when: false
-  failed_when: false
   tags:
     - proxmox
     - lxc
