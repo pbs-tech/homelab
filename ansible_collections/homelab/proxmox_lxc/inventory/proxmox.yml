@@ -37,6 +37,7 @@ compose:
     80 if inventory_hostname.startswith('openwrt') else
     8123 if inventory_hostname.startswith('homeassistant') else
     3100 if inventory_hostname.startswith('loki') else
+    5000 if inventory_hostname.startswith('registry') else
     8989 if inventory_hostname.startswith('sonarr') else
     7878 if inventory_hostname.startswith('radarr') else
     6767 if inventory_hostname.startswith('bazarr') else
@@ -70,6 +71,9 @@ groups:
 
   logging: >-
     inventory_hostname.startswith('loki')
+
+  registry: >-
+    inventory_hostname.startswith('registry')
 
   nas_services: >-
     inventory_hostname.startswith('sonarr') or
