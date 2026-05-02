@@ -259,6 +259,27 @@
     - lxc
     - containers
 
+- name: Stop unattended-upgrades in container to prevent SSH disruption
+  ansible.builtin.shell:
+    cmd: |
+      pct exec {{ container_vmid | int }} -- bash -c '
+        systemctl stop unattended-upgrades 2>/dev/null || true
+        while fuser /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock 2>/dev/null; do
+          sleep 2
+        done
+      '
+    executable: /bin/bash
+  delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  changed_when: false
+  failed_when: false
+  tags:
+    - proxmox
+    - lxc
+    - containers
+
 - name: Wait for container SSH to be available
   ansible.builtin.wait_for:
     host: "{{ ansible_host }}"
@@ -343,10 +364,23 @@
     - containers
     - user_setup
 
+- name: Wait for SSH port before connectivity check
+  ansible.builtin.wait_for:
+    host: "{{ ansible_host }}"
+    port: 22
+    delay: 2
+    timeout: 120
+    search_regex: OpenSSH
+  delegate_to: localhost
+  become: false
+  tags:
+    - connectivity
+    - user_setup
+
 - name: Verify ansible user SSH connectivity
   ansible.builtin.wait_for_connection:
     delay: 5
-    timeout: 60
+    timeout: 120
   tags:
     - connectivity
     - user_setup
