@@ -55,3 +55,30 @@
     - role: homelab.common.monitoring_agent
       tags: [monitoring_agent, node_exporter]
   tags: [monitoring_agent, media-stack, applications]
+
+- name: Deploy OCI registry
+  hosts: registry
+  become: true
+  gather_facts: false
+  pre_tasks:
+    - name: Ensure registry container exists
+      ansible.builtin.include_role:
+        name: homelab.common.container_base
+      vars:
+        container_resources:
+          cores: "{{ lxc_cores | default(1) }}"
+          memory: "{{ lxc_memory | default(512) }}"
+          swap: "{{ lxc_swap | default(0) }}"
+          disk_size: "{{ lxc_disk_size | default(20) }}"
+      when: container_id is defined
+
+    - name: Gather facts after container is available
+      ansible.builtin.setup:
+
+  roles:
+    - role: homelab.common.common_setup
+      tags: [common_setup]
+
+    - role: homelab.proxmox_lxc.zot
+      tags: [zot, registry]
+  tags: [registry, applications]

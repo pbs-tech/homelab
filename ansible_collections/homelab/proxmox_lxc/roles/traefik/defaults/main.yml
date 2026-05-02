@@ -85,6 +85,11 @@ services:
     insecure_tls: true
     domain: truenas.{{ homelab_domain }}
 
+  registry:
+    ip: 192.168.0.211
+    port: 5000
+    domain: registry.{{ homelab_domain }}
+
 
 # K3s cluster integration (disabled by default - requires proper kubeconfig)
 traefik_k8s_enabled: false
