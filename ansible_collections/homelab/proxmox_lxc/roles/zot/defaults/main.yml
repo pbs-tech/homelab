@@ -1,0 +1,13 @@
+---
+zot_version: "2.1.2"
+zot_port: 5000
+zot_user: zot
+zot_group: zot
+zot_config_dir: /etc/zot
+zot_storage_dir: /var/lib/zot
+zot_log_dir: /var/log/zot
+
+zot_admin_user: "{{ vault_zot_admin_user }}"
+zot_admin_password: "{{ vault_zot_admin_password }}"
+
+zot_configure_firewall: true

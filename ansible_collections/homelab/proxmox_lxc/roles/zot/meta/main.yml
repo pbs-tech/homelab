@@ -1,0 +1,32 @@
+---
+galaxy_info:
+  role_name: zot
+  namespace: homelab
+  author: Homelab Administrator
+  description: Deploy and configure Zot OCI registry for Docker images and Helm charts in LXC containers
+  company: Homelab
+  license: MIT
+
+  min_ansible_version: "2.13"
+
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+        - focal
+
+  galaxy_tags:
+    - zot
+    - registry
+    - oci
+    - docker
+    - helm
+    - container
+    - images
+    - homelab
+    - lxc
+    - proxmox
+
+dependencies:
+  - role: homelab.common.container_base
+  - role: homelab.common.security_hardening
