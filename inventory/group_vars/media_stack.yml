@@ -1,0 +1,4 @@
+---
+lettarrboxd_instances:
+  - name: mine
+    letterboxd_url: "https://letterboxd.com/apeebl/watchlist/"

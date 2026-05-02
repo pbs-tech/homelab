@@ -40,3 +40,31 @@ truenas_network:
   gateway: "192.168.0.1"
   nameserver1: "192.168.0.204"   # AdGuard
   nameserver2: "8.8.8.8"        # Fallback
+
+# Storage: pool and NFS shares managed by truenas-storage tag.
+# Runs as part of every truenas deployment to ensure NFS is available
+# for the media-stack before it tries to mount.
+truenas_pool_name: "tank"
+
+truenas_nfs_shares:
+  - path: "/mnt/{{ truenas_pool_name }}/data"
+    comment: "Media stack data share"
+    networks:
+      - "192.168.0.0/24"
+    ro: false
+    maproot_user: root
+    maproot_group: root
+  - path: "/mnt/{{ truenas_pool_name }}/backups"
+    comment: "Backups share"
+    networks:
+      - "192.168.0.0/24"
+    ro: false
+    maproot_user: root
+    maproot_group: root
+
+truenas_smb_shares:
+  - name: "documents"
+    path: "/mnt/{{ truenas_pool_name }}/documents"
+    comment: "Documents share"
+    guestok: true
+    ro: false

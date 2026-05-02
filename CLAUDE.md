@@ -497,10 +497,10 @@ ansible-galaxy collection install *.tar.gz --force
   - nas-bastion: 192.168.0.109 (NAS services bastion)
 - **LXC container networks**:
   - Core services: 192.168.0.200-210
-  - NAS services: 192.168.0.230-235
   - NAS monitoring: 192.168.0.240+
 - **NAS VMs (KVM/QEMU)**:
   - TrueNAS: 192.168.0.220 (NAS storage, ISO-based)
+  - Media stack: 192.168.0.230 (Sonarr, Radarr, Bazarr, Prowlarr, FlareSolverr, qBittorrent, Jellyfin, Lettarrboxd)
 - **Domain**: homelab.lan
 
 ### Core Services Deployed
@@ -524,10 +524,13 @@ ansible-galaxy collection install *.tar.gz --force
 #### Home Automation & Media
 
 - **Home Assistant** (192.168.0.208) - Home automation platform
-- **Sonarr/Radarr/Bazarr** (192.168.0.230-232) - Media management suite
-- **Prowlarr** (192.168.0.233) - Indexer management
-- **qBittorrent** (192.168.0.234) - BitTorrent client
-- **Jellyfin** (192.168.0.235) - Media streaming server
+- **Media stack VM** (192.168.0.230) - Unified KVM VM running the full arr suite via Docker Compose:
+  - Sonarr, Radarr, Bazarr — TV/movie management
+  - Prowlarr — indexer aggregation
+  - FlareSolverr — Cloudflare bypass proxy for Prowlarr (shares gluetun network)
+  - qBittorrent — torrent client (routed via NordVPN/gluetun)
+  - Jellyfin — media streaming server
+  - Lettarrboxd — syncs Letterboxd watchlists to Radarr
 
 #### NAS Virtual Machines (KVM/QEMU)
 
