@@ -31,6 +31,10 @@
         url: https://download.docker.com/linux/ubuntu/gpg
         dest: /etc/apt/keyrings/docker.asc
         mode: "0644"
+      retries: 3
+      delay: 10
+      register: _docker_gpg
+      until: _docker_gpg is succeeded
 
     - name: Determine system architecture for Docker
       ansible.builtin.set_fact:

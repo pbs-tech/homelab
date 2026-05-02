@@ -1,5 +1,8 @@
 ---
 # VM provisioning
+# Set to true to destroy and recreate the VM from the template (destructive — wipes local disk).
+# NFS-backed config (/mnt/nas/config/) survives regardless.
+media_stack_force_recreate: false
 media_stack_cores: 2
 media_stack_memory: 4096
 media_stack_disk_size: 32
@@ -17,7 +20,7 @@ media_stack_restart_policy: unless-stopped
 media_stack_nfs_server: "192.168.0.220"
 media_stack_nfs_src: "{{ media_stack_nfs_server }}:/mnt/tank/data"
 media_stack_nfs_mount: /mnt/nas
-media_stack_nfs_opts: "rw,nfsvers=3,hard,intr,timeo=600,retrans=5,rsize=131072,wsize=131072,_netdev"
+media_stack_nfs_opts: "rw,nfsvers=4,hard,timeo=600,retrans=5,rsize=131072,wsize=131072,_netdev"
 
 # Per-service ports
 sonarr_port: 8989
@@ -80,3 +83,25 @@ media_stack_dns_servers:
 # Firewall — allow arr service ports only from Traefik and localhost
 media_stack_traefik_ip: "192.168.0.205"
 media_stack_configure_firewall: true
+
+# Config backup — rsync local configs to NFS so TrueNAS ZFS snapshots capture them.
+# TrueNAS periodic snapshots on the dataset cover the rest.
+media_stack_config_backup_dest: "{{ media_stack_nfs_mount }}/config-backup/media-stack"
+media_stack_config_backup_interval_hours: 6
+
+# Lettarrboxd — syncs Letterboxd watchlists to Radarr.
+# Define one entry per list. Set vault_radarr_api_key in vault.yml.
+# Example (set in host_vars or group_vars):
+#   lettarrboxd_instances:
+#     - name: mine
+#       letterboxd_url: "https://letterboxd.com/yourname/watchlist/"
+#     - name: wife
+#       letterboxd_url: "https://letterboxd.com/hername/watchlist/"
+lettarrboxd_instances: []
+lettarrboxd_image: "ryanpage/lettarrboxd:latest"
+lettarrboxd_memory: "256m"
+lettarrboxd_check_interval: 60
+lettarrboxd_radarr_quality_profile: "Any"
+lettarrboxd_radarr_minimum_availability: "released"
+lettarrboxd_radarr_add_unmonitored: false
+lettarrboxd_radarr_api_key: "{{ vault_radarr_api_key | default('') }}"

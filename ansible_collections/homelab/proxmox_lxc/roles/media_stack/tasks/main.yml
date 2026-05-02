@@ -23,7 +23,9 @@
   become: true
   vars:
     ansible_user: ansible
-  when: _vm_exists.rc == 0
+  when:
+    - _vm_exists.rc == 0
+    - media_stack_force_recreate | default(false)
   changed_when: true
   failed_when: false
 
@@ -34,7 +36,9 @@
   become: true
   vars:
     ansible_user: ansible
-  when: _vm_exists.rc == 0
+  when:
+    - _vm_exists.rc == 0
+    - media_stack_force_recreate | default(false)
   changed_when: true
 
 - name: Clone template to VM {{ vm_id }}
@@ -47,6 +51,7 @@
   become: true
   vars:
     ansible_user: ansible
+  when: _vm_exists.rc != 0 or (media_stack_force_recreate | default(false))
   changed_when: true
 
 - name: Write SSH public key to temp file on Proxmox host
@@ -58,6 +63,7 @@
   become: true
   vars:
     ansible_user: ansible
+  when: _vm_exists.rc != 0 or (media_stack_force_recreate | default(false))
 
 - name: Apply cloud-init settings to VM {{ vm_id }}
   ansible.builtin.command:
@@ -75,6 +81,7 @@
   become: true
   vars:
     ansible_user: ansible
+  when: _vm_exists.rc != 0 or (media_stack_force_recreate | default(false))
   changed_when: true
 
 - name: Regenerate cloud-init ISO
@@ -84,6 +91,7 @@
   become: true
   vars:
     ansible_user: ansible
+  when: _vm_exists.rc != 0 or (media_stack_force_recreate | default(false))
   changed_when: true
 
 - name: Remove temp SSH key file
@@ -94,6 +102,7 @@
   become: true
   vars:
     ansible_user: ansible
+  when: _vm_exists.rc != 0 or (media_stack_force_recreate | default(false))
 
 - name: Resize VM disk to {{ media_stack_disk_size ~ 'G' }}
   ansible.builtin.command:
@@ -102,6 +111,7 @@
   become: true
   vars:
     ansible_user: ansible
+  when: _vm_exists.rc != 0 or (media_stack_force_recreate | default(false))
   changed_when: true
 
 - name: Start VM {{ vm_id }}
@@ -111,6 +121,7 @@
   become: true
   vars:
     ansible_user: ansible
+  when: _vm_exists.rc != 0 or (media_stack_force_recreate | default(false))
   changed_when: true
 
 - name: Wait for SSH to respond at {{ ansible_host }}
@@ -134,6 +145,32 @@
 # =============================================================================
 # System configuration
 # =============================================================================
+
+- name: Create systemd-resolved config directory
+  ansible.builtin.file:
+    path: /etc/systemd/resolved.conf.d
+    state: directory
+    mode: "0755"
+
+- name: Disable systemd-resolved stub and set upstream DNS directly
+  ansible.builtin.copy:
+    dest: /etc/systemd/resolved.conf.d/no-stub.conf
+    content: |
+      [Resolve]
+      DNS={{ media_stack_dns_servers | join(' ') }}
+      DNSStubListener=no
+    mode: "0644"
+  notify: Restart systemd-resolved
+
+- name: Point resolv.conf to upstream DNS (bypass stub)
+  ansible.builtin.file:
+    src: /run/systemd/resolve/resolv.conf
+    dest: /etc/resolv.conf
+    state: link
+    force: true
+
+- name: Flush handlers to apply DNS config before any package installs
+  ansible.builtin.meta: flush_handlers
 
 - name: Install required packages
   ansible.builtin.apt:
@@ -184,7 +221,7 @@
     opts: "{{ media_stack_nfs_opts }}"
     state: mounted
 
-- name: Create local data directory and jellyfin cache
+- name: Create local service directories (configs on local disk — SQLite WAL mode is unsafe on NFS)
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
@@ -193,23 +230,30 @@
     mode: "0755"
   loop:
     - "{{ media_stack_data_dir }}"
+    - "{{ media_stack_data_dir }}/config/sonarr"
+    - "{{ media_stack_data_dir }}/config/radarr"
+    - "{{ media_stack_data_dir }}/config/bazarr"
+    - "{{ media_stack_data_dir }}/config/prowlarr"
+    - "{{ media_stack_data_dir }}/config/qbittorrent"
+    - "{{ media_stack_data_dir }}/config/jellyfin"
+    - "{{ media_stack_data_dir }}/config/lettarrboxd"
     - "{{ media_stack_data_dir }}/jellyfin/cache"
 
-- name: Create service config directories on NFS
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: directory
-    owner: "{{ media_stack_puid }}"
-    group: "{{ media_stack_pgid }}"
-    mode: "0755"
-  loop:
-    - "{{ media_stack_nfs_mount }}/config"
-    - "{{ media_stack_nfs_mount }}/config/sonarr"
-    - "{{ media_stack_nfs_mount }}/config/radarr"
-    - "{{ media_stack_nfs_mount }}/config/bazarr"
-    - "{{ media_stack_nfs_mount }}/config/prowlarr"
-    - "{{ media_stack_nfs_mount }}/config/qbittorrent"
-    - "{{ media_stack_nfs_mount }}/config/jellyfin"
+- name: Prefer IPv4 over IPv6 for DNS resolution
+  ansible.builtin.lineinfile:
+    path: /etc/gai.conf
+    line: "precedence ::ffff:0:0/96 100"
+    regexp: "^precedence\\s+::ffff:0:0/96"
+    state: present
+
+- name: Wait for DNS to be ready before installing Docker
+  ansible.builtin.command:
+    cmd: getent hosts download.docker.com
+  changed_when: false
+  retries: 12
+  delay: 5
+  register: _dns_check
+  until: _dns_check.rc == 0
 
 - name: Install Docker
   ansible.builtin.include_role:
@@ -224,9 +268,19 @@
     dest: /etc/docker/daemon.json
     content: "{{ {'dns': media_stack_dns_servers, 'ipv6': false} | to_nice_json }}\n"
     mode: "0644"
-  notify:
-    - Restart Docker
-    - Restart media-stack
+  notify: Restart Docker
+
+- name: Flush handlers to restart Docker before pulling images
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait for Docker daemon to be ready after restart
+  ansible.builtin.command:
+    cmd: docker info
+  changed_when: false
+  retries: 10
+  delay: 3
+  register: _docker_ready
+  until: _docker_ready.rc == 0
 
 - name: Deploy docker-compose.yml
   ansible.builtin.template:
@@ -303,10 +357,30 @@
     - "{{ qbittorrent_image }}"
     - "{{ gluetun_image }}"
     - "{{ jellyfin_image }}"
-  retries: 3
-  delay: 10
+  retries: 5
+  delay: 15
   register: _image_pull
   until: _image_pull is succeeded
+
+- name: Create lettarrboxd instance data directories
+  ansible.builtin.file:
+    path: "{{ media_stack_data_dir }}/config/lettarrboxd/{{ item.name }}"
+    state: directory
+    owner: "{{ media_stack_puid }}"
+    group: "{{ media_stack_pgid }}"
+    mode: "0755"
+  loop: "{{ lettarrboxd_instances }}"
+  when: lettarrboxd_instances | length > 0
+
+- name: Pull lettarrboxd image
+  community.docker.docker_image:
+    name: "{{ lettarrboxd_image }}"
+    source: pull
+  retries: 3
+  delay: 10
+  register: _lettarrboxd_pull
+  until: _lettarrboxd_pull is succeeded
+  when: lettarrboxd_instances | length > 0
 
 - name: Enable and start media-stack
   ansible.builtin.systemd:
@@ -330,6 +404,28 @@
   retries: 30
   delay: 10
   failed_when: false
+
+- name: Create config backup directory on NFS
+  ansible.builtin.file:
+    path: "{{ media_stack_config_backup_dest }}"
+    state: directory
+    owner: "{{ media_stack_puid }}"
+    group: "{{ media_stack_pgid }}"
+    mode: "0755"
+
+- name: Schedule config backup rsync to NFS
+  ansible.builtin.cron:
+    name: media-stack config backup
+    minute: "0"
+    hour: "*/{{ media_stack_config_backup_interval_hours }}"
+    job: >-
+      rsync -a --delete
+      --exclude='*.db-wal' --exclude='*.db-shm' --exclude='*.pid'
+      {{ media_stack_data_dir }}/config/
+      {{ media_stack_config_backup_dest }}/
+      >> /var/log/media-stack-backup.log 2>&1
+    user: root
+    state: present
 
 - name: Display media stack access information
   ansible.builtin.debug:

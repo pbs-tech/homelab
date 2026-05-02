@@ -268,3 +268,267 @@
         7. TrueNAS WebUI: http://{{ ansible_host }}
   tags:
     - truenas
+
+# =============================================================================
+# Storage: ensure ZFS pool is imported and NFS shares exist.
+# Runs on every deployment (tags: truenas, truenas-storage) so the media-stack
+# can always mount before it starts. Safe to re-run — skips if already correct.
+# =============================================================================
+
+- name: Wait for TrueNAS API to be reachable
+  ansible.builtin.wait_for:
+    host: "{{ ansible_host }}"
+    port: 80
+    delay: 5
+    timeout: 120
+  delegate_to: localhost
+  tags:
+    - truenas
+    - truenas-storage
+
+- name: Get imported pools
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}/api/v2.0/pool"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ vault_truenas_api_key }}"
+    status_code: 200
+  register: _truenas_pools
+  delegate_to: localhost
+  tags:
+    - truenas
+    - truenas-storage
+
+- name: Import pool if not already present — {{ truenas_pool_name }}
+  when: truenas_pool_name not in (_truenas_pools.json | map(attribute='name') | list)
+  delegate_to: localhost
+  tags:
+    - truenas
+    - truenas-storage
+  block:
+    - name: Find importable pools
+      ansible.builtin.uri:
+        url: "http://{{ ansible_host }}/api/v2.0/pool/import_find"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ vault_truenas_api_key }}"
+        body_format: json
+        body: {}
+        status_code: 200
+      register: _import_find_job
+
+    - name: Wait for import_find job to complete
+      ansible.builtin.uri:
+        url: "http://{{ ansible_host }}/api/v2.0/core/get_jobs?id={{ _import_find_job.json }}"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ vault_truenas_api_key }}"
+        status_code: 200
+      register: _import_find_result
+      until: _import_find_result.json[0].state in ['SUCCESS', 'FAILED']
+      retries: 20
+      delay: 3
+
+    - name: Assert pool is available to import — {{ truenas_pool_name }}
+      ansible.builtin.assert:
+        that:
+          - _import_find_result.json[0].state == 'SUCCESS'
+          - _import_find_result.json[0].result | selectattr('name', 'eq', truenas_pool_name) | list | length > 0
+        fail_msg: >-
+          Pool '{{ truenas_pool_name }}' not found in importable pools.
+          Available: {{ _import_find_result.json[0].result | map(attribute='name') | list }}.
+          Check that the disks are attached to the TrueNAS VM.
+
+    - name: Import pool {{ truenas_pool_name }}
+      ansible.builtin.uri:
+        url: "http://{{ ansible_host }}/api/v2.0/pool/import_pool"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ vault_truenas_api_key }}"
+        body_format: json
+        body:
+          guid: >-
+            {{ _import_find_result.json[0].result
+               | selectattr('name', 'eq', truenas_pool_name)
+               | map(attribute='guid')
+               | first }}
+        status_code: 200
+      register: _import_pool_job
+
+    - name: Wait for pool import to complete
+      ansible.builtin.uri:
+        url: "http://{{ ansible_host }}/api/v2.0/core/get_jobs?id={{ _import_pool_job.json }}"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ vault_truenas_api_key }}"
+        status_code: 200
+      register: _import_pool_result
+      until: _import_pool_result.json[0].state in ['SUCCESS', 'FAILED']
+      retries: 30
+      delay: 5
+
+    - name: Assert pool import succeeded
+      ansible.builtin.assert:
+        that: _import_pool_result.json[0].state == 'SUCCESS'
+        fail_msg: "Pool import failed: {{ _import_pool_result.json[0].error }}"
+
+- name: Get NFS service status
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}/api/v2.0/service?service=nfs"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ vault_truenas_api_key }}"
+    status_code: 200
+  register: _truenas_nfs_service
+  delegate_to: localhost
+  tags:
+    - truenas
+    - truenas-storage
+
+- name: Enable NFS service auto-start
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}/api/v2.0/service/id/{{ _truenas_nfs_service.json[0].id }}"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ vault_truenas_api_key }}"
+    body_format: json
+    body:
+      enable: true
+    status_code: 200
+  delegate_to: localhost
+  when: not _truenas_nfs_service.json[0].enable | bool
+  tags:
+    - truenas
+    - truenas-storage
+
+- name: Start NFS service if not running
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}/api/v2.0/service/start"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ vault_truenas_api_key }}"
+    body_format: json
+    body:
+      service: "nfs"
+    status_code: 200
+  delegate_to: localhost
+  when: _truenas_nfs_service.json[0].state != 'RUNNING'
+  tags:
+    - truenas
+    - truenas-storage
+
+- name: Get existing NFS shares
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}/api/v2.0/sharing/nfs"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ vault_truenas_api_key }}"
+    status_code: 200
+  register: _truenas_nfs_shares
+  delegate_to: localhost
+  tags:
+    - truenas
+    - truenas-storage
+
+- name: Create missing NFS shares
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}/api/v2.0/sharing/nfs"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ vault_truenas_api_key }}"
+    body_format: json
+    body:
+      path: "{{ item.path }}"
+      comment: "{{ item.comment | default('') }}"
+      networks: "{{ item.networks | default([]) }}"
+      ro: "{{ item.ro | default(false) }}"
+      maproot_user: "{{ item.maproot_user | default('root') }}"
+      maproot_group: "{{ item.maproot_group | default('root') }}"
+      enabled: true
+    status_code: 200
+  loop: "{{ truenas_nfs_shares }}"
+  when: item.path not in (_truenas_nfs_shares.json | map(attribute='path') | list)
+  delegate_to: localhost
+  tags:
+    - truenas
+    - truenas-storage
+
+- name: Get SMB service status
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}/api/v2.0/service?service=cifs"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ vault_truenas_api_key }}"
+    status_code: 200
+  register: _truenas_smb_service
+  delegate_to: localhost
+  tags:
+    - truenas
+    - truenas-storage
+
+- name: Enable SMB service auto-start
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}/api/v2.0/service/id/{{ _truenas_smb_service.json[0].id }}"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ vault_truenas_api_key }}"
+    body_format: json
+    body:
+      enable: true
+    status_code: 200
+  delegate_to: localhost
+  when: not _truenas_smb_service.json[0].enable | bool
+  tags:
+    - truenas
+    - truenas-storage
+
+- name: Start SMB service if not running
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}/api/v2.0/service/start"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ vault_truenas_api_key }}"
+    body_format: json
+    body:
+      service: "cifs"
+    status_code: 200
+  delegate_to: localhost
+  when: _truenas_smb_service.json[0].state != 'RUNNING'
+  tags:
+    - truenas
+    - truenas-storage
+
+- name: Get existing SMB shares
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}/api/v2.0/sharing/smb"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ vault_truenas_api_key }}"
+    status_code: 200
+  register: _truenas_smb_shares
+  delegate_to: localhost
+  tags:
+    - truenas
+    - truenas-storage
+
+- name: Create missing SMB shares
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}/api/v2.0/sharing/smb"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ vault_truenas_api_key }}"
+    body_format: json
+    body:
+      name: "{{ item.name }}"
+      path: "{{ item.path }}"
+      comment: "{{ item.comment | default('') }}"
+      guestok: "{{ item.guestok | default(true) }}"
+      ro: "{{ item.ro | default(false) }}"
+      enabled: true
+    status_code: 200
+  loop: "{{ truenas_smb_shares }}"
+  when: item.name not in (_truenas_smb_shares.json | map(attribute='name') | list)
+  delegate_to: localhost
+  tags:
+    - truenas
+    - truenas-storage
