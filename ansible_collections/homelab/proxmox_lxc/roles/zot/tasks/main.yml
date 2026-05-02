@@ -16,7 +16,8 @@
 - name: Install required packages
   ansible.builtin.apt:
     name:
-      - apache2-utils
+      - python3-passlib
+      - python3-bcrypt
     state: present
 
 - name: Create zot group
@@ -34,17 +35,24 @@
     home: "{{ zot_storage_dir }}"
     create_home: false
 
-- name: Create zot directories
+- name: Create zot config and storage directories
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
     owner: "{{ zot_user }}"
     group: "{{ zot_group }}"
-    mode: "0755"
+    mode: "0750"
   loop:
     - "{{ zot_config_dir }}"
     - "{{ zot_storage_dir }}"
-    - "{{ zot_log_dir }}"
+
+- name: Create zot log directory
+  ansible.builtin.file:
+    path: "{{ zot_log_dir }}"
+    state: directory
+    owner: "{{ zot_user }}"
+    group: "{{ zot_group }}"
+    mode: "0755"
 
 - name: Check if zot binary is installed
   ansible.builtin.stat:
@@ -60,19 +68,17 @@
     group: root
   when: not zot_binary.stat.exists
 
-- name: Create htpasswd file for admin user
-  ansible.builtin.command:
-    cmd: "htpasswd -cbB -C 10 {{ zot_config_dir }}/htpasswd {{ zot_admin_user }} {{ zot_admin_password }}"
-    creates: "{{ zot_config_dir }}/htpasswd"
-  no_log: true
-  notify: Restart zot
-
-- name: Set htpasswd file permissions
-  ansible.builtin.file:
+- name: Create/update htpasswd file for admin user
+  community.general.htpasswd:
     path: "{{ zot_config_dir }}/htpasswd"
+    name: "{{ zot_admin_user }}"
+    password: "{{ zot_admin_password }}"
+    crypt_scheme: bcrypt
     owner: "{{ zot_user }}"
     group: "{{ zot_group }}"
     mode: "0640"
+  no_log: true
+  notify: Restart zot
 
 - name: Deploy zot configuration
   ansible.builtin.template:
@@ -107,7 +113,6 @@
     name: zot
     enabled: true
     state: started
-    daemon_reload: true
 
 - name: Wait for Zot to be ready
   ansible.builtin.wait_for:

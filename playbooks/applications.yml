@@ -97,7 +97,7 @@
     - name: Install step-ca root certificate
       ansible.builtin.copy:
         content: "{{ step_ca_root_cert.content | b64decode }}"
-        dest: /etc/ssl/certs/homelab-ca.crt
+        dest: /usr/local/share/ca-certificates/homelab-ca.crt
         mode: "0644"
       notify: Update CA certificates
 

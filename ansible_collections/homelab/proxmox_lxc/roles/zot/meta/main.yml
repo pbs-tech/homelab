@@ -27,4 +27,6 @@ galaxy_info:
     - lxc
     - proxmox
 
-dependencies: []
+dependencies:
+  - role: homelab.common.container_base
+  - role: homelab.common.security_hardening
