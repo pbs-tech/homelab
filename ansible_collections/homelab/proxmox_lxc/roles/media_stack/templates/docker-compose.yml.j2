@@ -16,7 +16,7 @@ services:
       - PGID={{ media_stack_pgid }}
       - TZ={{ media_stack_timezone }}
     volumes:
-      - {{ media_stack_nfs_mount }}/config/sonarr:/config
+      - {{ media_stack_data_dir }}/config/sonarr:/config
       - {{ media_stack_nfs_mount }}:{{ media_stack_nfs_mount }}
     ports:
       - "{{ sonarr_port }}:{{ sonarr_port }}"
@@ -33,7 +33,7 @@ services:
       - PGID={{ media_stack_pgid }}
       - TZ={{ media_stack_timezone }}
     volumes:
-      - {{ media_stack_nfs_mount }}/config/radarr:/config
+      - {{ media_stack_data_dir }}/config/radarr:/config
       - {{ media_stack_nfs_mount }}:{{ media_stack_nfs_mount }}
     ports:
       - "{{ radarr_port }}:{{ radarr_port }}"
@@ -50,7 +50,7 @@ services:
       - PGID={{ media_stack_pgid }}
       - TZ={{ media_stack_timezone }}
     volumes:
-      - {{ media_stack_nfs_mount }}/config/bazarr:/config
+      - {{ media_stack_data_dir }}/config/bazarr:/config
       - {{ media_stack_nfs_mount }}:{{ media_stack_nfs_mount }}
     ports:
       - "{{ bazarr_port }}:{{ bazarr_port }}"
@@ -67,7 +67,7 @@ services:
       - PGID={{ media_stack_pgid }}
       - TZ={{ media_stack_timezone }}
     volumes:
-      - {{ media_stack_nfs_mount }}/config/prowlarr:/config
+      - {{ media_stack_data_dir }}/config/prowlarr:/config
     ports:
       - "{{ prowlarr_port }}:{{ prowlarr_port }}"
     networks:
@@ -146,7 +146,7 @@ services:
       - TZ={{ media_stack_timezone }}
       - WEBUI_PORT={{ qbittorrent_webui_port }}
     volumes:
-      - {{ media_stack_nfs_mount }}/config/qbittorrent:/config
+      - {{ media_stack_data_dir }}/config/qbittorrent:/config
       - {{ media_stack_nfs_mount }}:{{ media_stack_nfs_mount }}
     restart: {{ media_stack_restart_policy }}
     mem_limit: {{ qbittorrent_memory }}
@@ -158,7 +158,7 @@ services:
     environment:
       - TZ={{ media_stack_timezone }}
     volumes:
-      - {{ media_stack_nfs_mount }}/config/jellyfin:/config
+      - {{ media_stack_data_dir }}/config/jellyfin:/config
       - {{ media_stack_data_dir }}/jellyfin/cache:/cache
       - {{ media_stack_nfs_mount }}:{{ media_stack_nfs_mount }}:ro
     ports:
@@ -188,7 +188,7 @@ services:
       - CHECK_INTERVAL_MINUTES={{ instance.check_interval | default(lettarrboxd_check_interval) }}
       - DATA_DIR=/data
     volumes:
-      - {{ media_stack_nfs_mount }}/config/lettarrboxd/{{ instance.name }}:/data
+      - {{ media_stack_data_dir }}/config/lettarrboxd/{{ instance.name }}:/data
     networks:
       - arr_network
     depends_on:

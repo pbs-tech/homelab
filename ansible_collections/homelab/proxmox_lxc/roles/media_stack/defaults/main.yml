@@ -1,5 +1,8 @@
 ---
 # VM provisioning
+# Set to true to destroy and recreate the VM from the template (destructive — wipes local disk).
+# NFS-backed config (/mnt/nas/config/) survives regardless.
+media_stack_force_recreate: false
 media_stack_cores: 2
 media_stack_memory: 4096
 media_stack_disk_size: 32

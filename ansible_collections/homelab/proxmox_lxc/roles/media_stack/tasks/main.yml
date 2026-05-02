@@ -23,7 +23,9 @@
   become: true
   vars:
     ansible_user: ansible
-  when: _vm_exists.rc == 0
+  when:
+    - _vm_exists.rc == 0
+    - media_stack_force_recreate | default(false)
   changed_when: true
   failed_when: false
 
@@ -34,7 +36,9 @@
   become: true
   vars:
     ansible_user: ansible
-  when: _vm_exists.rc == 0
+  when:
+    - _vm_exists.rc == 0
+    - media_stack_force_recreate | default(false)
   changed_when: true
 
 - name: Clone template to VM {{ vm_id }}
@@ -47,6 +51,7 @@
   become: true
   vars:
     ansible_user: ansible
+  when: _vm_exists.rc != 0 or (media_stack_force_recreate | default(false))
   changed_when: true
 
 - name: Write SSH public key to temp file on Proxmox host
@@ -58,6 +63,7 @@
   become: true
   vars:
     ansible_user: ansible
+  when: _vm_exists.rc != 0 or (media_stack_force_recreate | default(false))
 
 - name: Apply cloud-init settings to VM {{ vm_id }}
   ansible.builtin.command:
@@ -75,6 +81,7 @@
   become: true
   vars:
     ansible_user: ansible
+  when: _vm_exists.rc != 0 or (media_stack_force_recreate | default(false))
   changed_when: true
 
 - name: Regenerate cloud-init ISO
@@ -84,6 +91,7 @@
   become: true
   vars:
     ansible_user: ansible
+  when: _vm_exists.rc != 0 or (media_stack_force_recreate | default(false))
   changed_when: true
 
 - name: Remove temp SSH key file
@@ -94,6 +102,7 @@
   become: true
   vars:
     ansible_user: ansible
+  when: _vm_exists.rc != 0 or (media_stack_force_recreate | default(false))
 
 - name: Resize VM disk to {{ media_stack_disk_size ~ 'G' }}
   ansible.builtin.command:
@@ -102,6 +111,7 @@
   become: true
   vars:
     ansible_user: ansible
+  when: _vm_exists.rc != 0 or (media_stack_force_recreate | default(false))
   changed_when: true
 
 - name: Start VM {{ vm_id }}
@@ -111,6 +121,7 @@
   become: true
   vars:
     ansible_user: ansible
+  when: _vm_exists.rc != 0 or (media_stack_force_recreate | default(false))
   changed_when: true
 
 - name: Wait for SSH to respond at {{ ansible_host }}
@@ -210,7 +221,7 @@
     opts: "{{ media_stack_nfs_opts }}"
     state: mounted
 
-- name: Create local data directory and jellyfin cache
+- name: Create local data and config directories
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
@@ -220,23 +231,13 @@
   loop:
     - "{{ media_stack_data_dir }}"
     - "{{ media_stack_data_dir }}/jellyfin/cache"
-
-- name: Create service config directories on NFS
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: directory
-    owner: "{{ media_stack_puid }}"
-    group: "{{ media_stack_pgid }}"
-    mode: "0755"
-  loop:
-    - "{{ media_stack_nfs_mount }}/config"
-    - "{{ media_stack_nfs_mount }}/config/sonarr"
-    - "{{ media_stack_nfs_mount }}/config/radarr"
-    - "{{ media_stack_nfs_mount }}/config/bazarr"
-    - "{{ media_stack_nfs_mount }}/config/prowlarr"
-    - "{{ media_stack_nfs_mount }}/config/qbittorrent"
-    - "{{ media_stack_nfs_mount }}/config/jellyfin"
-    - "{{ media_stack_nfs_mount }}/config/lettarrboxd"
+    - "{{ media_stack_data_dir }}/config/sonarr"
+    - "{{ media_stack_data_dir }}/config/radarr"
+    - "{{ media_stack_data_dir }}/config/bazarr"
+    - "{{ media_stack_data_dir }}/config/prowlarr"
+    - "{{ media_stack_data_dir }}/config/qbittorrent"
+    - "{{ media_stack_data_dir }}/config/jellyfin"
+    - "{{ media_stack_data_dir }}/config/lettarrboxd"
 
 - name: Prefer IPv4 over IPv6 for DNS resolution
   ansible.builtin.lineinfile:
@@ -363,7 +364,7 @@
 
 - name: Create lettarrboxd data directories
   ansible.builtin.file:
-    path: "{{ media_stack_nfs_mount }}/config/lettarrboxd/{{ item.name }}"
+    path: "{{ media_stack_data_dir }}/config/lettarrboxd/{{ item.name }}"
     state: directory
     owner: "{{ media_stack_puid }}"
     group: "{{ media_stack_pgid }}"
