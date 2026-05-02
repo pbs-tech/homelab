@@ -72,6 +72,10 @@ services:
       - "{{ prowlarr_port }}:{{ prowlarr_port }}"
     networks:
       - arr_network
+{% if qbittorrent_vpn_enabled | bool %}
+    depends_on:
+      - gluetun
+{% endif %}
     restart: {{ media_stack_restart_policy }}
     mem_limit: {{ prowlarr_memory }}
 

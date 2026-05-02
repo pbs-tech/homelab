@@ -84,6 +84,11 @@ media_stack_dns_servers:
 media_stack_traefik_ip: "192.168.0.205"
 media_stack_configure_firewall: true
 
+# Config backup — rsync local configs to NFS so TrueNAS ZFS snapshots capture them.
+# TrueNAS periodic snapshots on the dataset cover the rest.
+media_stack_config_backup_dest: "{{ media_stack_nfs_mount }}/config-backup/media-stack"
+media_stack_config_backup_interval_hours: 6
+
 # Lettarrboxd — syncs Letterboxd watchlists to Radarr.
 # Define one entry per list. Set vault_radarr_api_key in vault.yml.
 # Example (set in host_vars or group_vars):

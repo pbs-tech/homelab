@@ -221,7 +221,7 @@
     opts: "{{ media_stack_nfs_opts }}"
     state: mounted
 
-- name: Create local data and config directories
+- name: Create local service directories (configs on local disk — SQLite WAL mode is unsafe on NFS)
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
@@ -230,7 +230,6 @@
     mode: "0755"
   loop:
     - "{{ media_stack_data_dir }}"
-    - "{{ media_stack_data_dir }}/jellyfin/cache"
     - "{{ media_stack_data_dir }}/config/sonarr"
     - "{{ media_stack_data_dir }}/config/radarr"
     - "{{ media_stack_data_dir }}/config/bazarr"
@@ -238,6 +237,7 @@
     - "{{ media_stack_data_dir }}/config/qbittorrent"
     - "{{ media_stack_data_dir }}/config/jellyfin"
     - "{{ media_stack_data_dir }}/config/lettarrboxd"
+    - "{{ media_stack_data_dir }}/jellyfin/cache"
 
 - name: Prefer IPv4 over IPv6 for DNS resolution
   ansible.builtin.lineinfile:
@@ -362,7 +362,7 @@
   register: _image_pull
   until: _image_pull is succeeded
 
-- name: Create lettarrboxd data directories
+- name: Create lettarrboxd instance data directories
   ansible.builtin.file:
     path: "{{ media_stack_data_dir }}/config/lettarrboxd/{{ item.name }}"
     state: directory
@@ -404,6 +404,28 @@
   retries: 30
   delay: 10
   failed_when: false
+
+- name: Create config backup directory on NFS
+  ansible.builtin.file:
+    path: "{{ media_stack_config_backup_dest }}"
+    state: directory
+    owner: "{{ media_stack_puid }}"
+    group: "{{ media_stack_pgid }}"
+    mode: "0755"
+
+- name: Schedule config backup rsync to NFS
+  ansible.builtin.cron:
+    name: media-stack config backup
+    minute: "0"
+    hour: "*/{{ media_stack_config_backup_interval_hours }}"
+    job: >-
+      rsync -a --delete
+      --exclude='*.db-wal' --exclude='*.db-shm' --exclude='*.pid'
+      {{ media_stack_data_dir }}/config/
+      {{ media_stack_config_backup_dest }}/
+      >> /var/log/media-stack-backup.log 2>&1
+    user: root
+    state: present
 
 - name: Display media stack access information
   ansible.builtin.debug:

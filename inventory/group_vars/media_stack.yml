@@ -2,5 +2,3 @@
 lettarrboxd_instances:
   - name: mine
     letterboxd_url: "https://letterboxd.com/apeebl/watchlist/"
-  - name: hana
-    letterboxd_url: "https://letterboxd.com/hanamcrae/watchlist/"
