@@ -30,6 +30,21 @@
   when: dns_check.rc != 0
   tags: [molecule-notest]
 
+- name: Stop unattended-upgrades before apt operations
+  ansible.builtin.service:
+    name: unattended-upgrades
+    state: stopped
+  failed_when: false
+  tags: [molecule-notest]
+
+- name: Wait for dpkg/apt locks to clear
+  ansible.builtin.shell: |
+    while fuser /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock 2>/dev/null; do
+      sleep 2
+    done
+  changed_when: false
+  tags: [molecule-notest]
+
 - name: Update package cache
   ansible.builtin.apt:
     update_cache: true
@@ -39,6 +54,12 @@
   delay: 30
   until: apt_update is succeeded
   when: ansible_facts['os_family'] == "Debian"
+  tags: [molecule-notest]
+
+- name: Reconnect after apt operations
+  ansible.builtin.wait_for_connection:
+    timeout: 60
+    delay: 2
   tags: [molecule-notest]
 
 - name: Install common packages
