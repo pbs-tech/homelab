@@ -30,6 +30,13 @@
   when: dns_check.rc != 0
   tags: [molecule-notest]
 
+- name: Force IPv4 for apt to avoid IPv6 routing issues in LXC
+  ansible.builtin.copy:
+    content: 'Acquire::ForceIPv4 "true";'
+    dest: /etc/apt/apt.conf.d/99force-ipv4
+    mode: "0644"
+  tags: [molecule-notest]
+
 - name: Stop unattended-upgrades before apt operations
   ansible.builtin.service:
     name: unattended-upgrades
