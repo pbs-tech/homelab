@@ -1,0 +1,27 @@
+{
+  "distSpecVersion": "1.1.0",
+  "storage": {
+    "rootDirectory": "{{ zot_storage_dir }}"
+  },
+  "http": {
+    "address": "0.0.0.0",
+    "port": "{{ zot_port }}",
+    "auth": {
+      "htpasswd": {
+        "path": "{{ zot_config_dir }}/htpasswd"
+      }
+    }
+  },
+  "log": {
+    "level": "info",
+    "output": "{{ zot_log_dir }}/zot.log"
+  },
+  "extensions": {
+    "search": {
+      "enable": true
+    },
+    "ui": {
+      "enable": true
+    }
+  }
+}

@@ -1,5 +1,9 @@
 ---
-# Common setup tasks for all infrastructure components
+- name: Wait for SSH connection to stabilise
+  ansible.builtin.wait_for_connection:
+    delay: 5
+    timeout: 300
+  tags: [molecule-notest]
 
 - name: Wait for network connectivity
   ansible.builtin.wait_for:
@@ -30,6 +34,30 @@
   when: dns_check.rc != 0
   tags: [molecule-notest]
 
+- name: Force IPv4 for apt to avoid IPv6 routing issues in LXC
+  ansible.builtin.copy:
+    content: 'Acquire::ForceIPv4 "true";'
+    dest: /etc/apt/apt.conf.d/99force-ipv4
+    mode: "0644"
+  tags: [molecule-notest]
+
+- name: Stop and mask apt timers to prevent SSH disruption during package ops  # noqa: command-instead-of-module
+  ansible.builtin.shell: |
+    systemctl stop unattended-upgrades apt-daily.service apt-daily-upgrade.service 2>/dev/null || true
+    systemctl mask unattended-upgrades apt-daily.service apt-daily-upgrade.service \
+      apt-daily.timer apt-daily-upgrade.timer 2>/dev/null || true
+  changed_when: false
+  failed_when: false
+  tags: [molecule-notest]
+
+- name: Wait for dpkg/apt locks to clear
+  ansible.builtin.shell: |
+    while fuser /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock /var/cache/apt/archives/lock 2>/dev/null; do
+      sleep 2
+    done
+  changed_when: false
+  tags: [molecule-notest]
+
 - name: Update package cache
   ansible.builtin.apt:
     update_cache: true
@@ -38,13 +66,29 @@
   retries: 5
   delay: 30
   until: apt_update is succeeded
-  when: ansible_os_family == "Debian"
+  when: ansible_facts['os_family'] == "Debian"
+  tags: [molecule-notest]
+
+- name: Reconnect after apt operations
+  ansible.builtin.wait_for_connection:
+    timeout: 120
+    delay: 5
   tags: [molecule-notest]
 
 - name: Install common packages
   ansible.builtin.package:
-    name: "{{ common_packages[ansible_distribution | lower] | default(common_packages.ubuntu) }}"
+    name: "{{ common_packages[ansible_facts['distribution'] | lower] | default(common_packages.ubuntu) }}"
     state: present
+  register: pkg_install
+  retries: 3
+  delay: 30
+  until: pkg_install is succeeded
+  tags: [molecule-notest]
+
+- name: Reconnect after package installation
+  ansible.builtin.wait_for_connection:
+    timeout: 120
+    delay: 5
   tags: [molecule-notest]
 
 - name: Set timezone

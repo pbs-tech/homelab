@@ -235,6 +235,75 @@
     - containers
     - state
 
+- name: Wait for container systemd to be ready
+  ansible.builtin.shell:
+    cmd: |
+      pct exec {{ container_vmid | int }} -- bash -c '
+        systemctl is-system-running --wait 2>/dev/null || true
+      '
+    executable: /bin/bash
+  delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  changed_when: false
+  failed_when: false
+  retries: 12
+  delay: 5
+  tags:
+    - proxmox
+    - lxc
+    - containers
+
+- name: Drain any in-flight apt/dpkg before masking services
+  ansible.builtin.shell:
+    cmd: |
+      pct exec {{ container_vmid | int }} -- bash -c '
+        # Wait for any already-running apt/dpkg to finish naturally — killing
+        # dpkg mid-run corrupts the package DB. Once locks are released every
+        # package operation is complete (openssh-server restart included).
+        timeout=300
+        elapsed=0
+        while fuser /var/lib/dpkg/lock-frontend \
+                    /var/lib/apt/lists/lock \
+                    /var/cache/apt/archives/lock 2>/dev/null; do
+          sleep 2
+          elapsed=$((elapsed + 2))
+          if [ $elapsed -ge $timeout ]; then break; fi
+        done
+      '
+    executable: /bin/bash
+  delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  changed_when: false
+  failed_when: false
+  tags:
+    - proxmox
+    - lxc
+    - containers
+
+- name: Mask apt services and timers after drain
+  ansible.builtin.shell:
+    cmd: |
+      pct exec {{ container_vmid | int }} -- bash -c '
+        systemctl stop unattended-upgrades apt-daily.service apt-daily-upgrade.service 2>/dev/null || true
+        systemctl mask unattended-upgrades apt-daily.service apt-daily-upgrade.service \
+          apt-daily.timer apt-daily-upgrade.timer 2>/dev/null || true
+      '
+    executable: /bin/bash
+  delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  changed_when: false
+  failed_when: false
+  tags:
+    - proxmox
+    - lxc
+    - containers
+
 - name: Fix SSH in container (Ubuntu 22.04 socket activation kills sshd in LXC)
   ansible.builtin.shell:
     cmd: |
@@ -343,10 +412,23 @@
     - containers
     - user_setup
 
+- name: Wait for SSH port before connectivity check
+  ansible.builtin.wait_for:
+    host: "{{ ansible_host }}"
+    port: 22
+    delay: 2
+    timeout: 120
+    search_regex: OpenSSH
+  delegate_to: localhost
+  become: false
+  tags:
+    - connectivity
+    - user_setup
+
 - name: Verify ansible user SSH connectivity
   ansible.builtin.wait_for_connection:
     delay: 5
-    timeout: 60
+    timeout: 120
   tags:
     - connectivity
     - user_setup

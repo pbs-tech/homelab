@@ -7,6 +7,8 @@ ansible_user: ansible
 # Enable privilege escalation for container management tasks
 ansible_become: true
 ansible_become_method: sudo
+# Keep SSH mux alive for 10 min — apt operations on fresh containers exceed the default 60s
+ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o ControlPersist=600s'
 
 # Flat Proxmox variables required by API validation tasks
 # These reference the nested proxmox_config based on the host's proxmox_node

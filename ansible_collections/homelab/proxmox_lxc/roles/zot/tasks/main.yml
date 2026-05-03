@@ -1,0 +1,122 @@
+---
+- name: Validate required Zot variables
+  ansible.builtin.assert:
+    that:
+      - zot_admin_user is defined
+      - zot_admin_user | length > 0
+      - zot_admin_password is defined
+      - zot_admin_password | length >= 12
+    fail_msg: "vault_zot_admin_user and vault_zot_admin_password (min 12 chars) must be set in vault"
+  tags: validate
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Install required packages
+  ansible.builtin.apt:
+    name:
+      - python3-passlib
+      - python3-bcrypt
+    state: present
+
+- name: Create zot group
+  ansible.builtin.group:
+    name: "{{ zot_group }}"
+    system: true
+    state: present
+
+- name: Create zot user
+  ansible.builtin.user:
+    name: "{{ zot_user }}"
+    group: "{{ zot_group }}"
+    system: true
+    shell: /usr/sbin/nologin
+    home: "{{ zot_storage_dir }}"
+    create_home: false
+
+- name: Create zot config and storage directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ zot_user }}"
+    group: "{{ zot_group }}"
+    mode: "0750"
+  loop:
+    - "{{ zot_config_dir }}"
+    - "{{ zot_storage_dir }}"
+
+- name: Create zot log directory
+  ansible.builtin.file:
+    path: "{{ zot_log_dir }}"
+    state: directory
+    owner: "{{ zot_user }}"
+    group: "{{ zot_group }}"
+    mode: "0755"
+
+- name: Check if zot binary is installed
+  ansible.builtin.stat:
+    path: /usr/local/bin/zot
+  register: zot_binary
+
+- name: Download zot binary
+  ansible.builtin.get_url:
+    url: "https://github.com/project-zot/zot/releases/download/v{{ zot_version }}/zot-linux-amd64"
+    dest: /usr/local/bin/zot
+    mode: "0755"
+    owner: root
+    group: root
+  when: not zot_binary.stat.exists
+
+- name: Create/update htpasswd file for admin user
+  community.general.htpasswd:
+    path: "{{ zot_config_dir }}/htpasswd"
+    name: "{{ zot_admin_user }}"
+    password: "{{ zot_admin_password }}"
+    crypt_scheme: bcrypt
+    owner: "{{ zot_user }}"
+    group: "{{ zot_group }}"
+    mode: "0640"
+  no_log: true
+  notify: Restart zot
+
+- name: Deploy zot configuration
+  ansible.builtin.template:
+    src: config.json.j2
+    dest: "{{ zot_config_dir }}/config.json"
+    owner: "{{ zot_user }}"
+    group: "{{ zot_group }}"
+    mode: "0644"
+  notify: Restart zot
+
+- name: Deploy zot systemd service
+  ansible.builtin.template:
+    src: zot.service.j2
+    dest: /etc/systemd/system/zot.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart zot
+
+- name: Configure UFW firewall for Zot
+  community.general.ufw:
+    rule: allow
+    port: "{{ zot_port }}"
+    proto: tcp
+    comment: "Zot OCI Registry"
+  when: zot_configure_firewall
+
+- name: Enable and start zot
+  ansible.builtin.systemd:
+    name: zot
+    enabled: true
+    state: started
+
+- name: Wait for Zot to be ready
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ zot_port }}"
+    delay: 2
+    timeout: 30

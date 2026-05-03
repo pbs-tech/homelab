@@ -1,0 +1,6 @@
+---
+# OCI registry container resources
+lxc_cores: 1
+lxc_memory: 512
+lxc_swap: 0
+lxc_disk_size: 20
