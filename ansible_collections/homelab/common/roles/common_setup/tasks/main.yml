@@ -90,6 +90,12 @@
   until: pkg_install is succeeded
   tags: [molecule-notest]
 
+- name: Reconnect after package installation
+  ansible.builtin.wait_for_connection:
+    timeout: 120
+    delay: 5
+  tags: [molecule-notest]
+
 - name: Set timezone
   community.general.timezone:
     name: "{{ timezone }}"
