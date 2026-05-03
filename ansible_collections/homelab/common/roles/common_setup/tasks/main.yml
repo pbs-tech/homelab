@@ -37,16 +37,23 @@
     mode: "0644"
   tags: [molecule-notest]
 
-- name: Stop unattended-upgrades before apt operations
-  ansible.builtin.service:
-    name: unattended-upgrades
+- name: Stop and mask apt timers to prevent SSH disruption during package ops
+  ansible.builtin.systemd:
+    name: "{{ item }}"
     state: stopped
+    masked: true
+  loop:
+    - unattended-upgrades
+    - apt-daily.service
+    - apt-daily-upgrade.service
+    - apt-daily.timer
+    - apt-daily-upgrade.timer
   failed_when: false
   tags: [molecule-notest]
 
 - name: Wait for dpkg/apt locks to clear
   ansible.builtin.shell: |
-    while fuser /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock 2>/dev/null; do
+    while fuser /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock /var/cache/apt/archives/lock 2>/dev/null; do
       sleep 2
     done
   changed_when: false
@@ -65,14 +72,18 @@
 
 - name: Reconnect after apt operations
   ansible.builtin.wait_for_connection:
-    timeout: 60
-    delay: 2
+    timeout: 120
+    delay: 5
   tags: [molecule-notest]
 
 - name: Install common packages
   ansible.builtin.package:
     name: "{{ common_packages[ansible_facts['distribution'] | lower] | default(common_packages.ubuntu) }}"
     state: present
+  register: pkg_install
+  retries: 3
+  delay: 30
+  until: pkg_install is succeeded
   tags: [molecule-notest]
 
 - name: Set timezone
