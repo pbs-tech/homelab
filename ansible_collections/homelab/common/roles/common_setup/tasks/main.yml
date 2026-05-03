@@ -1,5 +1,9 @@
 ---
-# Common setup tasks for all infrastructure components
+- name: Wait for SSH connection to stabilise
+  ansible.builtin.wait_for_connection:
+    delay: 5
+    timeout: 300
+  tags: [molecule-notest]
 
 - name: Wait for network connectivity
   ansible.builtin.wait_for:
