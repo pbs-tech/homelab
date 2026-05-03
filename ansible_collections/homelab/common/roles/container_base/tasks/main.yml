@@ -255,16 +255,42 @@
     - lxc
     - containers
 
-- name: Stop and mask apt services before SSH fix to prevent openssh-server restart
+- name: Drain any in-flight apt/dpkg before masking services
+  ansible.builtin.shell:
+    cmd: |
+      pct exec {{ container_vmid | int }} -- bash -c '
+        # Wait for any already-running apt/dpkg to finish naturally — killing
+        # dpkg mid-run corrupts the package DB. Once locks are released every
+        # package operation is complete (openssh-server restart included).
+        timeout=300
+        elapsed=0
+        while fuser /var/lib/dpkg/lock-frontend \
+                    /var/lib/apt/lists/lock \
+                    /var/cache/apt/archives/lock 2>/dev/null; do
+          sleep 2
+          elapsed=$((elapsed + 2))
+          if [ $elapsed -ge $timeout ]; then break; fi
+        done
+      '
+    executable: /bin/bash
+  delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"
+  become: true
+  vars:
+    ansible_user: ansible
+  changed_when: false
+  failed_when: false
+  tags:
+    - proxmox
+    - lxc
+    - containers
+
+- name: Mask apt services and timers after drain
   ansible.builtin.shell:
     cmd: |
       pct exec {{ container_vmid | int }} -- bash -c '
         systemctl stop unattended-upgrades apt-daily.service apt-daily-upgrade.service 2>/dev/null || true
         systemctl mask unattended-upgrades apt-daily.service apt-daily-upgrade.service \
           apt-daily.timer apt-daily-upgrade.timer 2>/dev/null || true
-        while fuser /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock /var/cache/apt/archives/lock 2>/dev/null; do
-          sleep 2
-        done
       '
     executable: /bin/bash
   delegate_to: "{{ proxmox_config[proxmox_node | default(proxmox_default_node)].host }}"

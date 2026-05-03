@@ -41,17 +41,12 @@
     mode: "0644"
   tags: [molecule-notest]
 
-- name: Stop and mask apt timers to prevent SSH disruption during package ops
-  ansible.builtin.systemd:
-    name: "{{ item }}"
-    state: stopped
-    masked: true
-  loop:
-    - unattended-upgrades
-    - apt-daily.service
-    - apt-daily-upgrade.service
-    - apt-daily.timer
-    - apt-daily-upgrade.timer
+- name: Stop and mask apt timers to prevent SSH disruption during package ops  # noqa: command-instead-of-module
+  ansible.builtin.shell: |
+    systemctl stop unattended-upgrades apt-daily.service apt-daily-upgrade.service 2>/dev/null || true
+    systemctl mask unattended-upgrades apt-daily.service apt-daily-upgrade.service \
+      apt-daily.timer apt-daily-upgrade.timer 2>/dev/null || true
+  changed_when: false
   failed_when: false
   tags: [molecule-notest]
 
